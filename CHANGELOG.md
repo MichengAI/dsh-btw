@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-06
+
 - Limit each session to 20 side-question bubbles. At capacity, close the oldest completed bubble before accepting a new question; failed closure preserves answers and the current input with a localized message.
 - Show localized retry messages when cleanup fails during closure and keep host error details in logs.
 - Preserve completed answers when resource cleanup fails, with close retries still available.
