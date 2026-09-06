@@ -29,7 +29,6 @@
     "lib",
     "assets",
     "cordis.patch.yml",
-    "docs",
     "README.md",
     "README.zh-CN.md",
     "CHANGELOG.md",

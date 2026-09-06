@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/dsh-btw-banner.png" alt="DSH BTW" width="100%">
+</p>
+
 <div align="center">
 
 # DSH BTW
@@ -147,7 +151,7 @@ Each question is limited to 8,000 characters, with a 90-second timeout and at mo
 
 Bubbles are stored in client memory only and are not restored after a refresh. Appearance follows the current DSH theme, independently of the operating system's dark-mode preference. UI translations update through the host locale service; server messages use the language at submission time. Model answers and original external errors are not translated.
 
-Local installation and outstanding acceptance checks are tracked in [Current Status](docs/00-交接入口/02-当前状态.md). Runtime and simulated-host tests do not replace actual DSH model and interaction checks.
+Runtime and simulated-host tests do not replace actual DSH model and interaction checks.
 
 ## Uninstallation
 
@@ -189,15 +193,6 @@ References from [`@narumitw/pi-btw` 0.57.0](https://pi.dev/packages/@narumitw/pi
 - Do not write answers back to the main task by default. BTW only displays independent bubbles and does not bind history-navigation keys.
 
 Pi calls the model directly without tools; BTW uses one-shot child agents. Pi's full-screen TUI, multi-turn recovery, and write-back features are not included.
-
-## Project Documentation
-
-The engineering documents are maintained in Chinese:
-
-- [Reading Guide](docs/00-交接入口/00-阅读导航.md)
-- [Current Status](docs/00-交接入口/02-当前状态.md)
-- [Outstanding Work](docs/00-交接入口/03-待办与阻塞.md)
-- [Automated Testing and Publishing](docs/05-工程交付/01-自动发布.md)
 
 ## License
 
