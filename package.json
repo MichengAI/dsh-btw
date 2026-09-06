@@ -1,6 +1,6 @@
 {
   "name": "@michengai/dsh-btw",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "DSH 一次性只读旁问气泡",
   "repository": {
     "type": "git",
@@ -27,7 +27,6 @@
   },
   "files": [
     "lib",
-    "assets",
     "cordis.patch.yml",
     "README.md",
     "README.zh-CN.md",
@@ -56,9 +55,6 @@
     "test": "vitest run",
     "test:release": "node --test tests/release.test.mjs tests/npm-oidc.test.mjs",
     "check": "npm run typecheck && npm test && npm run test:release && npm run build",
-    "preview": "vite preview --host 127.0.0.1",
-    "dev": "vite --host 127.0.0.1",
-    "test:browser": "playwright test",
     "prepack": "npm run build"
   },
   "engines": {
@@ -92,18 +88,14 @@
     "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
     "@deepseek-ai/dsh-typert-protocol": "0.1.2-rc.1",
     "@deepseek-ai/dsh-typert-registry": "0.1.2-rc.1",
-    "@playwright/test": "^1.58.0",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.1",
     "esbuild": "^0.25.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "typescript": "~5.7.2",
-    "vite": "^6.4.0",
     "vitest": "^3.2.0"
   }
 }

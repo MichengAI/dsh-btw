@@ -124,7 +124,7 @@ npm ci --ignore-scripts
 npm run check
 ```
 
-`npm run check` 执行类型检查、测试和构建。构建后可运行 `npm run test:browser` 做浏览器测试，本地需要 Microsoft Edge。`npm run dev` 提供使用模拟回答的界面预览。
+`npm run check` 执行类型检查、测试和构建。
 
 从源码安装时，在项目目录执行 `dsh plugin --profile web add . --ignore-scripts`，然后重新加载 DSH。
 

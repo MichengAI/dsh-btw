@@ -32,19 +32,3 @@ jobs:
         run: npm ci --ignore-scripts --registry=https://registry.npmjs.org/
       - name: 类型、运行时测试与构建
         run: npm run check
-      - name: 安装浏览器
-        if: matrix.node == 24
-        run: npx --no-install playwright install --with-deps chromium
-      - name: 桌面与移动端浏览器回归
-        if: matrix.node == 24
-        run: npm run test:browser
-      - name: 保留失败证据
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-failure-node-${{ matrix.node }}
-          path: |
-            test-results/
-            artifacts/*.png
-          if-no-files-found: ignore
-          retention-days: 7

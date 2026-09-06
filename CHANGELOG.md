@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-07
+
+- Exclude repository-only screenshots and branding images from the published npm tarball, reducing the package size while keeping README images available on GitHub.
+- Remove the standalone mock preview and its mock-only browser test so the repository no longer presents it as a real DSH plugin page.
+
 ## [0.1.3] - 2026-09-06
 
 - Fix the package path in GitHub Actions so npm treats the tarball as a local file, and validate it with an npm publish dry run before publishing.

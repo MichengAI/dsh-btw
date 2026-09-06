@@ -126,7 +126,7 @@ npm ci --ignore-scripts
 npm run check
 ```
 
-`npm run check` runs type checking, tests, and a build. After building, use `npm run test:browser` for browser tests; Microsoft Edge is required locally. `npm run dev` provides a UI preview with mock answers.
+`npm run check` runs type checking, tests, and a build.
 
 To install from source, run `dsh plugin --profile web add . --ignore-scripts` from the project directory, then reload DSH.
 
