@@ -38,7 +38,7 @@ export function apply(ctx: Context): void {
     submit: async (args, _actx, images) => {
       if (images.length) return { kind: 'error', text: t('error.images') }
       try {
-        store.ask(sessionId, args.trim())
+        await store.ask(sessionId, args.trim())
         return { kind: 'success' }
       } catch (error) { return { kind: 'error', text: error instanceof Error ? error.message : String(error) } }
     },

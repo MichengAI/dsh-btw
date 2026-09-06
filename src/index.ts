@@ -22,6 +22,7 @@ export function apply(ctx: Context): void {
   const labels = new Set<string>()
   // 保护由宿主拥有，避免插件卸载超时后让尚未释放的子代理失去工具限制。
   // 保留当前服务作用域，只延长 effect 的所有权；最后一个资源释放后注销。
+  // 若资源始终未释放，保护保留至宿主退出，不能以清理超时作为注销依据。
   const releaseGuard = ctx.extend({ fiber: ctx.root.fiber }).tools.guard(createAnswerOnlyGuard(labels))
   const jobs = new SideJobs(async request => {
     const provider = ctx.subagents.getProvider('fork')

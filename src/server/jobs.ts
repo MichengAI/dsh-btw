@@ -83,7 +83,10 @@ export class SideJobs {
     try {
       await this.cleanup(job)
       return { kind: 'success', text: '' }
-    } catch (error) { return failure(error) }
+    } catch (error) {
+      this.report(job, error)
+      return failure(job.t('error.cleanup', { detail: '' }).trim())
+    }
   }
 
   async dispose(): Promise<void> {

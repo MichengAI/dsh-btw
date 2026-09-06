@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Limit each session to 20 side-question bubbles. At capacity, close the oldest completed bubble before accepting a new question; failed closure preserves answers and the current input with a localized message.
+- Show localized retry messages when cleanup fails during closure and keep host error details in logs.
 - Preserve completed answers when resource cleanup fails, with close retries still available.
 - Bound startup cancellation and cleanup waits while retaining ownership of late child agents. Cleanup errors no longer block plugin unload, and unreleased children remain protected from tool execution.
 - Retain recent bubbles per session so questions in another session cannot evict answers. Failed cleanup during eviction keeps the bubble available for retry.

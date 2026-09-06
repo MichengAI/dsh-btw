@@ -1,6 +1,26 @@
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
+test('满二十条时关闭最旧气泡后继续提问，输入和布局正常', async ({ page }, testInfo) => {
+  test.setTimeout(60_000)
+  await page.goto('/')
+  const input = page.getByRole('textbox')
+  for (let index = 0; index < 21; index++) {
+    await input.fill(`/btw 问题 ${index}`)
+    await input.press('Enter')
+    await expect(input).toHaveValue('')
+    await expect(page.locator('.btw-answer').last()).toBeVisible()
+    await expect(page.getByRole('article')).toHaveCount(Math.min(index + 1, 20))
+    await expect(page.locator('.btw-status')).toHaveCount(0)
+  }
+  await expect(page.locator('.btw-question').first()).toHaveText('问题 1')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  const dock = await page.locator('.btw-dock').boundingBox()
+  const composer = await input.boundingBox()
+  expect(dock!.y + dock!.height).toBeLessThanOrEqual(composer!.y)
+  await page.screenshot({ path: `artifacts/btw-capacity-${testInfo.project.name}.png`, fullPage: true })
+})
+
 for (const systemTheme of ['light', 'dark'] as const) {
   test(`宿主主题优先于系统 ${systemTheme} 偏好，浅深色对比度合格`, async ({ page }, testInfo) => {
     const errors: string[] = []

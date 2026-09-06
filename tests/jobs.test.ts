@@ -12,6 +12,22 @@ const tick = () => new Promise<void>(resolve => setImmediate(resolve))
 afterEach(() => { vi.useRealTimers() })
 
 describe('一次性旁问生命周期', () => {
+  it.each(['zh', 'en'] as const)('关闭失败返回本地化提示，原始错误记日志且保留额度（%s）', async locale => {
+    const dispose = vi.fn().mockRejectedValue(new Error('provider internal failure'))
+    const onError = vi.fn()
+    const jobs = new SideJobs(async () => ({ result: Promise.resolve(answer), dispose }), 90_000, { onError })
+    expect((await jobs.ask('A', 'request01', '问题', undefined, undefined, locale)).kind).toBe('success')
+    onError.mockClear()
+    expect(await jobs.close('A', 'request01')).toEqual({ kind: 'error', text: locale === 'zh'
+      ? '资源清理失败，请再次关闭重试。'
+      : 'Cleanup failed. Close again to retry.' })
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('provider internal failure') }))
+    expect(jobs.size).toBe(1)
+    dispose.mockResolvedValue(undefined)
+    expect((await jobs.close('A', 'request01')).kind).toBe('success')
+    expect(jobs.size).toBe(0)
+  })
+
   it('正常完成后释放子代理，强制空工具白名单', async () => {
     const dispose = vi.fn(async () => {})
     const start = vi.fn<StartChild>(async () => ({ result: Promise.resolve(answer), dispose }))
