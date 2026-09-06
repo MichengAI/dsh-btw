@@ -1,0 +1,50 @@
+name: 测试
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node.js ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    env:
+      DSH_RUNTIME_ROOT: ${{ github.workspace }}/node_modules
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+      - name: 配置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: 安装锁定依赖
+        run: npm ci --ignore-scripts --registry=https://registry.npmjs.org/
+      - name: 类型、运行时测试与构建
+        run: npm run check
+      - name: 安装浏览器
+        if: matrix.node == 24
+        run: npx --no-install playwright install --with-deps chromium
+      - name: 桌面与移动端浏览器回归
+        if: matrix.node == 24
+        run: npm run test:browser
+      - name: 保留失败证据
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-node-${{ matrix.node }}
+          path: |
+            test-results/
+            artifacts/*.png
+          if-no-files-found: ignore
+          retention-days: 7
