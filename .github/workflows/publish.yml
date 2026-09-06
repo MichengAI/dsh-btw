@@ -53,7 +53,7 @@ jobs:
           node scripts/release-notes.mjs $tag artifacts/release-notes.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
-          "RELEASE_FILE=artifacts/michengai-dsh-btw-$($package.version).tgz" >> $env:GITHUB_ENV
+          "RELEASE_FILE=./artifacts/michengai-dsh-btw-$($package.version).tgz" >> $env:GITHUB_ENV
       - name: 安装锁定依赖
         run: npm ci --ignore-scripts --registry=https://registry.npmjs.org/
       - name: 构建
@@ -63,6 +63,8 @@ jobs:
           npm pack --ignore-scripts --pack-destination artifacts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/check-package.mjs $env:RELEASE_FILE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm publish $env:RELEASE_FILE --access public --dry-run --ignore-scripts
       - name: 保存安装包与双语说明
         uses: actions/upload-artifact@v4
         with:

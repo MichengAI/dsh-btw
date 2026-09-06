@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-06
+
+- Fix the package path in GitHub Actions so npm treats the tarball as a local file, and validate it with an npm publish dry run before publishing.
+- Include the OIDC authorization check and its failure and credential-handling tests prepared for 0.1.2, whose publication failed before uploading a package.
+- Remove the references and credits section from both READMEs. Plugin behavior is unchanged.
+
 ## [0.1.2] - 2026-09-06
 
 - Add a GitHub Actions dry-run check that verifies the configured npm trusted publisher by exchanging an OIDC identity for a short-lived publishing credential without uploading a package.
