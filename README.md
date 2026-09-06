@@ -56,9 +56,21 @@ Each answer has its own copy, collapse or expand, and close controls in the uppe
 
 ## Installation
 
-The current version is `0.1.0` and has not been published to npm yet. Install from local source or a built package.
+Install from npm, local source, or a built package.
 
-Source repository: <https://github.com/MichengAI/dsh-btw>. Once a GitHub Release is available, its `.tgz` package can also be downloaded from [Releases](https://github.com/MichengAI/dsh-btw/releases).
+Source repository: <https://github.com/MichengAI/dsh-btw>. Download `.tgz` packages from [Releases](https://github.com/MichengAI/dsh-btw/releases).
+
+### From npm
+
+```powershell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/
+dsh --profile web --dump-config
+```
+
+Use `@0.1.0` instead of `@latest` to pin the first release. Reload DSH after installation as described below.
 
 ### From local source
 

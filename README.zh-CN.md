@@ -56,9 +56,21 @@ DSH BTW 是社区维护的 DSH Web 插件，也可用于承载 Web 客户端的�
 
 ## 安装
 
-当前版本为 `0.1.0`，尚未发布到 npm，使用本地源码或构建包安装。
+支持从 npm、本地源码或构建包安装。
 
-源码仓库：<https://github.com/MichengAI/dsh-btw>。已有 GitHub Release 时，也可从 [Releases](https://github.com/MichengAI/dsh-btw/releases) 下载 `.tgz` 安装包。
+源码仓库：<https://github.com/MichengAI/dsh-btw>。也可从 [Releases](https://github.com/MichengAI/dsh-btw/releases) 下载 `.tgz` 安装包。
+
+### 从 npm 安装
+
+```powershell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/
+dsh --profile web --dump-config
+```
+
+将 `@latest` 替换为 `@0.1.0` 可固定首个版本。安装后按下文说明重新加载 DSH。
 
 ### 从本地源码安装
 
