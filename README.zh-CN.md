@@ -128,10 +128,6 @@ npm run check
 
 从源码安装时，在项目目录执行 `dsh plugin --profile web add . --ignore-scripts`，然后重新加载 DSH。
 
-## 参考与致谢
-
-交互设计参考 [dsh-btw-plugin](https://github.com/JasonQQ/dsh-btw-plugin)、[dsh-AIR](https://github.com/kaieye/dsh-AIR) 和 [pi-btw](https://pi.dev/packages/@narumitw/pi-btw)，代码独立实现。
-
 ## 许可证
 
 [Apache-2.0](LICENSE) © 2026 MichengAI。

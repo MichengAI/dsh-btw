@@ -130,10 +130,6 @@ npm run check
 
 To install from source, run `dsh plugin --profile web add . --ignore-scripts` from the project directory, then reload DSH.
 
-## References and Credits
-
-Interaction design was informed by [dsh-btw-plugin](https://github.com/JasonQQ/dsh-btw-plugin), [dsh-AIR](https://github.com/kaieye/dsh-AIR), and [pi-btw](https://pi.dev/packages/@narumitw/pi-btw). This plugin is implemented independently.
-
 ## License
 
 [Apache-2.0](LICENSE). Copyright 2026 MichengAI.

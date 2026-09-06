@@ -6,6 +6,7 @@
 
 - Add a GitHub Actions dry-run check that verifies the configured npm trusted publisher by exchanging an OIDC identity for a short-lived publishing credential without uploading a package.
 - Add authorization failure and credential-handling tests for the release workflow. Plugin behavior is unchanged.
+- Remove the references and credits section from both READMEs.
 
 ## [0.1.1] - 2026-09-06
 
