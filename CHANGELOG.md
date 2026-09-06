@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-06
+
+- Add a GitHub Actions dry-run check that verifies the configured npm trusted publisher by exchanging an OIDC identity for a short-lived publishing credential without uploading a package.
+- Add authorization failure and credential-handling tests for the release workflow. Plugin behavior is unchanged.
+
 ## [0.1.1] - 2026-09-06
 
 - Limit each session to 20 side-question bubbles. At capacity, close the oldest completed bubble before accepting a new question; failed closure preserves answers and the current input with a localized message.

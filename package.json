@@ -1,6 +1,6 @@
 {
   "name": "@michengai/dsh-btw",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DSH 一次性只读旁问气泡",
   "repository": {
     "type": "git",
@@ -54,7 +54,7 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:release": "node --test tests/release.test.mjs",
+    "test:release": "node --test tests/release.test.mjs tests/npm-oidc.test.mjs",
     "check": "npm run typecheck && npm test && npm run test:release && npm run build",
     "preview": "vite preview --host 127.0.0.1",
     "dev": "vite --host 127.0.0.1",

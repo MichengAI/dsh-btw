@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 仅验证和打包，不创建 Release 或发布 npm
+        description: 验证、打包并检查已启用的 npm OIDC 授权，不发布版本
         type: boolean
         default: true
 
@@ -71,6 +71,9 @@ jobs:
             artifacts/*.tgz
             artifacts/release-notes.md
           if-no-files-found: error
+      - name: 验证 npm OIDC 发布授权
+        if: env.DRY_RUN == 'true' && vars.NPM_PUBLISH_ENABLED == 'true'
+        run: node scripts/verify-npm-oidc.mjs
       - name: 发布到 npm
         if: env.DRY_RUN != 'true' && vars.NPM_PUBLISH_ENABLED == 'true'
         run: npm publish $env:RELEASE_FILE --access public --provenance
