@@ -26,6 +26,9 @@ const effect = (fn: () => unknown) => {
   return result
 }
 const host = {
+  root: { fiber: {} },
+  extend: (_meta: unknown): unknown => host,
+  logger: { warn: (error: unknown) => console.warn(error) },
   tools: { guard: () => noop },
   commands: { register: (command: CommandDefinition) => { commands.set(command.name, command); return noop } },
   subagents: {

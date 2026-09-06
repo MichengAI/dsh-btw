@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- Preserve completed answers when resource cleanup fails, with close retries still available.
+- Bound startup cancellation and cleanup waits while retaining ownership of late child agents. Cleanup errors no longer block plugin unload, and unreleased children remain protected from tool execution.
+- Retain recent bubbles per session so questions in another session cannot evict answers. Failed cleanup during eviction keeps the bubble available for retry.
+- Format the community notice consistently as a blockquote in both READMEs.
+
 ## [0.1.0] - 2026-09-06
 
 - Add one-shot `/btw` questions that inherit completed turns from the main session and answer without executing tools.

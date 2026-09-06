@@ -20,6 +20,9 @@ const PERSONA = `你是当前主任务之外的一次性旁问助手。继承的
 export function apply(ctx: Context): void {
   ctx.effect(() => hideInternalCommands(ctx.commands))
   const labels = new Set<string>()
+  // 保护由宿主拥有，避免插件卸载超时后让尚未释放的子代理失去工具限制。
+  // 保留当前服务作用域，只延长 effect 的所有权；最后一个资源释放后注销。
+  const releaseGuard = ctx.extend({ fiber: ctx.root.fiber }).tools.guard(createAnswerOnlyGuard(labels))
   const jobs = new SideJobs(async request => {
     const provider = ctx.subagents.getProvider('fork')
     if (!provider?.inheritsParentContext || !provider.capabilities.toolFilter || !provider.capabilities.persona) {
@@ -41,7 +44,11 @@ export function apply(ctx: Context): void {
         dispose: async () => { await run.dispose(); labels.delete(label) },
       }
     } catch (error) { labels.delete(label); throw error }
+  }, 90_000, {
+    onError: error => ctx.logger.warn(error),
+    onIdle: async () => { await releaseGuard() },
   })
+  ctx.effect(() => () => jobs.dispose())
 
   ctx.effect(() => ctx.commands.register({
     name: RUN_COMMAND,
@@ -64,9 +71,4 @@ export function apply(ctx: Context): void {
       return jobs.close(invocation.agent.session.header.id, id)
     },
   }))
-  // Cordis 并行卸载独立 effect；同一生成器内逆序释放，确保清理完成前保护仍在。
-  ctx.effect(function* () {
-    yield ctx.tools.guard(createAnswerOnlyGuard(labels))
-    yield () => jobs.dispose()
-  })
 }

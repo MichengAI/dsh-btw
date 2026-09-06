@@ -16,9 +16,7 @@
 
 </div>
 
-Type `/btw your question` in the existing chat composer to get an answer based on your conversation's context. Answers appear in independent bubbles above the composer, ready for a quick explanation, recap, or follow-up question.
-
-DSH BTW is a community-maintained plugin for DSH Web and desktop apps that include DSH Web. It works directly in the stock interface.
+> DSH BTW is a community-maintained DeepSeek Harness plugin, not an official DeepSeek AI product. Type `/btw your question` in the current conversation to get a context-aware answer in an independent bubble without interrupting the main task. Supports DSH Web and desktop apps that include DSH Web.
 
 ## Features
 

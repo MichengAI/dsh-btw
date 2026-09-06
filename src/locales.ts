@@ -35,6 +35,7 @@ export const zh = {
   'error.incomplete': '旁问未完成（{reason}）。{detail}',
   'error.noText': '模型未返回文字回答。',
   'error.cleanup': '资源清理失败，请再次关闭重试。{detail}',
+  'error.cleanupTimeout': '资源释放仍未完成，请稍后重试关闭。',
 }
 export type MessageKey = keyof typeof zh
 export type BtwTranslate = Translate<MessageKey>
@@ -73,6 +74,7 @@ export const en: Record<MessageKey, string> = {
   'error.incomplete': 'The side question did not complete ({reason}).{detail}',
   'error.noText': 'The model returned no text.',
   'error.cleanup': 'Cleanup failed. Close again to retry. {detail}',
+  'error.cleanupTimeout': 'Resources are still being released. Try closing again shortly.',
 }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {

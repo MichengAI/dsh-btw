@@ -50,3 +50,34 @@ it('同步传输异常显示错误并释放请求额度', async () => {
   }
   expect(store.getSnapshot().every(item => item.phase === 'error' && item.error?.includes('连接未就绪'))).toBe(true)
 })
+
+it('只裁剪当前会话的历史气泡，不淘汰其他会话的答案', async () => {
+  const store = new BubbleStore({
+    run: async () => ({ kind: 'success', text: '回答' }),
+    close: async () => ({ kind: 'success', text: '' }),
+  })
+  store.ask('A', '保留的回答')
+  await new Promise(resolve => setImmediate(resolve))
+  for (let index = 0; index < 25; index++) {
+    store.ask('B', `问题 ${index}`)
+    await new Promise(resolve => setImmediate(resolve))
+  }
+  expect(store.getSnapshot().filter(item => item.sessionId === 'A')).toHaveLength(1)
+  expect(store.getSnapshot().filter(item => item.sessionId === 'B')).toHaveLength(20)
+})
+
+it('淘汰气泡先确认关闭，清理失败保留答案和重试入口', async () => {
+  const close = vi.fn().mockResolvedValue({ kind: 'error', text: '清理仍在等待' })
+  const store = new BubbleStore({ run: async () => ({ kind: 'success', text: '需要保留的答案' }), close })
+  const first = store.ask('A', '第一个问题')
+  await new Promise(resolve => setImmediate(resolve))
+  for (let index = 0; index < 20; index++) {
+    store.ask('A', `后续问题 ${index}`)
+    await new Promise(resolve => setImmediate(resolve))
+  }
+  expect(close).toHaveBeenCalledWith('A', first)
+  expect(store.getSnapshot().find(item => item.id === first)).toMatchObject({ answer: '需要保留的答案', closeFailed: true })
+  close.mockResolvedValue({ kind: 'success', text: '' })
+  await store.close(first)
+  expect(store.getSnapshot().find(item => item.id === first)).toBeUndefined()
+})

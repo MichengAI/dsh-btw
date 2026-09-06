@@ -32,9 +32,11 @@ export class BubbleStore {
     const id = crypto.randomUUID()
     const controller = new AbortController()
     this.active.set(id, controller)
-    const settled = this.snapshot.filter(item => !this.active.has(item.id)).slice(-19)
-    const running = this.snapshot.filter(item => this.active.has(item.id))
-    this.publish([...settled, ...running, { id, sessionId, question, answer: '', phase: 'answering' }])
+    const settled = this.snapshot.filter(item => item.sessionId === sessionId && !this.active.has(item.id) && !this.closing.has(item.id) && !item.closeFailed)
+    const evicted = settled.slice(0, Math.max(0, settled.length - 19))
+    this.publish([...this.snapshot, { id, sessionId, question, answer: '', phase: 'answering' }])
+    // 成功答案仍可能有待清理资源；关闭失败时保留气泡供用户重试。
+    for (const item of evicted) void this.close(item.id)
     void Promise.resolve().then(() => this.transport.run(sessionId, id, question, controller.signal)).then(result => {
       if (controller.signal.aborted || this.closing.has(id)) return
       this.update(id, { phase: result.kind === 'success' ? 'done' : 'error', answer: result.kind === 'success' ? result.text : '', error: result.kind === 'error' ? result.text : undefined })
