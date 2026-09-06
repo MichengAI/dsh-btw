@@ -31,6 +31,7 @@
     "cordis.patch.yml",
     "docs",
     "README.md",
+    "README.zh-CN.md",
     "CHANGELOG.md",
     "CHANGELOG.zh-CN.md",
     "LICENSE"
@@ -64,7 +65,7 @@
   "engines": {
     "node": ">=22"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
     "@deepseek-ai/dsh-commands": "0.1.2-rc.1",
