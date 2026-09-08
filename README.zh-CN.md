@@ -47,6 +47,23 @@
 
 ![多条旁问气泡及复制、折叠和关闭操作](assets/screenshots/btw-bubbles.png)
 
+## DSH 产品生态
+
+想直接使用完整工作台，可下载 [DSH Codex Desktop](https://github.com/MichengAI/dsh-codex-desktop/releases)；已有 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 环境，可按需独立安装以下 8 个自研插件。桌面端已随附这些插件。
+
+| 插件 | 你可以用它做什么 |
+| --- | --- |
+| [Codex UI](https://github.com/MichengAI/dsh-codex-ui) | 整理项目与会话、搜索任务、跳转对话轮次 |
+| [IM Connect](https://github.com/MichengAI/dsh-im-connect) | 从微信、飞书、钉钉等消息平台下任务、收回复 |
+| [Automation](https://github.com/MichengAI/dsh-automation) | 按计划执行任务，查看每次运行的结果 |
+| [Skills Manager](https://github.com/MichengAI/dsh-skills-manager) | 统一查找、启停、创建和导入本机技能 |
+| [Archive Manager](https://github.com/MichengAI/dsh-archive-manager) | 搜索、恢复或清理已归档会话 |
+| [Agency Agents](https://github.com/MichengAI/dsh-agency-agents) | 按任务选择并召唤专业角色 |
+| [BTW](https://github.com/MichengAI/dsh-btw) | 在当前上下文中临时旁问，不打断主任务 |
+| [Simplify](https://github.com/MichengAI/dsh-simplify) | 用 /simplify 整理 Git 改动范围内的代码 |
+
+桌面端介绍与下载站的源码见[官网仓库](https://github.com/MichengAI/dsh-codex-desktop-website)。
+
 ## 前置条件
 
 - 已安装 DeepSeek Harness，适配版本为 `0.1.2-rc.1`。
@@ -56,7 +73,15 @@
 
 以下命令使用 `web` profile，请按实际环境替换。安装前停用其他提供 `/btw` 命令的插件。
 
-### 从 npm 安装（推荐）
+### 让 Agent 帮你安装（推荐）
+
+把下面这段话发给任意能够执行本机终端命令的 Agent。将 `web` 替换为实际使用的 profile；安装完成后，在 DSH 中使用本插件。
+
+```text
+请将 DSH 插件 @michengai/dsh-btw 安装到本机 web profile，执行：dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/。安装后执行 dsh --profile web --dump-config，确认配置包含 michengai-btw，并告诉我如何重新加载 DSH 和开始使用。
+```
+
+### 手动从 npm 安装
 
 ```powershell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

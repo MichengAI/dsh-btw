@@ -47,6 +47,23 @@ Each answer has its own copy, collapse or expand, and close controls in the uppe
 
 ![Multiple answer bubbles with copy, collapse, and close controls](assets/screenshots/btw-bubbles.png)
 
+## DSH product ecosystem
+
+For a ready-to-use workbench, download [DSH Codex Desktop](https://github.com/MichengAI/dsh-codex-desktop/releases). If you already use [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), install any of these eight plugins individually. The desktop app includes all eight.
+
+| Plugin | What you can do |
+| --- | --- |
+| [Codex UI](https://github.com/MichengAI/dsh-codex-ui) | Organize projects and conversations, search tasks, and navigate chat turns |
+| [IM Connect](https://github.com/MichengAI/dsh-im-connect) | Send tasks and receive replies through your usual messenger |
+| [Automation](https://github.com/MichengAI/dsh-automation) | Schedule tasks and review each run |
+| [Skills Manager](https://github.com/MichengAI/dsh-skills-manager) | Find, enable, create, and import local skills |
+| [Archive Manager](https://github.com/MichengAI/dsh-archive-manager) | Search, restore, or clean up archived conversations |
+| [Agency Agents](https://github.com/MichengAI/dsh-agency-agents) | Choose and summon specialists for your task |
+| [BTW](https://github.com/MichengAI/dsh-btw) | Ask side questions without interrupting the main task |
+| [Simplify](https://github.com/MichengAI/dsh-simplify) | Use /simplify to improve code within your Git changes |
+
+The desktop introduction and download site is maintained in the [website repository](https://github.com/MichengAI/dsh-codex-desktop-website).
+
 ## Prerequisites
 
 - An installed copy of DeepSeek Harness. The supported baseline is `0.1.2-rc.1`.
@@ -56,7 +73,15 @@ Each answer has its own copy, collapse or expand, and close controls in the uppe
 
 Examples use the `web` profile; replace it with your target profile. Disable other plugins that provide `/btw` before installing.
 
-### From npm (Recommended)
+### Ask an agent to install it (recommended)
+
+Send the prompt below to any agent that can run terminal commands on your computer. Replace `web` with your actual profile. Once installed, use the plugin in DSH.
+
+```text
+Install the DSH plugin @michengai/dsh-btw into my local web profile by running: dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/. Then run dsh --profile web --dump-config, confirm the configuration includes michengai-btw, and explain how to reload DSH and start using the plugin.
+```
+
+### Install manually from npm
 
 ```powershell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
