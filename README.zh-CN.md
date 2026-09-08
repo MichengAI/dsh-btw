@@ -62,8 +62,6 @@
 | [BTW](https://github.com/MichengAI/dsh-btw) | 在当前上下文中临时旁问，不打断主任务 |
 | [Simplify](https://github.com/MichengAI/dsh-simplify) | 用 /simplify 整理 Git 改动范围内的代码 |
 
-桌面端介绍与下载站的源码见[官网仓库](https://github.com/MichengAI/dsh-codex-desktop-website)。
-
 ## 前置条件
 
 - 已安装 DeepSeek Harness，适配版本为 `0.1.2-rc.1`。
