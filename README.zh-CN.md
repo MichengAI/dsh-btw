@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/dsh-btw-banner.png" alt="DSH BTW" width="100%">
+  <img src="https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/branding/dsh-btw-banner.png" alt="DSH BTW" width="100%">
 </p>
 
 <div align="center">
@@ -33,19 +33,19 @@
 
 主会话保留在原来的位置，旁问答案位于输入框上方。
 
-![原生 DSH 会话中的 BTW 独立答案气泡](assets/screenshots/btw-conversation.png)
+![原生 DSH 会话中的 BTW 独立答案气泡](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-conversation.png)
 
 ### 命令入口
 
 输入 `/` 后，可在「旁问」分类中选择 `btw`，也可以直接输入 `/btw 问题`。
 
-![命令菜单中的旁问分类和 btw 入口](assets/screenshots/btw-command-menu.png)
+![命令菜单中的旁问分类和 btw 入口](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
 
 ### 独立答案气泡
 
 每条旁问单独展示，右上角提供复制、折叠或展开、关闭操作。
 
-![多条旁问气泡及复制、折叠和关闭操作](assets/screenshots/btw-bubbles.png)
+![多条旁问气泡及复制、折叠和关闭操作](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-bubbles.png)
 
 ## DSH 产品生态
 

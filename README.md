@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/dsh-btw-banner.png" alt="DSH BTW" width="100%">
+  <img src="https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/branding/dsh-btw-banner.png" alt="DSH BTW" width="100%">
 </p>
 
 <div align="center">
@@ -33,19 +33,19 @@
 
 The main conversation stays in place, with the side answer above the composer.
 
-![A BTW answer bubble in the stock DSH conversation](assets/screenshots/btw-conversation.png)
+![A BTW answer bubble in the stock DSH conversation](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-conversation.png)
 
 ### Command menu
 
 Type `/` and select `btw` under the side-question category, or enter `/btw your question` directly.
 
-![The side-question category and btw command](assets/screenshots/btw-command-menu.png)
+![The side-question category and btw command](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
 
 ### Independent answer bubbles
 
 Each answer has its own copy, collapse or expand, and close controls in the upper right.
 
-![Multiple answer bubbles with copy, collapse, and close controls](assets/screenshots/btw-bubbles.png)
+![Multiple answer bubbles with copy, collapse, and close controls](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-bubbles.png)
 
 ## DSH product ecosystem
 

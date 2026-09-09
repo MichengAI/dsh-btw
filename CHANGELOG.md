@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Use immutable absolute URLs for README images without adding image files to the npm package.
+- Stop GitHub Release operations when the release list cannot be queried, and test creation, updates, and failure handling.
+- Add React component tests for safe Markdown rendering, copying and retrying, collapse/expand, and closing.
+
 ## [0.1.4] - 2026-09-07
 
 - Exclude repository-only screenshots and branding images from the published npm tarball, reducing the package size while keeping README images available on GitHub.
