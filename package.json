@@ -1,6 +1,6 @@
 {
   "name": "@michengai/dsh-btw",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "DSH 一次性只读旁问气泡",
   "repository": {
     "type": "git",
