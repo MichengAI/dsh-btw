@@ -2,16 +2,8 @@
 
 ## [0.1.5] - 2026-09-10
 
-- Record manual end-to-end acceptance with Edge and a live DeepSeek model on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is separate from `npm run test:compat`; the older three versions have not undergone browser end-to-end acceptance.
-- Normalize lockfile download URLs to the official npm registry without changing package versions or integrity hashes.
-- Support DSH `0.1.5-rc.1` unified attachments, rejecting images and files while retaining the legacy image-count protocol.
-- Declare exact host peers `0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1` and update development dependencies and the lockfile to `0.1.5-rc.1`.
-- Remove the standalone ui-chat injection requirement unavailable on older hosts while retaining conversation slot integration.
-- Add `npm run test:compat`: artifacts built with the latest dependencies pass 43 tests on each of four isolated hosts, including real subagent forks, context isolation, disabled tools, cancellation, and continued parent-session operation, using a test model adapter.
-- Run host tests against project dependencies by default instead of skipping when a local DSH installation is absent; cover attachment rejection and verify tool guards, RPC, and unload cleanup across the supported hosts.
-- Use immutable absolute URLs for README images without adding image files to the npm package.
-- Stop GitHub Release operations when the release list cannot be queried, and test creation, updates, and failure handling.
-- Add React component tests for safe Markdown rendering, copying and retrying, collapse/expand, and closing.
+- Support DSH `0.1.5-rc.1`, while retaining compatibility with `0.1.0-rc.8`, `0.1.1-rc.2`, and `0.1.2-rc.1`.
+- Adapt to the updated composer: side questions accept text only. Images or files prompt you to remove them while preserving your draft and attachments.
 
 ## [0.1.4] - 2026-09-07
 
