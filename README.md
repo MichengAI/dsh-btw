@@ -66,7 +66,7 @@ For a ready-to-use workbench, download [DSH Codex Desktop](https://github.com/Mi
 
 - An installed copy of DeepSeek Harness. Development and builds target `0.1.5-rc.1`.
 - Host peers accept exactly `0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1`.
-- Run `npm run test:compat` to build with the latest development dependencies and run 43 tests per isolated host version. Coverage includes compiled host/client entry points, real subagent forks, inherited context, disabled tools, cancellation, and continued parent-session operation. The model adapter is a test implementation; live remote models and full browser end-to-end acceptance remain unverified.
+- Run `npm run test:compat` to build with the latest development dependencies and run 43 tests per isolated host version. Coverage includes compiled host/client entry points, real subagent forks, inherited context, disabled tools, cancellation, and continued parent-session operation. The matrix uses a test model adapter. Separate end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`, covering side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. Browser end-to-end tests have not been run on the older three versions.
 - Node.js 22+ and `dsh` available in your terminal.
 
 ## Installation
