@@ -89,16 +89,6 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/
 ```
 
-### 从安装包安装
-
-从 [Releases](https://github.com/MichengAI/dsh-btw/releases) 下载 `.tgz` 文件，在下载目录执行以下命令，将文件名替换为实际版本：
-
-```powershell
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
-dsh plugin --profile web add .\michengai-dsh-btw-0.1.0.tgz --ignore-scripts
-```
-
 ### 重新加载
 
 请在当前任务结束后安装或更新，桌面应用可能自动重载。若未生效，使用桌面应用的“重新加载”，或重启 `dsh web` 服务；仅刷新浏览器不够。
