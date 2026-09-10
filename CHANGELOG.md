@@ -7,13 +7,11 @@
 
 ## [0.1.4] - 2026-09-07
 
-- Exclude repository-only screenshots and branding images from the published npm tarball, reducing the package size while keeping README images available on GitHub.
-- Remove the standalone mock preview and its mock-only browser test so the repository no longer presents it as a real DSH plugin page.
+- Reduce the installation package size; side-question behavior is unchanged.
 
 ## [0.1.3] - 2026-09-06
 
-- Fix the package path in GitHub Actions so npm treats the tarball as a local file, and validate it with an npm publish dry run before publishing.
-- Include the OIDC authorization check and its failure and credential-handling tests prepared for 0.1.2, whose publication failed before uploading a package.
+- Fix the package publishing failure; side-question behavior is unchanged.
 
 ## [0.1.2] - 2026-09-06
 
@@ -22,18 +20,12 @@
 
 ## [0.1.1] - 2026-09-06
 
-- Limit each session to 20 side-question bubbles. At capacity, close the oldest completed bubble before accepting a new question; failed closure preserves answers and the current input with a localized message.
-- Show localized retry messages when cleanup fails during closure and keep host error details in logs.
-- Preserve completed answers when resource cleanup fails, with close retries still available.
-- Bound startup cancellation and cleanup waits while retaining ownership of late child agents. Cleanup errors no longer block plugin unload, and unreleased children remain protected from tool execution.
-- Retain recent bubbles per session so questions in another session cannot evict answers. Failed cleanup during eviction keeps the bubble available for retry.
-- Format the community notice consistently as a blockquote in both READMEs.
+- Keep up to 20 side-question bubbles per session; questions in other sessions no longer remove your answers.
+- Preserve existing answers and the current draft when closing fails, with a prompt to retry.
+- Improve reliability when cancelling and closing side questions.
 
 ## [0.1.0] - 2026-09-06
 
-- Add one-shot `/btw` questions that inherit completed turns from the main session and answer without executing tools.
-- Show independent Markdown answer bubbles above the composer, with copy, collapse, close, and cancellation cleanup.
-- Support DSH light and dark themes and Chinese and English UI, while hiding internal transport commands.
-- Leave the sidebar unchanged and do not record input history or bind arrow keys.
-- Include installation instructions, real UI screenshots, and automated tests, packaging, and bilingual GitHub Releases.
-- Provide complete English and Chinese READMEs and use the Apache-2.0 license consistently.
+- Introduce `/btw` side questions that use completed context from the main conversation and answer without executing tools.
+- Display answers in separate bubbles above the composer, with Markdown, copy, collapse, close, and cancel support.
+- Support light and dark themes and Chinese and English interfaces.
