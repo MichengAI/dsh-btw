@@ -1,19 +1,19 @@
 import type { Context as ContextType } from '@deepseek-ai/cordis'
 import type { CommandRuntime as CommandRuntimeType } from '@deepseek-ai/dsh-commands'
-import { existsSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { expect, it, vi } from 'vitest'
 import { apply } from '../src/index'
 import { CLOSE_COMMAND, RUN_COMMAND } from '../src/shared'
 
-const runtimeRoot = process.env.DSH_RUNTIME_ROOT ?? join(homedir(), '.dsh', 'profiles', 'node_modules')
-const runtimeRoots = [...new Set([runtimeRoot, process.env.DSH_DESKTOP_RUNTIME_ROOT ?? 'D:/Tools/DSH Codex Desktop/dsh-runtime/node_modules'])]
-  .filter(root => existsSync(join(root, '@deepseek-ai', 'dsh-api-gateway', 'lib', 'index.js')))
+const runtimeRoot = process.env.DSH_RUNTIME_ROOT ?? fileURLToPath(new URL('../node_modules', import.meta.url))
+const runtimeRoots = [...new Set([runtimeRoot, ...(process.env.DSH_DESKTOP_RUNTIME_ROOT ? [process.env.DSH_DESKTOP_RUNTIME_ROOT] : [])])]
 
 it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正常：%s', async root => {
+  const version = JSON.parse(readFileSync(join(root, '@deepseek-ai', 'dsh-commands', 'package.json'), 'utf8')).version as string
+  const attachments = version.startsWith('0.1.5') ? { submittedAttachments: [] } : { images: [] }
   const modulePath = (name: string, file = 'index.js') => pathToFileURL(join(root, '@deepseek-ai', name, 'lib', file)).href
   const { Context } = await import(/* @vite-ignore */ modulePath('cordis')) as { Context: typeof ContextType }
   const { CommandRuntime } = await import(/* @vite-ignore */ modulePath('dsh-commands')) as { CommandRuntime: typeof CommandRuntimeType }
@@ -45,7 +45,7 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     expect(ctx.commands.list(agent).map(item => item.name)).toEqual(['other'])
     expect(await listRemote()).toEqual([{ name: 'other', description: '其他命令' }])
     for (const line of [`/${RUN_COMMAND} ${JSON.stringify({ id: 'request01', question: '你好' })}`, `/${CLOSE_COMMAND} request01`]) {
-      expect((await gateway.invoke({ namespace: 'commands', method: 'execute', args: { agentId: 'main', line, images: [] }, signal: new AbortController().signal }))?.result.kind).toBe('success')
+      expect((await gateway.invoke({ namespace: 'commands', method: 'execute', args: { agentId: 'main', line, ...attachments }, signal: new AbortController().signal }))?.result.kind).toBe('success')
     }
     await plugin.dispose()
     ctx.commands.register({ name: RUN_COMMAND, description: '恢复检查', handler: () => ({ kind: 'success' }) })

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Support DSH `0.1.5-rc.1` unified attachments, rejecting images and files while retaining the legacy image-count protocol.
+- Declare exact host peers `0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1` and update development dependencies and the lockfile to `0.1.5-rc.1`.
+- Remove the standalone ui-chat injection requirement unavailable on older hosts while retaining conversation slot integration.
+- Add `npm run test:compat`: artifacts built with the latest dependencies pass 43 tests on each of four isolated hosts, including real subagent forks, context isolation, disabled tools, cancellation, and continued parent-session operation, using a test model adapter.
+- Run host tests against project dependencies by default instead of skipping when a local DSH installation is absent; cover attachment rejection and verify tool guards, RPC, and unload cleanup across the supported hosts.
 - Use immutable absolute URLs for README images without adding image files to the npm package.
 - Stop GitHub Release operations when the release list cannot be queried, and test creation, updates, and failure handling.
 - Add React component tests for safe Markdown rendering, copying and retrying, collapse/expand, and closing.

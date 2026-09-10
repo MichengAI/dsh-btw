@@ -1,7 +1,6 @@
-import { existsSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Context as ContextType } from '@deepseek-ai/cordis'
 import type { ToolRuntime as RuntimeType } from '@deepseek-ai/dsh-tools'
@@ -12,13 +11,13 @@ import { apply } from '../src/index'
 import { RUN_COMMAND } from '../src/shared'
 import { createAnswerOnlyGuard } from '../src/server/tool-guard'
 
-// 复用已安装宿主的依赖图，只装配内存服务，不读取 profile 配置或模型凭据。
-const runtimeRoot = process.env.DSH_RUNTIME_ROOT ?? join(homedir(), '.dsh', 'profiles', 'node_modules')
+// 默认验证锁文件中的宿主版本；允许显式指定旧版依赖图做兼容回归。
+const runtimeRoot = process.env.DSH_RUNTIME_ROOT ?? fileURLToPath(new URL('../node_modules', import.meta.url))
 const modulePath = (name: string) => pathToFileURL(join(runtimeRoot, '@deepseek-ai', name, 'lib', 'index.js')).href
-const available = existsSync(join(runtimeRoot, '@deepseek-ai', 'dsh-tools', 'lib', 'index.js'))
+const runtimeVersion = JSON.parse(readFileSync(join(runtimeRoot, '@deepseek-ai', 'dsh-tools', 'package.json'), 'utf8')).version
 afterEach(() => { vi.useRealTimers() })
 
-describe.skipIf(!available)('DSH 0.1.2-rc.1 真实运行时', () => {
+describe(`DSH ${runtimeVersion} 真实运行时`, () => {
   const load = async () => {
     const { Context } = await import(/* @vite-ignore */ modulePath('cordis')) as { Context: typeof ContextType }
     const { ToolRuntime } = await import(/* @vite-ignore */ modulePath('dsh-tools')) as { ToolRuntime: typeof RuntimeType }

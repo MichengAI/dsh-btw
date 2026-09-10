@@ -35,8 +35,8 @@ export function apply(ctx: Context): void {
 
   const claim = (sessionId: SessionId): PickOutcome => ({ claim: {
     token: '/btw', get hint() { return t('command.hint') },
-    submit: async (args, _actx, images) => {
-      if (images.length) return { kind: 'error', text: t('error.images') }
+    submit: async (args, _actx, attachments) => {
+      if (attachments.length) return { kind: 'error', text: t('error.attachments') }
       try {
         await store.ask(sessionId, args.trim())
         return { kind: 'success' }
@@ -50,7 +50,9 @@ export function apply(ctx: Context): void {
     matchSpace: (session, token) => token === '/btw' ? claim(session.sessionId) : undefined,
     matchEnter: async (session, line, signal, envelope) => {
       if (signal.aborted || !/^\/btw(?:\s|$)/.test(line)) return undefined
-      if (envelope.images) throw new Error(t('error.removeImages'))
+      // 0.1.5 统一附件计数；保留 0.1.2 图片计数协议，兼容现有宿主。
+      const input = envelope as { attachments?: number; images?: number }
+      if (input.attachments || input.images) throw new Error(t('error.removeAttachments'))
       return claim(session.sessionId)
     },
   }
