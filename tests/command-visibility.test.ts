@@ -18,6 +18,7 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     '0.1.1-rc.2': 'images',
     '0.1.2-rc.1': 'images',
     '0.1.5-rc.1': 'submittedAttachments',
+    '0.1.5-rc.2': 'submittedAttachments',
   }
   const attachmentField = Object.hasOwn(attachmentFields, version) ? attachmentFields[version] : undefined
   if (!attachmentField) throw new Error(`未验证的 DSH RPC 附件协议版本：${version}；请先确认字段并更新测试映射。`)

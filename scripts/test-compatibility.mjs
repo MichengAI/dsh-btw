@@ -8,8 +8,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
 const versions = process.argv.slice(2)
-if (!versions.length) versions.push('0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1')
-if (versions.some(version => !['0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1'].includes(version))) throw new Error('请使用指定的 DSH 候选版本')
+if (!versions.length) versions.push('0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2')
+if (versions.some(version => !['0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2'].includes(version))) throw new Error('请使用指定的 DSH 候选版本')
 if (!process.env.npm_execpath) throw new Error('请通过 npm run test:compat 执行')
 const results = []
 for (const args of [['node_modules/typescript/bin/tsc', '--noEmit'], ['scripts/build.mjs']]) {

@@ -65,7 +65,7 @@ For a ready-to-use workbench, download [DSH Codex Desktop](https://github.com/Mi
 ## Prerequisites
 
 - An installed copy of DeepSeek Harness.
-- Host peers accept exactly `0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1`.
+- Host peers accept exactly `0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2`.
 - Node.js 22+ and `dsh` available in your terminal.
 
 ## Installation
@@ -154,9 +154,9 @@ npm run check
 
 `npm run check` runs type checking, tests, and a build.
 
-Development and builds target `0.1.5-rc.1`. `npm run test:compat` builds with that baseline and runs 43 tests on each of the four isolated host versions, using a test model adapter.
+Development and builds target `0.1.5-rc.2`. `npm run test:compat` builds with that baseline and runs 43 tests on each of the five isolated host versions, using a test model adapter.
 
-Separate manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`; browser end-to-end acceptance has not been performed on the older three versions.
+Previous manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`; browser end-to-end acceptance has not been completed on `0.1.5-rc.2` or the older three versions.
 
 To install from source, run `dsh plugin --profile web add . --ignore-scripts` from the project directory, then reload DSH.
 
