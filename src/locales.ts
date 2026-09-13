@@ -85,7 +85,7 @@ export const en: Record<MessageKey, string> = {
   'error.removeAttachments': 'Side questions accept text only. Remove the images and files first.',
   'error.backend': 'The BTW backend is unavailable. Check the plugin configuration.',
   'error.empty': 'Enter a side question.',
-  'error.length': 'Side questions are limited to 8,000 characters.',
+  'error.length': `Side questions are limited to ${MAX_QUESTION_LENGTH.toLocaleString('en-US')} characters.`,
   'error.capacity': 'Too many side questions are running. Try again shortly.',
   'error.bubbleCapacity': 'This session has reached its bubble limit. Close older bubbles first; retry any failed closures.',
   'error.close': 'Could not close. Try again. {detail}',
