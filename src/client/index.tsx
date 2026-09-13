@@ -13,6 +13,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { CLOSE_COMMAND, RUN_COMMAND, type SideResult } from '../shared'
 import { BubbleStore } from './bubbles'
 import { BubbleDock } from './BubbleView'
+import { addQuoteToComposer } from './composer'
 import { SelectionAsk } from './SelectionAsk'
 import { CSS } from './styles'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
@@ -83,13 +84,14 @@ export function apply(ctx: Context): void {
   ctx.effect(() => () => store.dispose())
 
   function Dock(props: PropsRuntime<'conversation.input.dock'> & { t: BtwTranslate }): React.JSX.Element {
-    return <><SelectionAsk key={props.session.sessionId} store={store} sessionId={props.session.sessionId} t={props.t} addToConversation={reference => {
+    return <><SelectionAsk key={props.session.sessionId} store={store} sessionId={props.session.sessionId} t={props.t} addToConversation={(reference, focusComposer) => {
       const session = (ctx.get('sessions') as unknown as ISessions).scope(props.session.sessionId)
       if (!session) throw new Error(props.t('error.backend'))
       const input = ctx.conversation.input.for(session)
-      const draft = input.state.getSnapshot().draft
-      const quote = reference.split(/\r?\n/).map(line => `> ${line}`).join('\n')
-      input.setDraft(`${draft}${draft && !draft.endsWith('\n') ? '\n\n' : ''}${quote}\n\n`)
+      addQuoteToComposer(input, reference, props.t, () => {
+        // 宿主未提供公共 focus 动作；仅在当前 dock 所属会话范围定位输入框。
+        focusComposer?.()
+      })
     }} /><BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
   }
   slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'michengai-btw', order: -50, locale: NS }, Dock))

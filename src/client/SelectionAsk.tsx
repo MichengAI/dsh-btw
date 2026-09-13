@@ -4,10 +4,10 @@ import type { BtwTranslate } from '../locales'
 import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
 import { captureSelection } from './selection'
 
-interface SelectionDraft { reference: string; x: number; y: number; bottom: number; form: boolean }
+interface SelectionDraft { reference: string; x: number; y: number; bottom: number; keyboard: boolean; form: boolean }
 
 /** 只接管会话正文选区；非模态 popover 不抢选区，顶层避免滚动裁切。 */
-export function SelectionAsk({ store, sessionId, t, addToConversation }: { store: BubbleStore; sessionId: string; t: BtwTranslate; addToConversation: (reference: string) => void }): React.JSX.Element {
+export function SelectionAsk({ store, sessionId, t, addToConversation }: { store: BubbleStore; sessionId: string; t: BtwTranslate; addToConversation: (reference: string, focusComposer: () => void) => void }): React.JSX.Element {
   const anchor = useRef<HTMLSpanElement>(null)
   const dialog = useRef<HTMLDialogElement | HTMLDivElement | null>(null)
   const previousFocus = useRef<HTMLElement | null>(null)
@@ -29,6 +29,8 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
     // 不猜测第三方布局；没有正文所属容器时仅保留 /btw 入口。
     if (!scope) return () => { mounted.current = false }
     const open = (event: MouseEvent | KeyboardEvent) => {
+      // 只响应选区按键，避免 Escape 的 keyup 撤销刚发生的关闭。
+      if (event instanceof KeyboardEvent && (event.isComposing || !(event.key === 'Shift' || (event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))))) return
       if ((dialog.current instanceof HTMLDialogElement && dialog.current.open) || (event instanceof MouseEvent && event.button !== 0)) return
       if (event.defaultPrevented || !(event.target instanceof Element)) return
       const reference = captureSelection(scope, event.target)
@@ -37,7 +39,7 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
       previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
       setQuestion('')
       setError('')
-      setDraft({ reference, x: rect.left + rect.width / 2, y: rect.top, bottom: rect.bottom, form: false })
+      setDraft({ reference, x: rect.left + rect.width / 2, y: rect.top, bottom: rect.bottom, keyboard: event instanceof KeyboardEvent && event.key === 'Shift', form: false })
     }
     scope.addEventListener('mouseup', open)
     scope.addEventListener('keyup', open)
@@ -48,8 +50,10 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
     const element = dialog.current
     if (!draft || !element) return
     if (!draft.form) {
-      element.setAttribute('popover', 'manual')
-      element.showPopover()
+      if (typeof element.showPopover === 'function' && typeof element.hidePopover === 'function') {
+        element.setAttribute('popover', 'manual')
+        if (!element.matches(':popover-open')) element.showPopover()
+      }
       const rect = element.getBoundingClientRect()
       element.style.left = `${Math.max(8, Math.min(draft.x - rect.width / 2, window.innerWidth - rect.width - 8))}px`
       element.style.top = `${Math.max(8, Math.min(draft.y >= rect.height + 16 ? draft.y - rect.height - 8 : draft.bottom + 8, window.innerHeight - rect.height - 8))}px`
@@ -60,7 +64,18 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
       element.style.removeProperty('top')
     }
     if (draft.form) element.querySelector<HTMLElement>('textarea')?.focus()
+    else if (draft.keyboard) element.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
   }, [draft])
+
+  // 只在浮层类型切换或卸载时释放顶层，不因坐标更新反复关闭。
+  useLayoutEffect(() => {
+    const element = dialog.current
+    return () => {
+      if (!element) return
+      if (typeof element.hidePopover === 'function' && element.hasAttribute('popover') && element.matches(':popover-open')) element.hidePopover()
+      if (element instanceof HTMLDialogElement && element.open) element.close()
+    }
+  }, [draft?.form])
 
   useEffect(() => {
     if (!draft) return
@@ -75,7 +90,7 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
     }
     const outside = (event: MouseEvent) => { if (!dialog.current?.contains(event.target as Node)) hideMenu() }
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') hideMenu() }
-    const selection = () => { if (document.getSelection()?.isCollapsed) hideMenu() }
+    const selection = () => { if (document.getSelection()?.isCollapsed && !dialog.current?.contains(document.activeElement)) hideMenu() }
     document.addEventListener('mousedown', outside, true)
     document.addEventListener('keydown', key)
     document.addEventListener('selectionchange', selection)
@@ -100,7 +115,7 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
   }, [draft])
 
   const send = async (value: string) => {
-    if (!draft || submitting.current) return
+    if (!draft || submitting.current || !value.trim() || draft.reference.length > MAX_REFERENCE_LENGTH) return
     submitting.current = true
     setBusy(true)
     setError('')
@@ -117,7 +132,9 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
 
   const add = () => {
     if (!draft) return
-    try { addToConversation(draft.reference); setDraft(undefined) }
+    try { addToConversation(draft.reference, () => {
+      anchor.current?.closest('[data-conversation-scroll]')?.querySelector<HTMLElement>('[contenteditable="true"], textarea')?.focus({ preventScroll: true })
+    }); setDraft(undefined) }
     catch (issue) { setError(issue instanceof Error ? issue.message : String(issue)) }
   }
 

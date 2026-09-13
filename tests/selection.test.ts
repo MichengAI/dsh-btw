@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from 'vitest'
 import { captureSelection } from '../src/client/selection'
-import { parseRequest } from '../src/shared'
+import { parseRequest, questionWithReference } from '../src/shared'
 
 afterEach(() => { document.body.replaceChildren(); window.getSelection()?.removeAllRanges() })
 
@@ -49,4 +49,15 @@ it('服务端保留引用原文，拒绝空引用、非法类型和超长引用'
   for (const reference of ['', '  ', 42, 'x'.repeat(8001)]) {
     expect(() => parseRequest(JSON.stringify({ ...request, reference }))).toThrow()
   }
+})
+
+
+it('引用包装按语言生成，保留代码换行且围栏不能被原文闭合', () => {
+  const code = '```ts\nconst x = 1\r\n```\n````'
+  for (const locale of ['zh', 'en'] as const) {
+    const result = questionWithReference('why?', code, locale)
+    expect(result).toContain(`\n\`\`\`\`\`\n${code}\n\`\`\`\`\`\n`)
+    expect(result).toContain(locale === 'en' ? 'Question about the quote:' : '针对引用的问题：')
+  }
+  expect(questionWithReference('plain', undefined, 'en')).toBe('plain')
 })

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.7] - Unreleased
+
+- Add a compact conversation text-selection toolbar to quote text in the composer or ask an independent BTW question, alongside sidebar file-selection actions.
+- Improve selection dismissal, keyboard interaction, and quote insertion; preserve code line breaks and provide a floating-toolbar fallback for browsers without the Popover API.
+
 ## [0.1.6] - 2026-09-11
 
 - Support DSH `0.1.5-rc.2` while retaining compatibility with the four previously supported host versions.

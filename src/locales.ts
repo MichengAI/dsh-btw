@@ -3,6 +3,7 @@ import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 export const NS = 'michengai.btw'
 export const zh = {
   'locale.id': 'zh',
+  'error.composerBusy': '消息正在提交，请稍后再添加引用。',
   'selection.ask': '旁问这段内容',
   'selection.add': '添加到对话',
   'selection.btw': '旁问',
@@ -53,6 +54,7 @@ export type BtwTranslate = Translate<MessageKey>
 export type BtwLocale = 'zh' | 'en'
 export const en: Record<MessageKey, string> = {
   'locale.id': 'en',
+  'error.composerBusy': 'A message is being submitted. Please add the quote afterward.',
   'selection.ask': 'Ask about this text',
   'selection.add': 'Add to conversation',
   'selection.btw': 'Ask BTW',

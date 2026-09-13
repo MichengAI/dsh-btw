@@ -99,10 +99,11 @@ Install or update after current tasks finish, as desktop apps may reload automat
 
 Select text within a single conversation message, choose **Ask BTW** from the compact selection toolbar, and enter a question or choose **Explain this**. Enter sends, Shift+Enter inserts a newline, and Esc cancels. Answers use the existing BTW bubbles with an expandable quote.
 
-- Supports prose, lists, and code text; quotes are limited to 8,000 characters and are never silently truncated.
+- Supports prose, lists, and code text; quotes are limited to 8,000 UTF-16 code units including whitespace and are never silently truncated.
 - The quote is frozen when the menu opens. Other context comes from completed main-chat content at send time.
 - Main-composer drafts are preserved. Cross-message selections, editable fields, and tool output do not show the menu.
-- **Add to conversation** appends a quote to the existing draft without sending. Right-click keeps the browser's native menu.
+- **Add to conversation** appends a quote to the existing draft without sending. After insertion, focus returns to the composer; insertion is blocked while a message is being submitted. Right-click keeps the browser's native menu.
+- Keyboard selection is supported inside focused message elements: release Shift to focus the toolbar. Browsers without the Popover API use a fixed-position fallback, which may be clipped by the host layout.
 - Coexists with `dsh-better-sidebar`: BTW handles conversation text only; file previews and editors retain the sidebar plugin's own **Add to conversation** action without a duplicate toolbar.
 - This entry uses host DOM markers and has been verified in DSH `0.1.5-rc.2` with Edge, including the selection toolbar, draft insertion, question form, and a real-model answer. Unrecognized layouts keep their normal context menu; `/btw` remains available.
 
@@ -158,7 +159,7 @@ npm run check
 
 Development and builds target `0.1.5-rc.2`. `npm run test:compat` builds with that baseline and runs the test suite on each of the five isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
 
-Previous manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`; The selection toolbar, draft insertion, sidebar coexistence, and real-model side answers were subsequently checked on `0.1.5-rc.2`; the full end-to-end suite remains pending on that version and the older three versions.
+Previous manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`. The selection toolbar, draft insertion, sidebar coexistence, and real-model side answers were subsequently checked on `0.1.5-rc.2`; the full end-to-end suite remains pending on that version and the older three versions.
 
 To install from source, run `dsh plugin --profile web add . --ignore-scripts` from the project directory, then reload DSH.
 

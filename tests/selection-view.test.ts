@@ -18,8 +18,12 @@ const close = vi.fn(async () => ({ kind: 'success' as const, text: '' }))
 beforeEach(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value() { this.open = true } })
-  Object.defineProperty(HTMLElement.prototype, 'showPopover', { configurable: true, value() {} })
-  Object.defineProperty(HTMLElement.prototype, 'hidePopover', { configurable: true, value() {} })
+  const showing = new WeakSet<Element>()
+  const matches = Element.prototype.matches
+  vi.spyOn(Element.prototype, 'matches').mockImplementation(function (this: Element, selector: string) { return selector === ':popover-open' ? showing.has(this) : matches.call(this, selector) })
+  Object.defineProperty(HTMLElement.prototype, 'showPopover', { configurable: true, value() { showing.add(this) } })
+  Object.defineProperty(HTMLElement.prototype, 'hidePopover', { configurable: true, value() { showing.delete(this) } })
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value() { this.open = false } })
   Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 100, bottom: 120, width: 80, height: 20 } as DOMRect)
   scope = document.createElement('div')
   scope.setAttribute('data-conversation-scroll', '')
@@ -38,6 +42,7 @@ afterEach(async () => {
   await act(async () => { await store.dispose(); root.unmount() })
   scope.remove()
   window.getSelection()?.removeAllRanges()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
 
@@ -135,10 +140,10 @@ it('正文滚动、窗口失焦和隐藏会话关闭菜单，已打开的提问�
   expect(run).not.toHaveBeenCalled()
 })
 
- it('添加引用不发送，右键保持原生，侧边栏选区不触发正文工具条', async () => {
+it('添加引用不发送，右键保持原生，侧边栏选区不触发正文工具条', async () => {
   await open()
   await click('添加到对话')
-  expect(add).toHaveBeenCalledWith('引用中的原始正文')
+  expect(add).toHaveBeenCalledWith('引用中的原始正文', expect.any(Function))
   expect(run).not.toHaveBeenCalled()
   expect(mount.querySelector<HTMLElement>('dialog, .btw-selection-menu')).toBeNull()
   const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
@@ -153,4 +158,49 @@ it('正文滚动、窗口失焦和隐藏会话关闭菜单，已打开的提问�
   window.getSelection()!.addRange(range)
   await act(async () => { sidebar.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })) })
   expect(mount.querySelector<HTMLElement>('dialog, .btw-selection-menu')).toBeNull()
+})
+
+
+it('Escape 完整按键不重开，普通按键不触发，键盘选区释放 Shift 后聚焦横条', async () => {
+  const p = scope.querySelector('p')!
+  p.tabIndex = 0
+  p.focus()
+  await open()
+  for (const type of ['keydown', 'keyup']) {
+    await act(async () => { p.dispatchEvent(new KeyboardEvent(type, { key: 'Escape', bubbles: true })) })
+  }
+  expect(mount.querySelector('.btw-selection-menu')).toBeNull()
+  await act(async () => { p.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true })) })
+  expect(mount.querySelector('.btw-selection-menu')).toBeNull()
+  await act(async () => { p.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true })) })
+  expect(document.activeElement?.textContent).toBe('添加到对话')
+})
+
+it('没有 Popover API 时降级为普通浮层，仍能打开旁问', async () => {
+  Object.defineProperty(HTMLElement.prototype, 'showPopover', { configurable: true, value: undefined })
+  Object.defineProperty(HTMLElement.prototype, 'hidePopover', { configurable: true, value: undefined })
+  await open()
+  expect(mount.querySelector('.btw-selection-menu')?.hasAttribute('popover')).toBe(false)
+  await click('旁问')
+  expect(mount.querySelector('textarea')).not.toBeNull()
+})
+
+it('空问题按 Enter 不报错、不提交', async () => {
+  await open(); await click('旁问')
+  await act(async () => { mount.querySelector('textarea')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+  expect(mount.querySelector('[role="alert"]')).toBeNull()
+  expect(run).not.toHaveBeenCalled()
+})
+
+
+it('选区坐标更新保留已打开的 popover，卸载主动关闭', async () => {
+  const show = vi.spyOn(HTMLElement.prototype, 'showPopover')
+  const hide = vi.spyOn(HTMLElement.prototype, 'hidePopover')
+  await open()
+  const element = mount.querySelector('.btw-selection-menu')!
+  await act(async () => { scope.querySelector('p')!.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })) })
+  expect(mount.querySelector('.btw-selection-menu')).toBe(element)
+  expect(show).toHaveBeenCalledTimes(1)
+  await act(async () => root.render(null))
+  expect(hide).toHaveBeenCalledTimes(1)
 })
