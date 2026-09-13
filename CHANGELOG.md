@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.7] - Unreleased
+## [0.1.7] - 2026-09-13
 
 - Add a compact conversation text-selection toolbar to quote text in the composer or ask an independent BTW question, alongside sidebar file-selection actions.
 - Improve selection dismissal, keyboard interaction, and quote insertion; preserve code line breaks and provide a floating-toolbar fallback for browsers without the Popover API.
