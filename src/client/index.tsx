@@ -1,4 +1,5 @@
 import React from 'react'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-commands/remote'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -12,10 +13,11 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { CLOSE_COMMAND, RUN_COMMAND, type SideResult } from '../shared'
 import { BubbleStore } from './bubbles'
 import { BubbleDock } from './BubbleView'
+import { SelectionAsk } from './SelectionAsk'
 import { CSS } from './styles'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
 
-export const inject = ['slots', 'inputTriggers', 'remote', 'remote.commands', 'locale']
+export const inject = ['slots', 'inputTriggers', 'remote', 'remote.commands', 'locale', 'conversation', 'sessions']
 
 export function apply(ctx: Context): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }))
@@ -29,7 +31,7 @@ export function apply(ctx: Context): void {
     return { kind: response.value.result.kind, text: response.value.result.text ?? '' }
   }
   const store = new BubbleStore({
-    run: (session, id, question, signal) => execute(session, `/${RUN_COMMAND} ${JSON.stringify({ id, question, locale: normalizeLocale(t('locale.id')) })}`, signal),
+    run: (session, id, question, signal, reference) => execute(session, `/${RUN_COMMAND} ${JSON.stringify({ id, question, reference, locale: normalizeLocale(t('locale.id')) })}`, signal),
     close: (session, id) => execute(session, `/${CLOSE_COMMAND} ${id}`),
   }, t)
 
@@ -81,7 +83,14 @@ export function apply(ctx: Context): void {
   ctx.effect(() => () => store.dispose())
 
   function Dock(props: PropsRuntime<'conversation.input.dock'> & { t: BtwTranslate }): React.JSX.Element {
-    return <BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} />
+    return <><SelectionAsk key={props.session.sessionId} store={store} sessionId={props.session.sessionId} t={props.t} addToConversation={reference => {
+      const session = (ctx.get('sessions') as unknown as ISessions).scope(props.session.sessionId)
+      if (!session) throw new Error(props.t('error.backend'))
+      const input = ctx.conversation.input.for(session)
+      const draft = input.state.getSnapshot().draft
+      const quote = reference.split(/\r?\n/).map(line => `> ${line}`).join('\n')
+      input.setDraft(`${draft}${draft && !draft.endsWith('\n') ? '\n\n' : ''}${quote}\n\n`)
+    }} /><BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
   }
   slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'michengai-btw', order: -50, locale: NS }, Dock))
   slots.inject('conversation.chat.commandview', () => {

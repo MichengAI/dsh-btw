@@ -3,7 +3,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-tools'
-import { CLOSE_COMMAND, parseRequest, RUN_COMMAND } from './shared'
+import { CLOSE_COMMAND, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SideJobs } from './server/jobs'
 import { createAnswerOnlyGuard } from './server/tool-guard'
 import { translate } from './locales'
@@ -58,7 +58,7 @@ export function apply(ctx: Context): void {
     handler: invocation => {
       try {
         const request = parseRequest(invocation.rawInput)
-        return jobs.ask(invocation.agent.session.header.id, request.id, request.question, invocation.signal, invocation.agent, request.locale)
+        return jobs.ask(invocation.agent.session.header.id, request.id, questionWithReference(request.question, request.reference), invocation.signal, invocation.agent, request.locale)
       } catch (error) { return { kind: 'error', text: error instanceof Error ? error.message : translate()('error.request') } }
     },
   }))

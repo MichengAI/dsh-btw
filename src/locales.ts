@@ -3,6 +3,16 @@ import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 export const NS = 'michengai.btw'
 export const zh = {
   'locale.id': 'zh',
+  'selection.ask': '旁问这段内容',
+  'selection.add': '添加到对话',
+  'selection.btw': '旁问',
+  'selection.reference': '引用原文',
+  'selection.question': '你想了解什么？',
+  'selection.explain': '解释一下',
+  'selection.send': '发送旁问',
+  'selection.cancel': '取消',
+  'selection.context': '引用已固定；其他背景使用发送时主会话已完成的内容。',
+  'error.reference': '请选择 1–8000 个字符的正文。',
   'bubble.label': '旁问回答',
   'bubble.image': '图片',
   'action.copy': '复制回答',
@@ -43,6 +53,16 @@ export type BtwTranslate = Translate<MessageKey>
 export type BtwLocale = 'zh' | 'en'
 export const en: Record<MessageKey, string> = {
   'locale.id': 'en',
+  'selection.ask': 'Ask about this text',
+  'selection.add': 'Add to conversation',
+  'selection.btw': 'Ask BTW',
+  'selection.reference': 'Quoted text',
+  'selection.question': 'What would you like to know?',
+  'selection.explain': 'Explain this',
+  'selection.send': 'Send side question',
+  'selection.cancel': 'Cancel',
+  'selection.context': 'The quote is fixed. Other context uses completed main-chat content at send time.',
+  'error.reference': 'Select 1–8,000 characters of message text.',
   'bubble.label': 'Side question answer',
   'bubble.image': 'Image',
   'action.copy': 'Copy answer',

@@ -1,4 +1,4 @@
-import { MAX_QUESTION_LENGTH, type SideResult } from '../shared'
+import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH, type SideResult } from '../shared'
 import { translate, type BtwTranslate } from '../locales'
 
 const MAX_BUBBLES_PER_SESSION = 20
@@ -7,13 +7,14 @@ export interface Bubble {
   id: string
   sessionId: string
   question: string
+  reference?: string
   answer: string
   phase: 'answering' | 'done' | 'error' | 'closing'
   error?: string
   closeFailed?: boolean
 }
 export interface SideTransport {
-  run(session: string, id: string, question: string, signal: AbortSignal): Promise<SideResult>
+  run(session: string, id: string, question: string, signal: AbortSignal, reference?: string): Promise<SideResult>
   close(session: string, id: string): Promise<SideResult>
 }
 
@@ -30,10 +31,11 @@ export class BubbleStore {
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => this.listeners.delete(listener) }
 
   /** 返回已接收请求的标识；满额先等待旧气泡关闭，失败时拒绝且不发送新问题。 */
-  async ask(sessionId: string, question: string): Promise<string> {
+  async ask(sessionId: string, question: string, reference?: string): Promise<string> {
     if (this.disposed) throw new Error(this.t('error.stopped'))
     if (!question.trim()) throw new Error(this.t('error.empty'))
     if (question.length > MAX_QUESTION_LENGTH) throw new Error(this.t('error.length'))
+    if (reference !== undefined && (!reference.trim() || reference.length > MAX_REFERENCE_LENGTH)) throw new Error(this.t('error.reference'))
     if (this.admitting.has(sessionId)) throw new Error(this.t('error.bubbleCapacity'))
     if (this.active.size >= 8) throw new Error(this.t('error.capacity'))
     const sessionBubbles = this.snapshot.filter(item => item.sessionId === sessionId)
@@ -58,8 +60,8 @@ export class BubbleStore {
     const id = crypto.randomUUID()
     const controller = new AbortController()
     this.active.set(id, controller)
-    this.publish([...this.snapshot, { id, sessionId, question, answer: '', phase: 'answering' }])
-    void Promise.resolve().then(() => this.transport.run(sessionId, id, question, controller.signal)).then(result => {
+    this.publish([...this.snapshot, { id, sessionId, question, ...(reference === undefined ? {} : { reference }), answer: '', phase: 'answering' }])
+    void Promise.resolve().then(() => reference === undefined ? this.transport.run(sessionId, id, question, controller.signal) : this.transport.run(sessionId, id, question, controller.signal, reference)).then(result => {
       if (controller.signal.aborted || this.closing.has(id)) return
       this.update(id, { phase: result.kind === 'success' ? 'done' : 'error', answer: result.kind === 'success' ? result.text : '', error: result.kind === 'error' ? result.text : undefined })
     }).catch(error => {

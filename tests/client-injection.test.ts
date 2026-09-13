@@ -29,6 +29,8 @@ it('真实 Cordis 依赖检查下可通过 remote.commands 发送旁问', async 
   }
   vi.stubGlobal('window', { localStorage: { getItem: () => null, setItem: () => {} }, __ModuleLoader__: loader })
   vi.stubGlobal('document', { createElement: () => ({ dataset: {}, remove: () => {} }), head: { append: () => {} } })
+  ctx.provide('sessions', { scope: () => ctx })
+  ctx.provide('conversation', { input: { for: () => ({}) } })
   ctx.provide('slots', { inject: () => () => {} })
   ctx.provide('inputTriggers', { registerSource: (value: InputTriggerSource) => { source = value; activeSources.add(value); return () => { activeSources.delete(value) } } })
   const LocaleRuntime = hostLocaleRuntime()

@@ -53,15 +53,17 @@ it('真实 fork 继承已完成上下文、独立回答并可取消，主任务�
     const plugin = ctx.plugin(implementation)
     await plugin.await()
     const execute = (line: string) => ctx.commands.execute(parent, line, [], new AbortController().signal)
-    const answered = await execute(`/${RUN_COMMAND} ${JSON.stringify({ id: 'request01', question: '旁问专属问题' })}`)
+    const answered = await execute(`/${RUN_COMMAND} ${JSON.stringify({ id: 'request01', question: '旁问专属问题', reference: '选中时固定的正文片段' })}`)
     expect(answered?.result).toMatchObject({ kind: 'success', text: '独立旁问答案' })
     const request = adapter.requests.at(-1)!
     expect(JSON.stringify(request.messages)).toContain('主任务背景')
     expect(JSON.stringify(request.messages)).toContain('旁问专属问题')
+    expect(JSON.stringify(request.messages)).toContain('选中时固定的正文片段')
     expect(JSON.stringify({ system: request.system, messages: request.messages })).toContain('一次性旁问助手')
     expect(request.tools ?? []).toEqual([])
     // 命令结果会进入审计日志，但不得进入主任务的模型上下文。
     expect(JSON.stringify(parent.session.deriveMessages())).not.toContain('独立旁问答案')
+    expect(JSON.stringify(parent.session.deriveMessages())).not.toContain('选中时固定的正文片段')
     await expect.poll(() => ctx.agents.list().length).toBe(1)
 
     adapter.hang = true

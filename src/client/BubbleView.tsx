@@ -27,6 +27,7 @@ export function BubbleView({ item, close, t }: { item: Bubble; close: () => void
         <button type="button" title={t(item.closeFailed ? 'action.retryClose' : 'action.close')} aria-label={t('action.close')} disabled={item.phase === 'closing'} onClick={close}><X size={16} /></button>
       </div>
     </header>
+    {!collapsed && item.reference && <details className="btw-reference"><summary>{t('selection.reference')}</summary><blockquote>{item.reference}</blockquote></details>}
     {busy && <div className="btw-status" role="status"><LoaderCircle size={14} className="btw-spinner" />{t(item.phase === 'closing' ? 'status.closing' : 'status.answering')}</div>}
     {!collapsed && item.answer && <div className="btw-answer"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
       a: props => <a href={props.href} target="_blank" rel="noreferrer noopener">{props.children}</a>,
