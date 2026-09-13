@@ -1,5 +1,7 @@
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 
+import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits'
+
 export const NS = 'michengai.btw'
 export const zh = {
   'locale.id': 'zh',
@@ -13,7 +15,7 @@ export const zh = {
   'selection.send': '发送旁问',
   'selection.cancel': '取消',
   'selection.context': '引用已固定；其他背景使用发送时主会话已完成的内容。',
-  'error.reference': '请选择 1–8000 个字符的正文。',
+  'error.reference': `请选择 1–${MAX_REFERENCE_LENGTH} 个字符的正文（含空白，部分符号计为多个字符）。`,
   'bubble.label': '旁问回答',
   'bubble.image': '图片',
   'action.copy': '复制回答',
@@ -32,7 +34,7 @@ export const zh = {
   'error.removeAttachments': '旁问只接受文字，请先移除图片和文件。',
   'error.backend': 'BTW 后端尚未启用，请检查插件配置。',
   'error.empty': '请输入旁问内容。',
-  'error.length': '旁问最多支持 8000 个字符。',
+  'error.length': `旁问最多支持 ${MAX_QUESTION_LENGTH} 个字符。`,
   'error.capacity': '正在处理的旁问较多，请稍后重试。',
   'error.bubbleCapacity': '当前会话的旁问气泡已达上限，请先关闭旧气泡；关闭失败的气泡可重试。',
   'error.close': '关闭失败，可重试。{detail}',
@@ -64,7 +66,7 @@ export const en: Record<MessageKey, string> = {
   'selection.send': 'Send side question',
   'selection.cancel': 'Cancel',
   'selection.context': 'The quote is fixed. Other context uses completed main-chat content at send time.',
-  'error.reference': 'Select 1–8,000 characters of message text.',
+  'error.reference': `Select 1–${MAX_REFERENCE_LENGTH.toLocaleString('en-US')} characters of message text, including whitespace (some symbols count as multiple characters).`,
   'bubble.label': 'Side question answer',
   'bubble.image': 'Image',
   'action.copy': 'Copy answer',

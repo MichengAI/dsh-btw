@@ -29,7 +29,10 @@ beforeEach(async () => {
   scope.setAttribute('data-conversation-scroll', '')
   scope.innerHTML = '<div data-chat-flow-kind="assistant-step"><p>引用中的原始正文</p></div>'
   mount = document.createElement('div')
-  scope.append(mount)
+  const seat = document.createElement('div')
+  seat.setAttribute('data-composer-seat', '')
+  seat.append(mount)
+  scope.append(seat)
   document.body.append(scope)
   root = createRoot(mount)
   run.mockClear(); close.mockClear(); add.mockClear()
@@ -203,4 +206,35 @@ it('选区坐标更新保留已打开的 popover，卸载主动关闭', async ()
   expect(show).toHaveBeenCalledTimes(1)
   await act(async () => root.render(null))
   expect(hide).toHaveBeenCalledTimes(1)
+})
+
+
+it('添加引用只聚焦所属输入区，不误命中正文编辑节点', async () => {
+  const trap = document.createElement('textarea')
+  scope.prepend(trap)
+  const editor = document.createElement('div')
+  editor.contentEditable = 'true'
+  editor.setAttribute('contenteditable', 'true')
+  editor.tabIndex = 0
+  mount.parentElement!.append(editor)
+  add.mockImplementationOnce((_reference: string, focus: () => void) => focus())
+  await open(); await click('添加到对话')
+  expect(document.activeElement).toBe(editor)
+})
+
+it('所属输入区不可编辑时不回退聚焦正文，兼容可用的 textarea', async () => {
+  const trap = document.createElement('textarea')
+  scope.prepend(trap)
+  const disabled = document.createElement('textarea')
+  disabled.disabled = true
+  const readonly = document.createElement('textarea')
+  readonly.readOnly = true
+  mount.parentElement!.append(disabled, readonly)
+  add.mockImplementationOnce((_reference: string, focus: () => void) => focus())
+  await open(); await click('添加到对话')
+  expect([trap, disabled, readonly]).not.toContain(document.activeElement)
+  readonly.readOnly = false
+  add.mockImplementationOnce((_reference: string, focus: () => void) => focus())
+  await open(); await click('添加到对话')
+  expect(document.activeElement).toBe(readonly)
 })

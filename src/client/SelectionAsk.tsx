@@ -133,7 +133,7 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
   const add = () => {
     if (!draft) return
     try { addToConversation(draft.reference, () => {
-      anchor.current?.closest('[data-conversation-scroll]')?.querySelector<HTMLElement>('[contenteditable="true"], textarea')?.focus({ preventScroll: true })
+      anchor.current?.closest('[data-composer-seat]')?.querySelector<HTMLElement>('[contenteditable="true"]:not([aria-disabled="true"]), textarea:not(:disabled):not([readonly])')?.focus({ preventScroll: true })
     }); setDraft(undefined) }
     catch (issue) { setError(issue instanceof Error ? issue.message : String(issue)) }
   }

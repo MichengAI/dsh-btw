@@ -1,9 +1,9 @@
+import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits'
+export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits'
 import { normalizeLocale, translate, type BtwLocale } from './locales'
 
 export const RUN_COMMAND = 'btw-run'
 export const CLOSE_COMMAND = 'btw-close'
-export const MAX_QUESTION_LENGTH = 8_000
-export const MAX_REFERENCE_LENGTH = 8_000
 
 export interface SideRequest {
   id: string
