@@ -20,6 +20,8 @@ concurrency:
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
+    with:
+      full: true
   release:
     name: 打包与发布
     needs: test
@@ -36,6 +38,9 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
+      - name: 确认正式发布已启用
+        if: env.DRY_RUN != 'true' && vars.NPM_PUBLISH_ENABLED != 'true'
+        run: throw 'NPM_PUBLISH_ENABLED 未设为 true，本次正式发布已停止。'
       - name: 配置 Node.js 与 npm OIDC
         uses: actions/setup-node@v6
         with:
@@ -77,10 +82,11 @@ jobs:
         if: env.DRY_RUN == 'true' && vars.NPM_PUBLISH_ENABLED == 'true'
         run: node scripts/verify-npm-oidc.mjs
       - name: 发布到 npm
+        id: npm_publish
         if: env.DRY_RUN != 'true' && vars.NPM_PUBLISH_ENABLED == 'true'
         run: npm publish $env:NPM_PACKAGE_FILE --access public --provenance
       - name: 创建或更新 GitHub Release（仅说明）
-        if: env.DRY_RUN != 'true'
+        if: env.DRY_RUN != 'true' && vars.NPM_PUBLISH_ENABLED == 'true' && steps.npm_publish.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/github-release.mjs
