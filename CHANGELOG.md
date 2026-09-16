@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.8] - 2026-09-16
+
+- Support DSH `0.1.6-alpha.1` while retaining compatibility with the five previously supported host versions.
+
 ## [0.1.7] - 2026-09-13
 
 - Add a compact conversation text-selection toolbar to quote text in the composer or ask an independent BTW question, alongside sidebar file-selection actions.

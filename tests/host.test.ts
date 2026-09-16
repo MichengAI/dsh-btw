@@ -32,14 +32,16 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
     new ToolRuntime(ctx)
-    const child = { session: { snapshotEvents: () => [{ type: 'subagent/descriptor', data: { label: 'owned' } }] } } as unknown as Agent
+    const child = { session: {} } as unknown as Agent
     const scope = createScope(ctx, child)
     const body = vi.fn(async () => 'executed')
     ctx.tools.register({ name: 'normal', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
     scope.ctx.tools.restrict({ allow: [] })
     scope.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
     scope.ctx.tools.presentAs('both')
-    ctx.tools.guard(createAnswerOnlyGuard(new Set(['owned'])))
+    const protection = createAnswerOnlyGuard(new Set(['owned']))
+    protection.own(child)
+    ctx.tools.guard(protection)
     expect(ctx.tools.get('normal', child)).toBeUndefined()
     expect(ctx.tools.get('child_local', child)).toBeDefined()
     expect(ctx.tools.get('run_code', child)).toBeDefined()
@@ -52,6 +54,35 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const result = await ctx.tools.execute({ name: 'normal', callId: 'main' as never, arguments: {}, signal: new AbortController().signal })
     expect(result.isError).not.toBe(true)
     expect(body).toHaveBeenCalledOnce()
+    await scope.dispose()
+    await ctx.fiber.dispose()
+  })
+
+  it('根上下文 session/event 能认领尚未返回 localAgent 的子代理', async () => {
+    const { Context, ToolRuntime, createScope } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    new ToolRuntime(ctx)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
+    const child = { session: { snapshotEvents: () => { throw new Error('生产路径不应再读 snapshotEvents') } } } as unknown as Agent
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
+      start: async (_name: string, request: { label: string }) => {
+        ctx.emit('session/event', child.session as never, { type: 'subagent/descriptor', data: { label: request.label } } as never)
+        return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'ok' }] }), dispose: async () => {} }
+      },
+    })
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+    const scope = createScope(ctx, child)
+    const body = vi.fn(async () => 'executed')
+    scope.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
+    await commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-evt', question: '问题' }), signal: new AbortController().signal } as never)
+    const blocked = await ctx.tools.execute({ name: 'child_local', callId: 'event' as never, arguments: {}, agent: child, signal: new AbortController().signal })
+    expect(blocked.isError).toBe(true)
+    expect(body).not.toHaveBeenCalled()
+    await plugin.dispose()
     await scope.dispose()
     await ctx.fiber.dispose()
   })
@@ -90,23 +121,19 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     new ToolRuntime(ctx)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
-    let label = ''
     let finishCleanup!: () => void
     const cleanup = new Promise<void>(resolve => { finishCleanup = resolve })
     const dispose = vi.fn(() => cleanup)
+    const child = { session: {} } as unknown as Agent
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-      start: async (name: string, request: { label: string }) => {
-        label = request.label
-        return { result: new Promise(() => {}), dispose }
-      },
+      start: async () => ({ result: new Promise(() => {}), dispose, localAgent: child }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
     vi.useFakeTimers()
     const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
     await vi.advanceTimersByTimeAsync(0)
-    const child = { session: { snapshotEvents: () => [{ type: 'subagent/descriptor', data: { label } }] } } as unknown as Agent
     const scope = createScope(ctx, child)
     const body = vi.fn(async () => 'executed')
     scope.ctx.tools.register({ name: 'orphan_tool', description: '未释放子代理的工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })

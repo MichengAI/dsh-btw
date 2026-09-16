@@ -8,8 +8,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
 const versions = process.argv.slice(2)
-if (!versions.length) versions.push('0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2')
-if (versions.some(version => !['0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2'].includes(version))) throw new Error('请使用指定的 DSH 候选版本')
+if (!versions.length) versions.push('0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.6-alpha.1')
+if (versions.some(version => !['0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.6-alpha.1'].includes(version))) throw new Error('请使用指定的 DSH 候选版本')
 if (!process.env.npm_execpath) throw new Error('请通过 npm run test:compat 执行')
 const results = []
 for (const args of [['node_modules/typescript/bin/tsc', '--noEmit'], ['scripts/build.mjs']]) {
@@ -29,7 +29,7 @@ for (const version of versions) {
       .map(([name, range]) => [name, lock.packages[`node_modules/${name}`]?.version ?? range]))
     // 内部辅助包由各版依赖图决定；新版拆出的控制器和 chat 并非旧版运行时入口。
     const splitChat = version.startsWith('0.1.0') || version.startsWith('0.1.1')
-    const internal = new Set(['api-session-controller', 'subagent-in-process-driver', 'session-persistence', 'util-time'].map(name => `@deepseek-ai/dsh-${name}`))
+    const internal = new Set(['api-session-controller', 'subagent-in-process-driver', 'session-persistence', 'util-time', 'ptc-runtime'].map(name => `@deepseek-ai/dsh-${name}`))
     let pending = [...new Set([
       ...Object.keys(pkg.devDependencies).filter(name => name.startsWith('@deepseek-ai/dsh-') && !internal.has(name) && !(splitChat && name === '@deepseek-ai/dsh-client-ui-chat')),
       ...pkg.dsh.client.inject,

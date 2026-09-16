@@ -37,7 +37,7 @@ export function apply(ctx: Context): void {
   }, t)
 
   const claim = (sessionId: SessionId): PickOutcome => ({ claim: {
-    token: '/btw', get hint() { return t('command.hint') },
+    name: 'btw', token: '/btw', get hint() { return t('command.hint') },
     submit: async (args, _actx, attachments) => {
       if (attachments.length) return { kind: 'error', text: t('error.attachments') }
       try {
