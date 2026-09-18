@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.10] - 2026-09-18
+
+- List `/btw` in the official command catalog with a label, description, and icon.
+- Keep independent bubbles when submitting from the official catalog; side questions still do not run tools.
+
 ## [0.1.9] - 2026-09-18
 
 - Support DSH `0.1.6-alpha.2` while retaining compatibility with the six previously supported host versions.

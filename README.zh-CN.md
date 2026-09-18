@@ -37,9 +37,9 @@
 
 ### 命令入口
 
-输入 `/` 后，可在「旁问」分类中选择 `btw`，也可以直接输入 `/btw 问题`。
+输入 `/` 后，可在「指令」中选择 `btw`，也可以直接输入 `/btw 问题`。
 
-![命令菜单中的旁问分类和 btw 入口](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
+![官方指令菜单中的 btw 入口](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
 
 ### 独立答案气泡
 

@@ -1,6 +1,6 @@
 {
   "name": "@michengai/dsh-btw",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "DSH 一次性只读旁问插件：基于当前上下文回答，独立气泡，不执行工具 · One-shot read-only side-ask plugin: answers from current context in an independent bubble, no tool execution",
   "repository": {
     "type": "git",
@@ -42,7 +42,6 @@
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-input-trigger",
         "@deepseek-ai/dsh-api-remotes",
         "@deepseek-ai/dsh-client-locale"
       ]

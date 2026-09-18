@@ -37,9 +37,9 @@ The main conversation stays in place, with the side answer above the composer.
 
 ### Command menu
 
-Type `/` and select `btw` under the side-question category, or enter `/btw your question` directly.
+Type `/` and select `btw` under Commands, or enter `/btw your question` directly.
 
-![The side-question category and btw command](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
+![The official command menu with btw](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
 
 ### Independent answer bubbles
 

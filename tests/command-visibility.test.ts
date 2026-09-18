@@ -53,8 +53,10 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
   const plugin = ctx.plugin(apply)
   try {
     await plugin.await()
-    expect(ctx.commands.list(agent).map(item => item.name)).toEqual(['other'])
-    expect(await listRemote()).toEqual([{ name: 'other', description: '其他命令' }])
+    expect(ctx.commands.list(agent).map(item => item.name)).toEqual(['btw', 'other'])
+    const listed = await listRemote() as { name: string; description: string }[]
+    expect(listed.map(item => item.name)).toEqual(['btw', 'other'])
+    expect(listed.find(item => item.name === 'btw')?.description).toBe('根据当前上下文回答，不执行工具')
     for (const line of [`/${RUN_COMMAND} ${JSON.stringify({ id: 'request01', question: '你好' })}`, `/${CLOSE_COMMAND} request01`]) {
       expect((await gateway.invoke({ namespace: 'commands', method: 'execute', args: { agentId: 'main', line, ...attachments }, signal: new AbortController().signal }))?.result.kind).toBe('success')
     }

@@ -3,7 +3,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-tools'
-import { CLOSE_COMMAND, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
+import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SideJobs } from './server/jobs'
 import { createAnswerOnlyGuard, identityOfFromContext } from './server/tool-guard'
 import { translate } from './locales'
@@ -56,6 +56,18 @@ export function apply(ctx: Context): void {
   })
   ctx.effect(() => () => jobs.dispose())
 
+  ctx.effect(() => ctx.commands.register({
+    name: 'btw',
+    description: translate()('command.description'),
+    input: { hint: translate()('command.hint') },
+    recordInput: false,
+    handler: invocation => {
+      const question = invocation.rawInput.trim()
+      if (!question) return { kind: 'error', text: translate()('error.empty') }
+      if (question.length > MAX_QUESTION_LENGTH) return { kind: 'error', text: translate()('error.length') }
+      return jobs.ask(invocation.agent.session.header.id, globalThis.crypto.randomUUID(), question, invocation.signal, invocation.agent)
+    },
+  }))
   ctx.effect(() => ctx.commands.register({
     name: RUN_COMMAND,
     description: 'BTW 气泡内部请求',
