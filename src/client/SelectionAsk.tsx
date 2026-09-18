@@ -7,7 +7,7 @@ import { captureSelection } from './selection'
 interface SelectionDraft { reference: string; x: number; y: number; bottom: number; keyboard: boolean; form: boolean }
 
 /** 只接管会话正文选区；非模态 popover 不抢选区，顶层避免滚动裁切。 */
-export function SelectionAsk({ store, sessionId, t, addToConversation }: { store: BubbleStore; sessionId: string; t: BtwTranslate; addToConversation: (reference: string, focusComposer: () => void) => void }): React.JSX.Element {
+export function SelectionAsk({ store, sessionId, t, addToConversation }: { store: BubbleStore; sessionId: string; t: BtwTranslate; addToConversation: (reference: string) => void }): React.JSX.Element {
   const anchor = useRef<HTMLSpanElement>(null)
   const dialog = useRef<HTMLDialogElement | HTMLDivElement | null>(null)
   const previousFocus = useRef<HTMLElement | null>(null)
@@ -132,9 +132,7 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
 
   const add = () => {
     if (!draft) return
-    try { addToConversation(draft.reference, () => {
-      anchor.current?.closest('[data-composer-seat]')?.querySelector<HTMLElement>('[contenteditable="true"]:not([aria-disabled="true"]), textarea:not(:disabled):not([readonly])')?.focus({ preventScroll: true })
-    }); setDraft(undefined) }
+    try { addToConversation(draft.reference); setDraft(undefined) }
     catch (issue) { setError(issue instanceof Error ? issue.message : String(issue)) }
   }
 

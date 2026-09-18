@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.9] - 2026-09-18
+
+- Support DSH `0.1.6-alpha.2` while retaining compatibility with the six previously supported host versions.
+- Use the official composer focus action when adding a quote to the conversation.
+
 ## [0.1.8] - 2026-09-16
 
 - Support DSH `0.1.6-alpha.1` while retaining compatibility with the five previously supported host versions.

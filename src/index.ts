@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-tools'
 import { CLOSE_COMMAND, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SideJobs } from './server/jobs'
-import { createAnswerOnlyGuard } from './server/tool-guard'
+import { createAnswerOnlyGuard, identityOfFromContext } from './server/tool-guard'
 import { translate } from './locales'
 import { hideInternalCommands } from './server/command-visibility'
 
@@ -21,11 +21,11 @@ const PERSONA = `你是当前主任务之外的一次性旁问助手。继承的
 export function apply(ctx: Context): void {
   ctx.effect(() => hideInternalCommands(ctx.commands))
   const labels = new Set<string>()
-  const protection = createAnswerOnlyGuard(labels)
   // 保护由宿主拥有，避免插件卸载超时后让尚未释放的子代理失去工具限制。
   // 保留当前服务作用域，只延长 effect 的所有权；最后一个资源释放后注销。
   // 若资源始终未释放，保护保留至宿主退出，不能以清理超时作为注销依据。
   const host = ctx.extend({ fiber: ctx.root.fiber })
+  const protection = createAnswerOnlyGuard(labels, identityOfFromContext(host))
   const releaseGuard = host.tools.guard(protection)
   const stopWatch = host.on('session/event', (session, event) => protection.recognize(session, event))
   const jobs = new SideJobs(async request => {

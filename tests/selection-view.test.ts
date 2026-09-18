@@ -146,7 +146,7 @@ it('正文滚动、窗口失焦和隐藏会话关闭菜单，已打开的提问�
 it('添加引用不发送，右键保持原生，侧边栏选区不触发正文工具条', async () => {
   await open()
   await click('添加到对话')
-  expect(add).toHaveBeenCalledWith('引用中的原始正文', expect.any(Function))
+  expect(add).toHaveBeenCalledWith('引用中的原始正文')
   expect(run).not.toHaveBeenCalled()
   expect(mount.querySelector<HTMLElement>('dialog, .btw-selection-menu')).toBeNull()
   const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
@@ -208,33 +208,3 @@ it('选区坐标更新保留已打开的 popover，卸载主动关闭', async ()
   expect(hide).toHaveBeenCalledTimes(1)
 })
 
-
-it('添加引用只聚焦所属输入区，不误命中正文编辑节点', async () => {
-  const trap = document.createElement('textarea')
-  scope.prepend(trap)
-  const editor = document.createElement('div')
-  editor.contentEditable = 'true'
-  editor.setAttribute('contenteditable', 'true')
-  editor.tabIndex = 0
-  mount.parentElement!.append(editor)
-  add.mockImplementationOnce((_reference: string, focus: () => void) => focus())
-  await open(); await click('添加到对话')
-  expect(document.activeElement).toBe(editor)
-})
-
-it('所属输入区不可编辑时不回退聚焦正文，兼容可用的 textarea', async () => {
-  const trap = document.createElement('textarea')
-  scope.prepend(trap)
-  const disabled = document.createElement('textarea')
-  disabled.disabled = true
-  const readonly = document.createElement('textarea')
-  readonly.readOnly = true
-  mount.parentElement!.append(disabled, readonly)
-  add.mockImplementationOnce((_reference: string, focus: () => void) => focus())
-  await open(); await click('添加到对话')
-  expect([trap, disabled, readonly]).not.toContain(document.activeElement)
-  readonly.readOnly = false
-  add.mockImplementationOnce((_reference: string, focus: () => void) => focus())
-  await open(); await click('添加到对话')
-  expect(document.activeElement).toBe(readonly)
-})
