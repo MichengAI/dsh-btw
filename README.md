@@ -68,7 +68,7 @@ For a desktop workbench, download [DSH Codex Desktop](https://github.com/Micheng
 ## Prerequisites
 
 - An installed copy of DeepSeek Harness.
-- Host peers accept exactly `0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2`.
+- Host peers accept exactly `0.1.0-rc.8 || 0.1.1-rc.2 || 0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.1 || 0.1.6-alpha.2 || 0.1.7-alpha.1`.
 - Node.js 22+ and `dsh` available in your terminal.
 
 ## Installation
@@ -160,7 +160,7 @@ npm run check
 
 `npm run check` runs type checking, tests, and a build.
 
-Development and builds target `0.1.6-alpha.2`. `npm run test:compat` builds with that baseline and runs the test suite on each of the seven isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
+Development and builds target `0.1.7-alpha.1`. `npm run test:compat` builds with that baseline and runs the test suite on each of the eight isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
 
 Previous manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`. The selection toolbar, draft insertion, sidebar coexistence, and real-model side answers were subsequently checked on `0.1.5-rc.2`; the full end-to-end suite remains pending on that version and the older three versions.
 

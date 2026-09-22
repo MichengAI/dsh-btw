@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.11] - 2026-09-22
+
+- Support DSH `0.1.7-alpha.1` while retaining compatibility with the seven previously supported host versions.
+
 ## [0.1.10] - 2026-09-18
 
 - List `/btw` in the official command catalog with a label, description, and icon.
