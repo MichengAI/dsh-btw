@@ -160,7 +160,7 @@ npm run check
 
 `npm run check` runs type checking, tests, and a build.
 
-Development and builds target `0.1.7-alpha.1`. `npm run test:compat` builds with that baseline and runs the test suite on each of the eight isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
+Development and builds target `0.1.7-rc.1`. `npm run test:compat` builds with that baseline and runs the test suite on each of the six isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
 
 Previous manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`. The selection toolbar, draft insertion, sidebar coexistence, and real-model side answers were subsequently checked on `0.1.5-rc.2`; the full end-to-end suite remains pending on that version and the older three versions.
 

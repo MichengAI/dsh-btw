@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.12] - 2026-09-24
+
+- Support DSH `0.1.7-rc.1` and drop alpha host versions from the compatibility list. The remaining supported hosts are `0.1.0-rc.8`, `0.1.1-rc.2`, `0.1.2-rc.1`, `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.7-rc.1`.
+
 ## [0.1.11] - 2026-09-22
 
 - Support DSH `0.1.7-alpha.1` while retaining compatibility with the seven previously supported host versions.
