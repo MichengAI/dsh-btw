@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
-const supported = ['0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.7-rc.1']
+const supported = ['0.1.0-rc.8', '0.1.1-rc.2', '0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.7-rc.1', '0.1.7-rc.2']
 const versions = process.argv.slice(2)
 if (!versions.length) versions.push(...supported)
 if (versions.some(version => !supported.includes(version))) throw new Error('请使用指定的 DSH 候选版本')
