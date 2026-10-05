@@ -163,6 +163,8 @@ npm run check
 
 此前在 `0.1.5-rc.1` 上完成真实 Edge 与 DeepSeek 模型的手工端到端验收，旁问、附件拒绝、复制、折叠/展开、取消和父会话继续均通过。这不属于 `npm run test:compat`；随后在 `0.1.5-rc.2` 验证了划词横条、添加引用、侧边栏共存及真实模型旁问回答；该版本与旧三版的完整端到端用例仍未全部验收。
 
+GitHub 与 npm 都包含可直接运行的 `lib`；改了源码后，提交前运行 `npm run build`。
+
 从源码安装时，在项目目录执行 `dsh plugin --profile web add . --ignore-scripts`，然后重新加载 DSH。
 
 ## 许可证

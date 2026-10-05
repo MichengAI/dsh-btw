@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Installing from GitHub now includes the compiled runtime, so no manual build is required.
+
 ## [0.1.15] - 2026-09-30
 
 - Support DSH `0.2.0-rc.2` and keep the previous seven hosts working. Supported hosts are `0.1.2-rc.1`, `0.1.5-rc.1`, `0.1.5-rc.2`, `0.1.5-rc.3`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, and `0.2.0-rc.2`.

@@ -164,6 +164,8 @@ Development and builds target `0.2.0-rc.2`. `npm run test:compat` builds with th
 
 Previous manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`. The selection toolbar, draft insertion, sidebar coexistence, and real-model side answers were subsequently checked on `0.1.5-rc.2`; the full end-to-end suite remains pending on that version and the older three versions.
 
+GitHub and npm both include a ready-to-run `lib`; after changing source, run `npm run build` before committing.
+
 To install from source, run `dsh plugin --profile web add . --ignore-scripts` from the project directory, then reload DSH.
 
 ## License
