@@ -2,6 +2,9 @@
 
 ## 未发布
 
+## [0.1.16] - 2026-10-06
+
+- 已安装插件列表显示「BTW」和中文简介，不再只用包名。显示名来自 `locale/zh.json` 和 `locale/en.json` 的 `meta.title`、`meta.description`。
 - 从 GitHub 安装时已包含运行文件，不必再手动构建。
 
 ## [0.1.15] - 2026-09-30

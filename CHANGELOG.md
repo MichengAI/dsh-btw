@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## [0.1.16] - 2026-10-06
+
+- The installed-plugin list shows “BTW” and a localized description instead of the package name. Titles and descriptions come from `meta.title` and `meta.description` in `locale/zh.json` and `locale/en.json`.
 - Installing from GitHub now includes the compiled runtime, so no manual build is required.
 
 ## [0.1.15] - 2026-09-30
