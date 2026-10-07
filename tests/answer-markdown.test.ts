@@ -8,8 +8,9 @@ import { translate } from '../src/locales'
 
 const harness = vi.hoisted(() => {
   const seen: string[] = []
+  const labels: Array<{ code: { copyLabel: string; copiedLabel: string } }> = []
   const state = { mode: 'host' as 'host' | 'throw' | 'missing' }
-  return { seen, state }
+  return { seen, labels, state }
 })
 
 function renderMath(text: string): React.ReactNode[] {
@@ -34,8 +35,9 @@ vi.mock('../src/client/host-markdown', () => ({
   loadHostMarkdownText: () => {
     if (harness.state.mode === 'missing') return null
     if (harness.state.mode === 'throw') return function ThrowMarkdown() { throw new Error('host markdown failed') }
-    return function HostMarkdown({ text }: { text: string }) {
+    return function HostMarkdown({ text, labels }: { text: string; labels: { code: { copyLabel: string; copiedLabel: string } } }) {
       harness.seen.push(text)
+      harness.labels.push(labels)
       return React.createElement('div', { 'data-host-markdown': 'true' }, renderMath(text))
     }
   },
@@ -51,6 +53,7 @@ beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.spyOn(console, 'error').mockImplementation(() => {})
   harness.seen.length = 0
+  harness.labels.length = 0
   harness.state.mode = 'host'
   container = document.createElement('div')
   document.body.append(container)
@@ -77,6 +80,7 @@ it('把公式原文交给宿主渲染，气泡里不再留下美元分隔符', a
   expect(harness.seen[0]).toContain('$O(N^2)$')
   expect(harness.seen[0]).toContain('\\(N\\)')
   expect(harness.seen[0]).toContain('$$O(N^2)$$')
+  expect(harness.labels[0]?.code).toEqual({ copyLabel: '复制代码', copiedLabel: '已复制代码' })
   expect(container.querySelector('[data-host-markdown]')).not.toBeNull()
   expect(container.textContent).not.toContain('$N=8192$')
   expect(container.textContent).not.toContain('$O(N^2)$')
@@ -115,6 +119,7 @@ it('没有宿主渲染器时保留原文，不加载远程图片', async () => {
 
 it('图片中和跳过代码，空替代文字使用占位', () => {
   expect(neutralizeMarkdownImages('`![a](https://example.com/a.png)` ![b](https://example.com/b.png)', '图片')).toBe('`![a](https://example.com/a.png)` b')
+  expect(neutralizeMarkdownImages('`` `![a](https://example.com/a.png)` `` ![b](https://example.com/b.png)', '图片')).toBe('`` `![a](https://example.com/a.png)` `` b')
   expect(neutralizeMarkdownImages('![](https://example.com/c.png)', '图片')).toBe('图片')
 })
 

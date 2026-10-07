@@ -18,6 +18,8 @@ export declare const zh: {
     'bubble.footnotes': string;
     'action.copy': string;
     'action.copied': string;
+    'action.copyCode': string;
+    'action.copiedCode': string;
     'action.expand': string;
     'action.collapse': string;
     'action.close': string;

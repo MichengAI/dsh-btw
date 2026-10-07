@@ -10,7 +10,7 @@ export function BubbleView({ item, close, t }: { item: Bubble; close: () => void
   const [copyError, setCopyError] = useState(false)
   const busy = item.phase === 'answering' || item.phase === 'closing'
   const labels = useMemo(() => ({
-    code: { copyLabel: t('action.copy'), copiedLabel: t('action.copied') },
+    code: { copyLabel: t('action.copyCode'), copiedLabel: t('action.copiedCode') },
     footnotes: t('bubble.footnotes'),
   }), [t])
   const copy = async () => {

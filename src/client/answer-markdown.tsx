@@ -19,10 +19,13 @@ export function neutralizeMarkdownImages(source: string, emptyAlt = ''): string 
       continue
     }
     if (source[index] === '`') {
-      const end = source.indexOf('`', index + 1)
+      let width = 0
+      while (source[index + width] === '`') width += 1
+      const fence = '`'.repeat(width)
+      const end = source.indexOf(fence, index + width)
       if (end === -1) return out + source.slice(index)
-      out += source.slice(index, end + 1)
-      index = end + 1
+      out += source.slice(index, end + width)
+      index = end + width
       continue
     }
     const image = IMAGE.exec(source.slice(index))

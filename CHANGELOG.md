@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+## [0.1.17] - 2026-10-07
+
 - Side-question answers use the host Markdown renderer, so `$...$`, `$$...$$`, and TeX delimiters render as formulas, matching the main conversation. Hosts without that renderer still show the original text. Copy keeps the raw Markdown, and answers do not load remote images.
+- A code block’s own copy button says “Copy code” instead of reusing the whole-answer label.
 
 ## [0.1.16] - 2026-10-06
 
