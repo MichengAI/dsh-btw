@@ -28,7 +28,7 @@ export const CSS = `
 .btw-answer{padding:0 14px 14px;max-height:300px;overflow:auto;overflow-wrap:anywhere;font-size:13px;line-height:1.7}
 .btw-answer>*:first-child{margin-top:0}.btw-answer>*:last-child{margin-bottom:0}
 .btw-answer p{margin:8px 0}.btw-answer h1,.btw-answer h2,.btw-answer h3{font-size:15px;line-height:1.5;margin:12px 0 6px;font-weight:600}
-.btw-answer pre{max-width:100%;overflow:auto;background:var(--dsw-alias-markdown-code-block);padding:10px;border-radius:8px;white-space:pre;font-size:12px}
+.btw-answer pre{max-width:100%;overflow:auto;background:var(--dsw-alias-markdown-code-block);padding:10px;border-radius:8px;white-space:pre;font-size:12px}.btw-answer .katex-display{max-width:100%;overflow:auto}
 .btw-answer code{font-family:Consolas,monospace;font-size:12px}.btw-answer :not(pre)>code{background:var(--dsw-alias-markdown-code-block);border-radius:4px;padding:1px 3px}.btw-answer a{color:var(--dsw-alias-label-primary);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
 .btw-answer table{display:block;max-width:100%;overflow:auto;border-collapse:collapse}.btw-answer th,.btw-answer td{border:1px solid var(--dsw-alias-border-l2);padding:5px 9px}
 .btw-answer ul,.btw-answer ol{padding-left:22px}.btw-answer blockquote{margin:8px 0;padding-left:10px;border-left:2px solid var(--dsw-alias-border-l4);color:var(--dsw-alias-label-secondary)}

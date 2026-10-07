@@ -22,7 +22,7 @@
 
 - **Context-aware questions**: explain concepts, recap conclusions, or ask a quick question about the current conversation.
 - **Answers only**: no reading new files, browsing the web, running commands, or editing code.
-- **Independent answer bubbles**: render Markdown, copy answers, collapse, expand, and close individual bubbles. Multiple answers can stay visible.
+- **Independent answer bubbles**: render Markdown and formulas, copy answers, collapse, expand, and close individual bubbles. Multiple answers can stay visible.
 - **Keep the main task going**: side questions are answered separately and do not add answers to the main conversation.
 - **Cancel anytime**: close a bubble while it is answering to cancel that question.
 - **Themes and languages**: follow DSH light and dark themes and switch between Chinese and English UI.

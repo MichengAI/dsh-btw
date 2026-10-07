@@ -1,7 +1,6 @@
-import React, { useState, useSyncExternalStore } from 'react'
+import React, { useMemo, useState, useSyncExternalStore } from 'react'
 import { Check, ChevronDown, ChevronUp, Copy, LoaderCircle, MessageCircle, X } from 'lucide-react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { AnswerMarkdown } from './answer-markdown'
 import type { Bubble, BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 
@@ -10,6 +9,10 @@ export function BubbleView({ item, close, t }: { item: Bubble; close: () => void
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState(false)
   const busy = item.phase === 'answering' || item.phase === 'closing'
+  const labels = useMemo(() => ({
+    code: { copyLabel: t('action.copy'), copiedLabel: t('action.copied') },
+    footnotes: t('bubble.footnotes'),
+  }), [t])
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(item.answer)
@@ -29,10 +32,7 @@ export function BubbleView({ item, close, t }: { item: Bubble; close: () => void
     </header>
     {!collapsed && item.reference && <details className="btw-reference"><summary>{t('selection.reference')}</summary><blockquote>{item.reference}</blockquote></details>}
     {busy && <div className="btw-status" role="status"><LoaderCircle size={14} className="btw-spinner" />{t(item.phase === 'closing' ? 'status.closing' : 'status.answering')}</div>}
-    {!collapsed && item.answer && <div className="btw-answer"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
-      a: props => <a href={props.href} target="_blank" rel="noreferrer noopener">{props.children}</a>,
-      img: props => <span>{props.alt || t('bubble.image')}</span>,
-    }}>{item.answer}</Markdown></div>}
+    {!collapsed && item.answer && <div className="btw-answer"><AnswerMarkdown text={item.answer} labels={labels} imageLabel={t('bubble.image')} /></div>}
     {item.error && <p className="btw-error" role="alert">{item.closeFailed ? t('error.close', { detail: item.error }) : item.error}</p>}
     {copyError && <p className="btw-error" role="alert">{t('error.copy')}</p>}
   </article>

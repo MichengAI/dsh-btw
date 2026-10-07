@@ -15,6 +15,7 @@ export declare const zh: {
     'error.reference': string;
     'bubble.label': string;
     'bubble.image': string;
+    'bubble.footnotes': string;
     'action.copy': string;
     'action.copied': string;
     'action.expand': string;

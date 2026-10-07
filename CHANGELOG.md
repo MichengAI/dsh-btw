@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Side-question answers use the host Markdown renderer, so `$...$`, `$$...$$`, and TeX delimiters render as formulas, matching the main conversation. Hosts without that renderer still show the original text. Copy keeps the raw Markdown, and answers do not load remote images.
+
 ## [0.1.16] - 2026-10-06
 
 - The installed-plugin list shows “BTW” and a localized description instead of the package name. Titles and descriptions come from `meta.title` and `meta.description` in `locale/zh.json` and `locale/en.json`.
