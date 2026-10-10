@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.1.18] - 2026-10-10
+
+- Side questions start again when dsh-tui is installed. The plugin no longer fails to activate, so `/btw` stays available on hosts that use the command registry. Side questions still only answer and do not run tools. A side question that is still cleaning up after the plugin is removed cannot suddenly run tools.
+
 ## [0.1.17] - 2026-10-07
 
 - Side-question answers use the host Markdown renderer, so `$...$`, `$$...$$`, and TeX delimiters render as formulas, matching the main conversation. Hosts without that renderer still show the original text. Copy keeps the raw Markdown, and answers do not load remote images.
