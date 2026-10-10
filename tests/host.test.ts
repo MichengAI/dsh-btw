@@ -27,6 +27,31 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     return { Context, ToolRuntime, createScope }
   }
 
+  it('根 fiber 拒绝 effect 时仍能激活并注册 btw', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    new ToolRuntime(ctx)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
+    ctx.provide('subagents', { getProvider: () => undefined })
+    const fiber = ctx.root.fiber as { effect(execute: () => unknown, label?: string): unknown }
+    const rootEffect = fiber.effect.bind(ctx.root.fiber)
+    fiber.effect = (execute, label) => {
+      if (label === 'tools.guard()') throw new Error('dsh-tui: root.effect is unavailable from a plugin activation')
+      return rootEffect(execute, label)
+    }
+    const plugin = ctx.plugin(apply)
+    try {
+      await plugin.await()
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : String(error))
+    }
+    expect(commands.has('btw')).toBe(true)
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
+
   it('空白名单之外的自有工具与 run_code 也被拒绝，主任务工具可执行', async () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
@@ -124,19 +149,23 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     let finishCleanup!: () => void
     const cleanup = new Promise<void>(resolve => { finishCleanup = resolve })
     const dispose = vi.fn(() => cleanup)
-    const child = { session: {} } as unknown as Agent
+    const child = { session: {} } as Agent & { ctx?: ContextType }
+    let scope: { ctx: ContextType; dispose(): Promise<void> }
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-      start: async () => ({ result: new Promise(() => {}), dispose, localAgent: child }),
+      start: async () => {
+        scope = createScope(ctx, child)
+        child.ctx = scope.ctx
+        return { result: new Promise(() => {}), dispose, localAgent: child }
+      },
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
     vi.useFakeTimers()
     const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
     await vi.advanceTimersByTimeAsync(0)
-    const scope = createScope(ctx, child)
     const body = vi.fn(async () => 'executed')
-    scope.ctx.tools.register({ name: 'orphan_tool', description: '未释放子代理的工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
+    scope!.ctx.tools.register({ name: 'orphan_tool', description: '未释放子代理的工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
     const unload = plugin.dispose()
     const finished = vi.fn()
     void unload.then(finished)
@@ -153,7 +182,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const released = await ctx.tools.execute({ name: 'orphan_tool', callId: 'released' as never, arguments: {}, agent: child, signal: new AbortController().signal })
     expect(released.isError).not.toBe(true)
     expect(body).toHaveBeenCalledTimes(1)
-    await scope.dispose()
+    await scope!.dispose()
     await ctx.fiber.dispose()
   })
 
