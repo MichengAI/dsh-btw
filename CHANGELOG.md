@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.19 - 2026-10-12
+
+- Support DSH `0.2.1-alpha.2` while retaining all existing supported versions.
+
 ## [0.1.18] - 2026-10-10
 
 - Side questions start again when dsh-tui is installed. The plugin no longer fails to activate, so `/btw` stays available on hosts that use the command registry. Side questions still only answer and do not run tools. A side question that is still cleaning up after the plugin is removed cannot suddenly run tools.
