@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.1.20] - 2026-10-13
+
+- Tag injected styles with plugin ownership so the selection action bar keeps its rounded dark theme and does not fall back to browser default popover boxes after host theme changes or client reloads.
+
 ## [0.1.19] - 2026-10-12
 
 - Support DSH `0.2.1-alpha.2` while retaining all existing supported versions.

@@ -33,8 +33,20 @@ it('真实 Cordis 依赖检查下可通过官方指令目录发送旁问', async
       catch (error) { denied.push((error as Error).message); throw error }
     }
   }
+  const injectedStyles: { dataset: Record<string, string>; textContent?: string; removed?: boolean }[] = []
   vi.stubGlobal('window', { localStorage: { getItem: () => null, setItem: () => {} }, __ModuleLoader__: loader })
-  vi.stubGlobal('document', { createElement: () => ({ dataset: {}, remove: () => {} }), head: { append: () => {} } })
+  vi.stubGlobal('document', {
+    createElement: (tag: string) => {
+      const el: { dataset: Record<string, string>; textContent: string; removed?: boolean; remove: () => void } = {
+        dataset: {} as Record<string, string>,
+        textContent: '',
+        remove: () => { el.removed = true },
+      }
+      if (tag === 'style') injectedStyles.push(el)
+      return el
+    },
+    head: { append: () => {} },
+  })
   ctx.provide('sessions', { scope: () => ctx })
   ctx.provide('conversation', { input: { for: () => ({}) } })
   ctx.provide('slots', { inject: () => () => {} })
@@ -79,5 +91,95 @@ it('真实 Cordis 依赖检查下可通过官方指令目录发送旁问', async
       description: '根据当前上下文回答，不执行工具',
       hint: '旁问内容',
     })
-  } finally { await plugin.dispose(); await ctx.fiber.dispose() }
+    expect(injectedStyles).toHaveLength(1)
+    expect(injectedStyles[0]?.dataset).toMatchObject({
+      plugin: '@michengai/dsh-btw',
+      pluginCss: '@michengai/dsh-btw/client.css',
+      michengaiBtw: '',
+    })
+  } finally {
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+    expect(injectedStyles[0]?.removed).toBe(true)
+  }
+})
+
+it('DSH 0.2.0-rc.2 claimStyles 不会误认领或因其他插件卸载而摘除 BTW 样式', async () => {
+  const allStyles: any[] = []
+  const createStyle = () => {
+    const el: any = {
+      dataset: {} as Record<string, string>,
+      textContent: '',
+      isConnected: true,
+      getAttribute: (k: string) => {
+        if (k === 'data-plugin') return el.dataset.plugin ?? null
+        if (k === 'data-plugin-css') return el.dataset.pluginCss ?? null
+        return null
+      },
+      setAttribute: (k: string, v: string) => {
+        if (k === 'data-plugin') el.dataset.plugin = v
+        if (k === 'data-plugin-css') el.dataset.pluginCss = v
+      },
+      remove: () => {
+        el.isConnected = false
+        const idx = allStyles.indexOf(el)
+        if (idx >= 0) allStyles.splice(idx, 1)
+      },
+    }
+    allStyles.push(el)
+    return el
+  }
+
+  // 模拟 DSH 0.2.0-rc.2 宿主的 claimStyles 与 removeOwnedStyles
+  const hostClaimStyles = (id: string) => {
+    for (const el of allStyles.filter(s => s.getAttribute('data-plugin') === null)) {
+      el.setAttribute('data-plugin', id)
+    }
+  }
+  const hostRemoveOwnedStyles = (id: string) => {
+    for (const el of [...allStyles]) {
+      if (el.getAttribute('data-plugin') === id) el.remove()
+    }
+  }
+
+  vi.stubGlobal('document', {
+    createElement: (tag: string) => tag === 'style' ? createStyle() : ({ dataset: {}, remove: () => {} }),
+    head: { append: () => {} },
+    documentElement: { append: () => {} },
+  })
+  vi.stubGlobal('window', { localStorage: { getItem: () => null, setItem: () => {} }, __ModuleLoader__: { load: () => {} } })
+
+  const ctx = new Context()
+  class Remote extends Service {
+    constructor(context: Context) { super(context, 'remote') }
+    get commands() { return { execute: async () => ({ ok: true, value: { result: { kind: 'success' } } }) } }
+  }
+  ctx.provide('sessions', { scope: () => ctx })
+  ctx.provide('conversation', { input: { for: () => ({}) } })
+  ctx.provide('slots', { inject: () => () => {}, register: () => () => {} })
+  ctx.provide('commandUi', { candidates: async () => [], dispatch: () => ({}), matchSpace: () => ({}), matchEnter: async () => ({}), execute: async () => ({}) })
+  const LocaleRuntime = hostLocaleRuntime()
+  ctx.provide('locale', new LocaleRuntime(ctx))
+  new Remote(ctx)
+
+  const plugin = ctx.plugin({ apply: clientPlugin.apply })
+  await plugin.await()
+
+  const btwStyle = allStyles.find(s => s.dataset.michengaiBtw !== undefined)
+  expect(btwStyle).toBeDefined()
+  expect(btwStyle.dataset.plugin).toBe('@michengai/dsh-btw')
+  expect(btwStyle.dataset.pluginCss).toBe('@michengai/dsh-btw/client.css')
+
+  // 模拟宿主加载另一个插件
+  hostClaimStyles('other-theme-plugin')
+  expect(btwStyle.dataset.plugin).toBe('@michengai/dsh-btw')
+
+  // 模拟另一个插件卸载/重载触发样式清理
+  hostRemoveOwnedStyles('other-theme-plugin')
+  expect(btwStyle.isConnected).toBe(true)
+
+  // 模拟 BTW 自身卸载时正常清理
+  await plugin.dispose()
+  await ctx.fiber.dispose()
+  expect(btwStyle.isConnected).toBe(false)
 })

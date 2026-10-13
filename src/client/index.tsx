@@ -137,9 +137,11 @@ export function apply(ctx: Context): void {
 
   ctx.effect(() => {
     const style = document.createElement('style')
+    style.dataset.plugin = '@michengai/dsh-btw'
+    style.dataset.pluginCss = '@michengai/dsh-btw/client.css'
     style.dataset.michengaiBtw = ''
     style.textContent = CSS
-    document.head.append(style)
+    ;(document.head ?? document.documentElement).append(style)
     return () => style.remove()
   })
   ctx.effect(() => () => store.dispose())
