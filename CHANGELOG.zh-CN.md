@@ -2,6 +2,13 @@
 
 ## 未发布
 
+## [0.1.22] - 2026-10-15
+
+- 支持 DSH `0.2.1-alpha.3`，继续兼容既有已支持版本；开发依赖中的 `@deepseek-ai/dsh*` 对齐宿主 `0.2.1-alpha.3`，Cordis 对齐 `4.0.5-alpha.2`。
+- 移除宿主已删除的开发依赖 `@deepseek-ai/dsh-invariants`（自 alpha.1 起不再提供）。
+- 适配子 Agent 破坏性变更：`ctx.subagents.start` / 启动期 `persona` / `toolFilter` 已移除，改为 `startActivation`（`delivery: 'caller'`）；旁问角色与空白名单在子 Agent `agent/created` 时以 scoped persona 与 `tools.restrict` 恢复。
+- 修复回归测试仍调用 `tools.presentAs('both')` 的问题（该模式已在 alpha.2 移除）；防护测试分别覆盖 `native`（子作用域工具）与 `ptc`（`run_code`）。
+
 ## [0.1.21] - 2026-10-14
 
 - 旁问浮层与回答气泡背景改用抬升层令牌（`--dsw-alias-bg-layer-2`），修复在壁纸类或画布透明主题下文字透明无法阅读的问题。

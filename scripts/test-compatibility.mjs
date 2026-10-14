@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
-const supported = ['0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.5-rc.3', '0.1.7-rc.1', '0.1.7-rc.2', '0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-alpha.2']
+const supported = ['0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.5-rc.3', '0.1.7-rc.1', '0.1.7-rc.2', '0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-alpha.2', '0.2.1-alpha.3']
 const versions = process.argv.slice(2)
 if (!versions.length) versions.push(...supported)
 if (versions.some(version => !supported.includes(version))) throw new Error('请使用指定的 DSH 候选版本')
@@ -30,7 +30,7 @@ for (const version of versions) {
       .map(([name, range]) => [name, lock.packages[`node_modules/${name}`]?.version ?? range]))
     // 内部辅助包由各版依赖图决定；新版拆出的控制器和 chat 并非旧版运行时入口。
     const splitChat = version.startsWith('0.1.0') || version.startsWith('0.1.1')
-    const internal = new Set(['api-session-controller', 'subagent-in-process-driver', 'session-persistence', 'util-time', 'ptc-runtime'].map(name => `@deepseek-ai/dsh-${name}`))
+    const internal = new Set(['api-session-controller', 'subagent-in-process-driver', 'subagent-spawn-in-process', 'session-persistence', 'util-time', 'ptc-runtime'].map(name => `@deepseek-ai/dsh-${name}`))
     let pending = [...new Set([
       ...Object.keys(pkg.devDependencies).filter(name => name.startsWith('@deepseek-ai/dsh-') && !internal.has(name) && !(splitChat && name === '@deepseek-ai/dsh-client-ui-chat')),
       ...pkg.dsh.client.inject,

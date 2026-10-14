@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.22] - 2026-10-15
+
+- Support DSH `0.2.1-alpha.3` while retaining all existing supported versions; pin development `@deepseek-ai/dsh*` dependencies to host `0.2.1-alpha.3` and Cordis to `4.0.5-alpha.2`.
+- Drop removed host package `@deepseek-ai/dsh-invariants` from development dependencies (gone since alpha.1).
+- Adapt the subagent breaking change: `ctx.subagents.start` and start-time `persona` / `toolFilter` are gone; use `startActivation` with `delivery: 'caller'`, and restore the side-ask persona plus empty tool allow-list on the child's `agent/created` via a scoped persona section and `tools.restrict`.
+- Fix the host regression that still called `tools.presentAs('both')` after alpha.2 removed that mode; the guard test covers `native` (scoped tools) and `ptc` (`run_code`) separately.
+
 ## [0.1.21] - 2026-10-14
 
 - Use the raised layer token (`--dsw-alias-bg-layer-2`) for the selection question dialog and answer bubbles, fixing see-through text under wallpaper and transparent-canvas themes.

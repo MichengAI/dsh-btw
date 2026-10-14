@@ -6,7 +6,7 @@ import type { Context as ContextType } from '@deepseek-ai/cordis'
 import type { ToolRuntime as RuntimeType } from '@deepseek-ai/dsh-tools'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { CommandDefinition } from '@deepseek-ai/dsh-commands'
-import type { SubagentRun } from '@deepseek-ai/dsh-subagent'
+import type { SubagentActivation } from '@deepseek-ai/dsh-subagent'
 import { apply } from '../src/index'
 import { RUN_COMMAND } from '../src/shared'
 import { createAnswerOnlyGuard } from '../src/server/tool-guard'
@@ -57,29 +57,39 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
     new ToolRuntime(ctx)
-    const child = { session: {} } as unknown as Agent
-    const scope = createScope(ctx, child)
     const body = vi.fn(async () => 'executed')
     ctx.tools.register({ name: 'normal', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
-    scope.ctx.tools.restrict({ allow: [] })
-    scope.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
-    scope.ctx.tools.presentAs('both')
     const protection = createAnswerOnlyGuard(new Set(['owned']))
-    protection.own(child)
     ctx.tools.guard(protection)
-    expect(ctx.tools.get('normal', child)).toBeUndefined()
-    expect(ctx.tools.get('child_local', child)).toBeDefined()
-    expect(ctx.tools.get('run_code', child)).toBeDefined()
-    for (const name of ['child_local', 'run_code']) {
-      const result = await ctx.tools.execute({ name, callId: 'test' as never, arguments: {}, agent: child, signal: new AbortController().signal })
-      expect(result.isError).toBe(true)
-      expect(result.content).toEqual([{ type: 'text', text: 'Error: BTW 仅允许文字回答，禁止执行任何工具。' }])
-    }
+    // alpha.2+ 移除 presentAs('both')：native 覆盖子作用域自有工具；ptc 覆盖宿主 run_code。
+    const childNative = { session: {} } as unknown as Agent
+    const scopeNative = createScope(ctx, childNative)
+    scopeNative.ctx.tools.restrict({ allow: [] })
+    scopeNative.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
+    scopeNative.ctx.tools.presentAs('native')
+    protection.own(childNative)
+    expect(ctx.tools.get('normal', childNative)).toBeUndefined()
+    expect(ctx.tools.get('child_local', childNative)).toBeDefined()
+    const blockedLocal = await ctx.tools.execute({ name: 'child_local', callId: 'test-local' as never, arguments: {}, agent: childNative, signal: new AbortController().signal })
+    expect(blockedLocal.isError).toBe(true)
+    expect(blockedLocal.content).toEqual([{ type: 'text', text: 'Error: BTW 仅允许文字回答，禁止执行任何工具。' }])
+
+    const childPtc = { session: {} } as unknown as Agent
+    const scopePtc = createScope(ctx, childPtc)
+    scopePtc.ctx.tools.restrict({ allow: [] })
+    scopePtc.ctx.tools.presentAs('ptc')
+    protection.own(childPtc)
+    expect(ctx.tools.get('run_code', childPtc)).toBeDefined()
+    const blockedRun = await ctx.tools.execute({ name: 'run_code', callId: 'test-run' as never, arguments: { description: 'x', code: '1' }, agent: childPtc, signal: new AbortController().signal })
+    expect(blockedRun.isError).toBe(true)
+    expect(blockedRun.content).toEqual([{ type: 'text', text: 'Error: BTW 仅允许文字回答，禁止执行任何工具。' }])
     expect(body).not.toHaveBeenCalled()
+
     const result = await ctx.tools.execute({ name: 'normal', callId: 'main' as never, arguments: {}, signal: new AbortController().signal })
     expect(result.isError).not.toBe(true)
     expect(body).toHaveBeenCalledOnce()
-    await scope.dispose()
+    await scopeNative.dispose()
+    await scopePtc.dispose()
     await ctx.fiber.dispose()
   })
 
@@ -92,10 +102,10 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     const child = { session: { snapshotEvents: () => { throw new Error('生产路径不应再读 snapshotEvents') } } } as unknown as Agent
     ctx.provide('subagents', {
-      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-      start: async (_name: string, request: { label: string }) => {
-        ctx.emit('session/event', child.session as never, { type: 'subagent/descriptor', data: { label: request.label } } as never)
-        return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'ok' }] }), dispose: async () => {} }
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
+      startActivation: async (spec: { label: string; childId: string }) => {
+        ctx.emit('session/event', child.session as never, { type: 'subagent/descriptor', data: { label: spec.label } } as never)
+        return { childId: spec.childId as never, result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'ok' }] }), dispose: async () => {} }
       },
     })
     const plugin = ctx.plugin(apply)
@@ -122,8 +132,8 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     ctx.provide('tools', { guard: () => ctx.effect(() => { protectedNow = true; return () => { protectedNow = false } }) })
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', {
-      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-      start: async () => ({ result: new Promise(() => {}), dispose: () => { cleanupStarted = true; return new Promise<void>(resolve => { finishCleanup = resolve }) } }),
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
+      startActivation: async (spec: { childId: string }) => ({ childId: spec.childId as never, result: new Promise(() => {}), dispose: () => { cleanupStarted = true; return new Promise<void>(resolve => { finishCleanup = resolve }) } }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
@@ -152,11 +162,13 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const child = { session: {} } as Agent & { ctx?: ContextType }
     let scope: { ctx: ContextType; dispose(): Promise<void> }
     ctx.provide('subagents', {
-      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-      start: async () => {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
+      startActivation: async (spec: { childId: string }) => {
         scope = createScope(ctx, child)
         child.ctx = scope.ctx
-        return { result: new Promise(() => {}), dispose, localAgent: child }
+        ;(child as { id?: string }).id = spec.childId
+        ctx.emit('agent/created', { agent: child, source: 'create' } as never)
+        return { childId: spec.childId as never, result: new Promise(() => {}), dispose }
       },
     })
     const plugin = ctx.plugin(apply)
@@ -191,12 +203,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const ctx = new Context()
     const commands = new Map<string, CommandDefinition>()
     let protectedNow = false
-    let finishStart!: (run: SubagentRun) => void
+    let finishStart!: (run: SubagentActivation) => void
     ctx.provide('tools', { guard: () => ctx.effect(() => { protectedNow = true; return () => { protectedNow = false } }) })
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', {
-      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-      start: () => new Promise(resolve => { finishStart = resolve }),
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
+      startActivation: () => new Promise(resolve => { finishStart = resolve }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
@@ -207,7 +219,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await expect(unload).resolves.toBeUndefined()
     expect(protectedNow).toBe(true)
     const dispose = vi.fn(async () => {})
-    finishStart({ id: 'late-start' as never, localAgent: undefined, result: new Promise(() => {}), dispose })
+    finishStart({ childId: 'late-start' as never, result: new Promise(() => {}), dispose })
     await vi.advanceTimersByTimeAsync(0)
     expect(dispose).toHaveBeenCalledTimes(1)
     expect(protectedNow).toBe(false)

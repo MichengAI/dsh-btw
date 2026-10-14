@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import { Peer } from '@deepseek-ai/dsh-client-connection'
 import { expect, it, vi } from 'vitest'
 import { apply } from '../src/index'
 import { CLOSE_COMMAND, RUN_COMMAND } from '../src/shared'
@@ -24,6 +25,8 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     '0.1.7-rc.2': 'submittedAttachments',
     '0.2.0-rc.1': 'submittedAttachments',
     '0.2.0-rc.2': 'submittedAttachments',
+    '0.2.1-alpha.2': 'submittedAttachments',
+    '0.2.1-alpha.3': 'submittedAttachments',
   }
   const attachmentField = Object.hasOwn(attachmentFields, version) ? attachmentFields[version] : undefined
   if (!attachmentField) throw new Error(`未验证的 DSH RPC 附件协议版本：${version}；请先确认字段并更新测试映射。`)
@@ -41,8 +44,8 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
   const gateway = new TypertGatewayService(ctx, { websocketHeartbeatIntervalMs: 2000 })
   ctx.provide('tools', { guard: () => () => {} })
   ctx.provide('subagents', {
-    getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-    start: async () => ({ result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '回答' }] }), dispose: async () => {} }),
+    getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
+    startActivation: async (spec: { childId: string }) => ({ childId: spec.childId as never, result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '回答' }] }), dispose: async () => {} }),
   })
   const agent = { session: { header: { id: 'main' }, append: vi.fn() } } as unknown as Agent
   registry.lookups.register('agent', {
@@ -51,7 +54,8 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     wireTypeSymbol: '@deepseek-ai/dsh-session/types#SessionId',
     resolve: (id: string) => id === 'main' ? agent : undefined,
   })
-  const listRemote = () => gateway.invoke({ namespace: 'commands', method: 'list', args: { agentId: 'main' } })
+  const peer = new Peer(ctx, { principal: { kind: 'owner' } })
+  const listRemote = () => gateway.invoke({ namespace: 'commands', method: 'list', args: { agentId: 'main' }, peer })
   ctx.commands.register({ name: 'other', description: '其他命令', handler: () => ({ kind: 'success', text: 'other' }) })
   const plugin = ctx.plugin(apply)
   try {
@@ -61,7 +65,7 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     expect(listed.map(item => item.name)).toEqual(['btw', 'other'])
     expect(listed.find(item => item.name === 'btw')?.description).toBe('根据当前上下文回答，不执行工具')
     for (const line of [`/${RUN_COMMAND} ${JSON.stringify({ id: 'request01', question: '你好' })}`, `/${CLOSE_COMMAND} request01`]) {
-      expect((await gateway.invoke({ namespace: 'commands', method: 'execute', args: { agentId: 'main', line, ...attachments }, signal: new AbortController().signal }))?.result.kind).toBe('success')
+      expect((await gateway.invoke({ namespace: 'commands', method: 'execute', args: { agentId: 'main', line, ...attachments }, peer, signal: new AbortController().signal }) as { result?: { kind?: string } })?.result?.kind).toBe('success')
     }
     await plugin.dispose()
     ctx.commands.register({ name: RUN_COMMAND, description: '恢复检查', handler: () => ({ kind: 'success' }) })

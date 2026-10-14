@@ -1,4 +1,4 @@
-import { Context } from '@deepseek-ai/cordis'
+import { Context, Service } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import CommandRuntime from '@deepseek-ai/dsh-commands'
@@ -36,16 +36,26 @@ class AnswerAdapter extends LlmAdapter {
   }
 }
 
+
+// alpha.3：SubagentRuntime / 本地 fork 依赖 workingDirectory（ensure/set）。
+class MemoryWorkingDirectory extends Service {
+  constructor(ctx: Context) { super(ctx, 'workingDirectory') }
+  get(session: { header: { cwd?: string } }) { return session.header.cwd }
+  async ensure(agent: { session: { header: { cwd?: string } } }) { return agent.session.header.cwd ?? process.cwd() }
+  async set(_agent: unknown, path: string) { return path }
+}
+
 it('真实 fork 继承已完成上下文、独立回答并可取消，主任务保持可用', async () => {
   const ctx = new Context()
   try {
+    new MemoryWorkingDirectory(ctx)
     for (const service of [LlmRuntime, SessionStore, SessionProjectionRegistry, SystemPrompt, ToolRuntime, AgentRegistry, CommandRuntime]) await ctx.plugin(service).await()
     await ctx.plugin(AgentLoop, { agents: [] }).await()
     await ctx.plugin(SubagentRuntime).await()
     await ctx.plugin(Fork, { providerName: 'fork' }).await()
     const adapter = new AnswerAdapter()
     ctx.llm.registerAdapter(['test'], adapter)
-    const parent = await ctx.agentLoop.create(SessionId('btw-parent'), { provider: 'test', model: 'test' })
+    const parent = await ctx.agentLoop.create(SessionId('btw-parent'), { provider: 'test', model: 'test' }, { cwd: process.cwd() })
     parent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: '主任务背景' }] }))
     await parent.whenIdle()
     const bundle = new URL('../lib/index.js', import.meta.url).href

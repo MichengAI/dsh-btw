@@ -2,6 +2,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-subagent'
+import { SessionId } from '@deepseek-ai/dsh-session'
+import { PERSONA_PREFIX_SECTION } from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
 import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SideJobs } from './server/jobs'
@@ -18,7 +20,16 @@ const PERSONA = `你是当前主任务之外的一次性旁问助手。继承的
 回答应简洁准确，语言与问题一致。上下文不足时直接指出未知信息，不声称已经执行了任何操作。`
 
 interface GuardedAgent {
-  ctx?: { tools: { guard(guard: ReturnType<typeof createAnswerOnlyGuard>): () => void | Promise<void> } }
+  ctx?: {
+    tools: {
+      guard(guard: ReturnType<typeof createAnswerOnlyGuard>): () => void | Promise<void>
+      restrict(filter: { allow?: readonly string[]; deny?: readonly string[] }): () => void
+    }
+    systemPrompt: {
+      section(spec: { name: string; order: number; text: string }): () => void
+      getSectionOrder(name: string): number
+    }
+  }
 }
 
 /** 宿主命令只负责接入与身份绑定，不创建 HTTP 或持久侧聊接口。 */
@@ -43,27 +54,53 @@ export function apply(ctx: Context): void {
   }
   const stopWatch = ctx.on('session/event', (session, event) => protection.recognize(session, event))
   const jobs = new SideJobs(async request => {
+    // DSH 0.2.1-alpha.3：start / persona / toolFilter 已移除；fork 走 startActivation，
+    // 旁问角色与空白名单在子 Agent agent/created 时用 scoped persona 与 tools.restrict 恢复。
     const provider = ctx.subagents.getProvider('fork')
-    if (!provider?.inheritsParentContext || !provider.capabilities.toolFilter || !provider.capabilities.persona) {
+    if (!provider?.inheritsParentContext) {
       throw new Error(translate(request.locale)('error.provider'))
     }
     const label = `michengai-btw:${globalThis.crypto.randomUUID()}`
+    const childId = SessionId(globalThis.crypto.randomUUID())
     labels.add(label)
+    let childAgent: object | undefined
     try {
-      const run = await ctx.subagents.start('fork', {
-        parent: request.context as Agent,
-        label,
-        signal: request.signal,
-        toolFilter: request.toolFilter,
-        persona: PERSONA,
-        prompt: [{ type: 'text', text: `以下是唯一需要回答的新问题；先前内容仅供参考。\n\n${request.question}` }],
+      const stopCreated = ctx.on('agent/created', ({ agent }) => {
+        if (agent.id !== childId) return undefined
+        childAgent = agent
+        arm(agent as GuardedAgent)
+        const scoped = agent as GuardedAgent
+        if (scoped.ctx?.systemPrompt) {
+          scoped.ctx.systemPrompt.section({
+            name: PERSONA_PREFIX_SECTION,
+            order: scoped.ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_PREFIX'),
+            text: PERSONA,
+          })
+        }
+        if (scoped.ctx?.tools) scoped.ctx.tools.restrict(request.toolFilter)
+        return undefined
       })
-      if (run.localAgent) arm(run.localAgent)
+      let activation
+      try {
+        activation = await ctx.subagents.startActivation({
+          provider: 'fork',
+          label,
+          childId,
+          request: {
+            parent: request.context as Agent,
+            prompt: [{ type: 'text', text: `以下是唯一需要回答的新问题；先前内容仅供参考。\n\n${request.question}` }],
+          },
+          signal: request.signal,
+          delivery: 'caller',
+        })
+      } finally {
+        stopCreated()
+      }
       return {
-        result: run.result,
+        result: activation.result,
         dispose: async () => {
-          try { await run.dispose() }
-          finally { await releaseChild(run.localAgent); labels.delete(label) }
+          try { await activation.dispose() }
+          finally { await releaseChild(childAgent); labels.delete(label) }
         },
       }
     } catch (error) { labels.delete(label); throw error }
