@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.1.21] - 2026-10-14
+
+- Use the raised layer token (`--dsw-alias-bg-layer-2`) for the selection question dialog and answer bubbles, fixing see-through text under wallpaper and transparent-canvas themes.
+
 ## [0.1.20] - 2026-10-13
 
 - Tag injected styles with plugin ownership so the selection action bar keeps its rounded dark theme and does not fall back to browser default popover boxes after host theme changes or client reloads.
