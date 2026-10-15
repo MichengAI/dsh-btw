@@ -122,6 +122,56 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await ctx.fiber.dispose()
   })
 
+  it('旧宿主回退路径：无 startActivation 时平滑调用 legacy subagents.start 并传递完整限制', async () => {
+    const { Context, ToolRuntime, createScope } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    new ToolRuntime(ctx)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
+
+    const child = { session: {} } as Agent & { ctx?: ContextType }
+    let scope: { ctx: ContextType; dispose(): Promise<void> }
+    const dispose = vi.fn(async () => {})
+    const startLegacy = vi.fn(async (_provider: string, options: {
+      parent: Agent
+      label: string
+      toolFilter: { allow: readonly string[] }
+      persona: string
+      prompt: readonly { type: string; text: string }[]
+    }) => {
+      scope = createScope(ctx, child)
+      child.ctx = scope.ctx
+      // 验证旧宿主接收到了空白工具名单与独立角色
+      expect(options.toolFilter).toEqual({ allow: [] })
+      expect(options.persona).toContain('一次性旁问助手')
+      return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '旧宿主答案' }] }), localAgent: child, dispose }
+    })
+
+    // 仅提供 legacy start，未提供 startActivation
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
+      start: startLegacy,
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    const outcome = await commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main' } } },
+      rawInput: JSON.stringify({ id: 'legacy-req', question: '旧版问题' }),
+      signal: new AbortController().signal,
+    } as never)
+
+    expect(outcome).toEqual({ kind: 'success', text: '旧宿主答案' })
+    expect(startLegacy).toHaveBeenCalledOnce()
+    expect(dispose).toHaveBeenCalledOnce() // 正常完成在 SideJobs execute 结束时调用 cleanup 释放
+
+    await plugin.dispose()
+    if (scope!) await scope.dispose()
+    await ctx.fiber.dispose()
+  })
+
   it('插件卸载期间保护持续到子代理清理完成', async () => {
     const { Context } = await load()
     const ctx = new Context()

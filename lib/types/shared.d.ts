@@ -1,6 +1,7 @@
 export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits';
 import { type BtwLocale } from './locales';
 export declare const RUN_COMMAND = "btw-run";
+export declare const DEFAULT_TIMEOUT_MS = 1800000;
 export declare const CLOSE_COMMAND = "btw-close";
 export interface SideRequest {
     id: string;

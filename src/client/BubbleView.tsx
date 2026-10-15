@@ -60,19 +60,20 @@ export function BubbleDock({ store, sessionId, t }: { store: BubbleStore; sessio
   const items = snapshot.filter(item => item.sessionId === sessionId)
   const latestId = items.at(-1)?.id
 
-  // 手动覆盖状态：undefined 表示跟随最新；{ latestId, id: string | null } 记录当批次用户的偏好
-  const [manual, setManual] = useState<{ latestId?: string; id: string | null } | undefined>()
+  // 手动覆盖状态：记录用户手动指定的展开 id（或 null 全部收起），同时记录设置该偏好时见到的气泡集合
+  const [manual, setManual] = useState<{ id: string | null; knownIds: readonly string[] } | undefined>()
 
-  // 当新气泡到达时（latestId 变化），丢弃手动覆盖，恢复自动展开最新气泡
-  if (manual && manual.latestId !== latestId) {
-    setManual(undefined)
-  }
+  // 仅当新气泡产生时（当前列表出现以往未见的新 id），才抢走展开焦点；单纯删除气泡不重置用户的手动偏好
+  const hasNewlyAddedBubble = manual !== undefined && items.some(item => !manual.knownIds.includes(item.id))
+  const currentIds = useMemo(() => items.map(item => item.id), [items])
 
-  // 若用户固定的展开气泡已被删除，则回退跟随最新气泡
-  const isPinnedValid = manual?.id ? items.some(item => item.id === manual.id) : false
-  const effectiveExpandedId = manual === undefined
+  const isPinnedValid = manual !== undefined && !hasNewlyAddedBubble && manual.id !== null
+    ? items.some(item => item.id === manual.id)
+    : false
+
+  const effectiveExpandedId = manual === undefined || hasNewlyAddedBubble
     ? latestId
-    : (manual.id && !isPinnedValid ? latestId : manual.id)
+    : (manual.id === null ? null : (isPinnedValid ? manual.id : latestId))
 
   if (!items.length) return null
   return <div className="btw-dock">
@@ -83,8 +84,8 @@ export function BubbleDock({ store, sessionId, t }: { store: BubbleStore; sessio
         t={t}
         collapsed={item.id !== effectiveExpandedId}
         onToggleCollapse={() => {
-          if (item.id === effectiveExpandedId) setManual({ latestId, id: null })
-          else setManual({ latestId, id: item.id })
+          if (item.id === effectiveExpandedId) setManual({ id: null, knownIds: currentIds })
+          else setManual({ id: item.id, knownIds: currentIds })
         }}
         close={() => { void store.close(item.id) }}
       />

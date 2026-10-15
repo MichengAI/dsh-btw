@@ -1,4 +1,4 @@
-import type { SideResult } from '../shared';
+import { type SideResult } from '../shared';
 import { type BtwLocale } from '../locales';
 export interface ChildResult {
     stopReason: string;

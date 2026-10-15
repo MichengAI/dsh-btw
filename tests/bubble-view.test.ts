@@ -96,26 +96,32 @@ it('BubbleDock 真实生命周期：新气泡自动展开老气泡折叠、手�
   expect(cards1).toHaveLength(1)
   expect(cards1[0]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
 
-  // 2. 发送第 2 个气泡：第 1 个自动收起，第 2 个展开
+  // 2. 发送第 2 个气泡：第 1 个自动收起，第 2 个展开（直接断言 .btw-answer 视图可见性）
   await act(async () => { await store.ask(sessionId, '问题2') })
   const cards2 = container.querySelectorAll('.btw-bubble')
   expect(cards2).toHaveLength(2)
   expect(cards2[0]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+  expect(cards2[0]?.querySelector('.btw-answer')).toBeNull()
   expect(cards2[1]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+  expect(cards2[1]?.querySelector('.btw-answer')).not.toBeNull()
 
-  // 3. 用户手动收起最新气泡 (第 2 个)，此时两个都收起
+  // 3. 用户手动收起最新气泡 (第 2 个)，此时两个都收起，内容均不可见
   const collapseBtn2 = cards2[1]?.querySelector<HTMLButtonElement>('button[aria-expanded="true"]')
   expect(collapseBtn2).not.toBeNull()
   await act(async () => collapseBtn2!.click())
   expect(container.querySelectorAll('.btw-actions button[aria-expanded="true"]')).toHaveLength(0)
+  expect(container.querySelectorAll('.btw-answer')).toHaveLength(0)
 
-  // 4. 发送第 3 个气泡：丢弃手动的收起，第 3 个稳定夺回展开焦点
+  // 4. 发送第 3 个气泡：丢弃手动的收起，第 3 个稳定夺回展开焦点（验证第 1、2 项皆无 .btw-answer，第 3 项有）
   await act(async () => { await store.ask(sessionId, '问题3') })
   const cards3 = container.querySelectorAll('.btw-bubble')
   expect(cards3).toHaveLength(3)
   expect(cards3[0]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+  expect(cards3[0]?.querySelector('.btw-answer')).toBeNull()
   expect(cards3[1]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+  expect(cards3[1]?.querySelector('.btw-answer')).toBeNull()
   expect(cards3[2]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+  expect(cards3[2]?.querySelector('.btw-answer')).not.toBeNull()
 
   // 5. 用户手动展开第 1 个老气泡
   const expandBtn1 = cards3[0]?.querySelector<HTMLButtonElement>('button[aria-expanded="false"]')
@@ -130,12 +136,18 @@ it('BubbleDock 真实生命周期：新气泡自动展开老气泡折叠、手�
   expect(cards4[0]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
   expect(cards4[3]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
 
-  // 7. 关闭第 4 个气泡：展开焦点自动回落到剩下的当前最新一条（即第 3 个气泡）
+  // 7. 用户在全收起状态下，关掉最新一条，上一条不应意外弹开
+  // 先把第 4 条手动收起：
+  const collapseBtn4 = cards4[3]?.querySelector<HTMLButtonElement>('button[aria-expanded="true"]')
+  await act(async () => collapseBtn4!.click())
+  expect(container.querySelectorAll('.btw-actions button[aria-expanded="true"]')).toHaveLength(0)
+
+  // 关闭第 4 个气泡：由于用户刚才选择的是全部收起，关闭后不应擅自把第 3 个弹开
   const closeBtn4 = cards4[3]?.querySelector<HTMLButtonElement>('button[aria-label="Close side question"]')
   await act(async () => closeBtn4!.click())
   const cardsAfterClose = container.querySelectorAll('.btw-bubble')
   expect(cardsAfterClose).toHaveLength(3)
-  expect(cardsAfterClose[2]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+  expect(container.querySelectorAll('.btw-actions button[aria-expanded="true"]')).toHaveLength(0)
 })
 
 it('复制失败显示可恢复错误，重试成功清除提示', async () => {

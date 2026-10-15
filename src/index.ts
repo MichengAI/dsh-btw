@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-subagent'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { PERSONA_PREFIX_SECTION } from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
-import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
+import { CLOSE_COMMAND, DEFAULT_TIMEOUT_MS, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SideJobs } from './server/jobs'
 import { createAnswerOnlyGuard, identityOfFromContext } from './server/tool-guard'
 import { translate } from './locales'
@@ -143,7 +143,7 @@ export function apply(ctx: Context): void {
         },
       }
     } catch (error) { labels.delete(label); throw error }
-  }, 1_800_000, {
+  }, DEFAULT_TIMEOUT_MS, {
     onError: error => ctx.logger.warn(error),
     onIdle: async () => { stopWatch(); await releasePluginGuard() },
   })
