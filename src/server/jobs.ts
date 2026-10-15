@@ -1,4 +1,4 @@
-import { DEFAULT_TIMEOUT_MS, type SideResult } from '../shared'
+import type { SideResult } from '../shared'
 import { translate, type BtwLocale, type BtwTranslate } from '../locales'
 
 export interface ChildResult {
@@ -38,6 +38,8 @@ interface JobOptions {
 }
 
 const failure = (error: unknown): SideResult => ({ kind: 'error', text: error instanceof Error ? error.message : String(error) })
+
+export const DEFAULT_TIMEOUT_MS = 1_800_000 // 30 分钟兜底看门狗，防长连接死锁占满并发配额
 
 /** 管理一次性任务；父会话和请求标识共同构成所有权边界。 */
 export class SideJobs {

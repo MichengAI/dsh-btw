@@ -25,7 +25,11 @@ afterEach(async () => {
 })
 const render = async () => {
   await act(async () => root.render(React.createElement(BubbleView, {
-    item: { id: 'request01', sessionId: 'session', question: '问题', answer, phase: 'done' }, close, t: translate('en'),
+    item: { id: 'request01', sessionId: 'session', question: '问题', answer, phase: 'done' },
+    close,
+    t: translate('en'),
+    collapsed: false,
+    onToggleCollapse: () => {},
   })))
 }
 const click = async (label: string) => {
@@ -49,11 +53,11 @@ it('实际 Markdown 渲染拒绝 HTML、脚本链接和远程图片，并保护�
 
 it('正在回答时提供停止按钮，支持中英文无障碍提示且点击触发取消', async () => {
   const item: Bubble = { id: 'request01', sessionId: 'session', question: '问题', answer: '', phase: 'answering' }
-  await act(async () => root.render(React.createElement(BubbleView, { item, close, t: translate('en') })))
+  await act(async () => root.render(React.createElement(BubbleView, { item, close, t: translate('en'), collapsed: false, onToggleCollapse: () => {} })))
   await click('Stop answering')
   expect(close).toHaveBeenCalledOnce()
   close.mockClear()
-  await act(async () => root.render(React.createElement(BubbleView, { item, close, t: translate('zh') })))
+  await act(async () => root.render(React.createElement(BubbleView, { item, close, t: translate('zh'), collapsed: false, onToggleCollapse: () => {} })))
   await click('停止回答')
   expect(close).toHaveBeenCalledOnce()
   close.mockClear()

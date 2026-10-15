@@ -1,4 +1,4 @@
-import { type SideResult } from '../shared';
+import type { SideResult } from '../shared';
 import { type BtwLocale } from '../locales';
 export interface ChildResult {
     stopReason: string;
@@ -29,6 +29,7 @@ interface JobOptions {
     /** 卸载后所有实际资源均释放时调用；用于释放执行保护。 */
     onIdle?: () => void | Promise<void>;
 }
+export declare const DEFAULT_TIMEOUT_MS = 1800000;
 /** 管理一次性任务；父会话和请求标识共同构成所有权边界。 */
 export declare class SideJobs {
     private readonly start;

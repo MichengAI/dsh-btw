@@ -71,6 +71,8 @@ const render = async (answer: string) => {
     item: { id: 'request01', sessionId: 'session', question: '问题', answer, phase: 'done' },
     close: () => {},
     t: translate('zh'),
+    collapsed: false,
+    onToggleCollapse: () => {},
   })))
 }
 

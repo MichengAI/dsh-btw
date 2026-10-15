@@ -167,6 +167,13 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(startLegacy).toHaveBeenCalledOnce()
     expect(dispose).toHaveBeenCalledOnce() // 正常完成在 SideJobs execute 结束时调用 cleanup 释放
 
+    // 严密断言安全承诺：旧宿主返回的 localAgent 已被 arm 纳入工具拦截保护
+    const currentScope = scope!
+    currentScope.ctx.tools.register({ name: 'legacy_tool', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] }, execute: vi.fn() })
+    const blocked = await ctx.tools.execute({ name: 'legacy_tool', callId: 'test-call' as never, arguments: {}, agent: child, signal: new AbortController().signal })
+    expect(blocked.isError).toBe(true)
+    expect(blocked.content).toEqual([{ type: 'text', text: 'Error: BTW 仅允许文字回答，禁止执行任何工具。' }])
+
     await plugin.dispose()
     if (scope!) await scope.dispose()
     await ctx.fiber.dispose()

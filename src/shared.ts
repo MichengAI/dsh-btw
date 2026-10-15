@@ -3,7 +3,6 @@ export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits'
 import { normalizeLocale, translate, type BtwLocale } from './locales'
 
 export const RUN_COMMAND = 'btw-run'
-export const DEFAULT_TIMEOUT_MS = 1_800_000 // 30 分钟兜底看门狗，防长连接死锁占满并发配额
 export const CLOSE_COMMAND = 'btw-close'
 
 export interface SideRequest {

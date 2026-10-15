@@ -5,8 +5,8 @@ export declare function BubbleView({ item, close, t, collapsed, onToggleCollapse
     item: Bubble;
     close: () => void;
     t: BtwTranslate;
-    collapsed?: boolean;
-    onToggleCollapse?: () => void;
+    collapsed: boolean;
+    onToggleCollapse: () => void;
 }): React.JSX.Element;
 export declare function BubbleDock({ store, sessionId, t }: {
     store: BubbleStore;

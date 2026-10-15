@@ -4,12 +4,12 @@ import { AnswerMarkdown } from './answer-markdown'
 import type { Bubble, BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 
-export function BubbleView({ item, close, t, collapsed = false, onToggleCollapse = () => {} }: {
+export function BubbleView({ item, close, t, collapsed, onToggleCollapse }: {
   item: Bubble
   close: () => void
   t: BtwTranslate
-  collapsed?: boolean
-  onToggleCollapse?: () => void
+  collapsed: boolean
+  onToggleCollapse: () => void
 }): React.JSX.Element {
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState(false)
@@ -65,7 +65,7 @@ export function BubbleDock({ store, sessionId, t }: { store: BubbleStore; sessio
 
   // 仅当新气泡产生时（当前列表出现以往未见的新 id），才抢走展开焦点；单纯删除气泡不重置用户的手动偏好
   const hasNewlyAddedBubble = manual !== undefined && items.some(item => !manual.knownIds.includes(item.id))
-  const currentIds = useMemo(() => items.map(item => item.id), [items])
+  const currentIds = items.map(item => item.id)
 
   const isPinnedValid = manual !== undefined && !hasNewlyAddedBubble && manual.id !== null
     ? items.some(item => item.id === manual.id)
