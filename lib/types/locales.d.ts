@@ -24,6 +24,7 @@ export declare const zh: {
     'action.collapse': string;
     'action.close': string;
     'action.retryClose': string;
+    'action.stop': string;
     'status.answering': string;
     'status.closing': string;
     'command.hint': string;

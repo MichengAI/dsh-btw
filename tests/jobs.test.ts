@@ -28,6 +28,21 @@ describe('一次性旁问生命周期', () => {
     expect(jobs.size).toBe(0)
   })
 
+  it('默认不设硬超时，允许长时间思考直到完成', async () => {
+    vi.useFakeTimers()
+    const pending = deferred<typeof answer>()
+    const dispose = vi.fn(async () => {})
+    const jobs = new SideJobs(async () => ({ result: pending.promise, dispose }))
+    const task = jobs.ask('parent', 'request01', '深度思考题')
+    // 超过旧的 90s (比如推进 300s)
+    await vi.advanceTimersByTimeAsync(300_000)
+    expect(jobs.size).toBe(1)
+    pending.resolve(answer)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(await task).toEqual({ kind: 'success', text: '答案' })
+    expect(jobs.size).toBe(0)
+  })
+
   it('正常完成后释放子代理，强制空工具白名单', async () => {
     const dispose = vi.fn(async () => {})
     const start = vi.fn<StartChild>(async () => ({ result: Promise.resolve(answer), dispose }))

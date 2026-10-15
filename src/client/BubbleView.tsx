@@ -1,11 +1,23 @@
 import React, { useMemo, useState, useSyncExternalStore } from 'react'
-import { Check, ChevronDown, ChevronUp, Copy, LoaderCircle, MessageCircle, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Copy, LoaderCircle, MessageCircle, Square, X } from 'lucide-react'
 import { AnswerMarkdown } from './answer-markdown'
 import type { Bubble, BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 
-export function BubbleView({ item, close, t }: { item: Bubble; close: () => void; t: BtwTranslate }): React.JSX.Element {
-  const [collapsed, setCollapsed] = useState(false)
+export function BubbleView({ item, close, t, collapsed: externalCollapsed, onToggleCollapse }: {
+  item: Bubble
+  close: () => void
+  t: BtwTranslate
+  collapsed?: boolean
+  onToggleCollapse?: () => void
+}): React.JSX.Element {
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+  const isControlled = externalCollapsed !== undefined
+  const collapsed = isControlled ? externalCollapsed : internalCollapsed
+  const toggleCollapse = () => {
+    if (onToggleCollapse) onToggleCollapse()
+    else setInternalCollapsed(!internalCollapsed)
+  }
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState(false)
   const busy = item.phase === 'answering' || item.phase === 'closing'
@@ -26,8 +38,17 @@ export function BubbleView({ item, close, t }: { item: Bubble; close: () => void
       <span className="btw-question">{item.question}</span>
       <div className="btw-actions">
         {item.answer && <button type="button" title={t(copied ? 'action.copied' : 'action.copy')} aria-label={t('action.copy')} onClick={() => { void copy() }}>{copied ? <Check size={16} /> : <Copy size={16} />}</button>}
-        <button type="button" title={t(collapsed ? 'action.expand' : 'action.collapse')} aria-label={t(collapsed ? 'action.expand' : 'action.collapse')} aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
-        <button type="button" title={t(item.closeFailed ? 'action.retryClose' : 'action.close')} aria-label={t('action.close')} disabled={item.phase === 'closing'} onClick={close}><X size={16} /></button>
+        <button type="button" title={t(collapsed ? 'action.expand' : 'action.collapse')} aria-label={t(collapsed ? 'action.expand' : 'action.collapse')} aria-expanded={!collapsed} onClick={toggleCollapse}>{collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
+        <button
+          type="button"
+          className={item.phase === 'answering' ? 'btw-action-stop' : undefined}
+          title={t(item.phase === 'answering' ? 'action.stop' : item.closeFailed ? 'action.retryClose' : 'action.close')}
+          aria-label={t(item.phase === 'answering' ? 'action.stop' : 'action.close')}
+          disabled={item.phase === 'closing'}
+          onClick={close}
+        >
+          {item.phase === 'answering' ? <Square size={14} /> : <X size={16} />}
+        </button>
       </div>
     </header>
     {!collapsed && item.reference && <details className="btw-reference"><summary>{t('selection.reference')}</summary><blockquote>{item.reference}</blockquote></details>}
@@ -41,6 +62,27 @@ export function BubbleView({ item, close, t }: { item: Bubble; close: () => void
 export function BubbleDock({ store, sessionId, t }: { store: BubbleStore; sessionId: string; t: BtwTranslate }): React.JSX.Element | null {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
   const items = snapshot.filter(item => item.sessionId === sessionId)
+  const latestId = items.at(-1)?.id
+  const [activeExpandedId, setActiveExpandedId] = useState<string | null>(null)
+
+  // 当有新气泡生成时，默认焦点落在最新气泡上，老气泡自动收起；
+  // 用户也可以随时手动展开/收起任何一个气泡
+  const effectiveExpandedId = activeExpandedId ?? latestId
+
   if (!items.length) return null
-  return <div className="btw-dock">{items.map(item => <BubbleView key={item.id} item={item} t={t} close={() => { void store.close(item.id) }} />)}</div>
+  return <div className="btw-dock">
+    {items.map(item => (
+      <BubbleView
+        key={item.id}
+        item={item}
+        t={t}
+        collapsed={item.id !== effectiveExpandedId}
+        onToggleCollapse={() => {
+          if (item.id === effectiveExpandedId) setActiveExpandedId('')
+          else setActiveExpandedId(item.id)
+        }}
+        close={() => { void store.close(item.id) }}
+      />
+    ))}
+  </div>
 }

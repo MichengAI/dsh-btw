@@ -54,57 +54,90 @@ export function apply(ctx: Context): void {
   }
   const stopWatch = ctx.on('session/event', (session, event) => protection.recognize(session, event))
   const jobs = new SideJobs(async request => {
-    // DSH 0.2.1-alpha.3：start / persona / toolFilter 已移除；fork 走 startActivation，
-    // 旁问角色与空白名单在子 Agent agent/created 时用 scoped persona 与 tools.restrict 恢复。
-    const provider = ctx.subagents.getProvider('fork')
+    // 兼容两代宿主 Subagent 接口：
+    // 1. DSH 0.2.1-alpha.3+：start / persona / toolFilter 已废弃，采用 startActivation + agent/created 注入；
+    // 2. DSH 0.2.0-rc.2 及更早：采用传统 subagents.start('fork', { parent, label, signal, toolFilter, persona, prompt })。
+    const subagents = ctx.subagents as unknown as {
+      getProvider(name: string): { inheritsParentContext?: boolean; capabilities?: { toolFilter?: boolean; persona?: boolean } } | undefined
+      startActivation?(options: unknown): Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; dispose(): Promise<void> }>
+      start?(provider: string, options: unknown): Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
+    }
+    const provider = subagents.getProvider('fork')
     if (!provider?.inheritsParentContext) {
       throw new Error(translate(request.locale)('error.provider'))
     }
     const label = `michengai-btw:${globalThis.crypto.randomUUID()}`
-    const childId = SessionId(globalThis.crypto.randomUUID())
     labels.add(label)
-    let childAgent: object | undefined
-    try {
-      const stopCreated = ctx.on('agent/created', ({ agent }) => {
-        if (agent.id !== childId) return undefined
-        childAgent = agent
-        arm(agent as GuardedAgent)
-        const scoped = agent as GuardedAgent
-        if (scoped.ctx?.systemPrompt) {
-          scoped.ctx.systemPrompt.section({
-            name: PERSONA_PREFIX_SECTION,
-            order: scoped.ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_PREFIX'),
-            text: PERSONA,
-          })
-        }
-        if (scoped.ctx?.tools) scoped.ctx.tools.restrict(request.toolFilter)
-        return undefined
-      })
-      let activation
+
+    if (typeof subagents.startActivation === 'function') {
+      const childId = SessionId(globalThis.crypto.randomUUID())
+      let childAgent: object | undefined
       try {
-        activation = await ctx.subagents.startActivation({
-          provider: 'fork',
-          label,
-          childId,
-          request: {
-            parent: request.context as Agent,
-            prompt: [{ type: 'text', text: `以下是唯一需要回答的新问题；先前内容仅供参考。\n\n${request.question}` }],
-          },
-          signal: request.signal,
-          delivery: 'caller',
+        const stopCreated = ctx.on('agent/created', ({ agent }) => {
+          if (agent.id !== childId) return undefined
+          childAgent = agent
+          arm(agent as GuardedAgent)
+          const scoped = agent as GuardedAgent
+          if (scoped.ctx?.systemPrompt) {
+            scoped.ctx.systemPrompt.section({
+              name: PERSONA_PREFIX_SECTION,
+              order: scoped.ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_PREFIX'),
+              text: PERSONA,
+            })
+          }
+          if (scoped.ctx?.tools) scoped.ctx.tools.restrict(request.toolFilter)
+          return undefined
         })
-      } finally {
-        stopCreated()
-      }
+        let activation
+        try {
+          activation = await subagents.startActivation({
+            provider: 'fork',
+            label,
+            childId,
+            request: {
+              parent: request.context as Agent,
+              prompt: [{ type: 'text', text: `以下是唯一需要回答的新问题；先前内容仅供参考。\n\n${request.question}` }],
+            },
+            signal: request.signal,
+            delivery: 'caller',
+          })
+        } finally {
+          stopCreated()
+        }
+        return {
+          result: activation.result,
+          dispose: async () => {
+            try { await activation.dispose() }
+            finally { await releaseChild(childAgent); labels.delete(label) }
+          },
+        }
+      } catch (error) { labels.delete(label); throw error }
+    }
+
+    // 回退旧宿主传统 start 接口
+    if (typeof subagents.start !== 'function') {
+      labels.delete(label)
+      throw new Error(translate(request.locale)('error.provider'))
+    }
+    try {
+      const run = await subagents.start('fork', {
+        parent: request.context as Agent,
+        label,
+        signal: request.signal,
+        toolFilter: request.toolFilter,
+        persona: PERSONA,
+        prompt: [{ type: 'text', text: `以下是唯一需要回答的新问题；先前内容仅供参考。\n\n${request.question}` }],
+      })
+      if (run.localAgent) arm(run.localAgent)
       return {
-        result: activation.result,
+        result: run.result,
         dispose: async () => {
-          try { await activation.dispose() }
-          finally { await releaseChild(childAgent); labels.delete(label) }
+          try { await run.dispose() }
+          finally { await releaseChild(run.localAgent); labels.delete(label) }
         },
       }
     } catch (error) { labels.delete(label); throw error }
-  }, 90_000, {
+  }, 0, {
     onError: error => ctx.logger.warn(error),
     onIdle: async () => { stopWatch(); await releasePluginGuard() },
   })

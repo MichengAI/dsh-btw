@@ -22,6 +22,8 @@ export const CSS = `
 .btw-actions button{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;flex:none;transition:background-color 120ms ease}
 .btw-actions button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .btw-actions button:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,var(--dsw-alias-label-primary));outline-offset:-2px}
+.btw-actions button.btw-action-stop{color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-primary))}
+.btw-actions button.btw-action-stop:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-primary))}
 .btw-actions button:disabled{cursor:wait;opacity:.5}
 .btw-status{display:flex;align-items:center;gap:8px;padding:0 14px 12px;color:var(--dsw-alias-label-secondary);font-size:13px}
 .btw-spinner{animation:btw-spin 1.2s linear infinite}@keyframes btw-spin{to{transform:rotate(360deg)}}

@@ -46,7 +46,7 @@ export class SideJobs {
   private disposed = false
   private idleNotified = false
 
-  constructor(private readonly start: StartChild, private readonly timeoutMs = 90_000, private readonly options: JobOptions = {}) {}
+  constructor(private readonly start: StartChild, private readonly timeoutMs = 0, private readonly options: JobOptions = {}) {}
 
   get size(): number { return this.jobs.size }
 
@@ -62,11 +62,13 @@ export class SideJobs {
     const cancel = () => job.controller.abort(new Error(t('error.cancelled')))
     signal?.addEventListener('abort', cancel, { once: true })
     if (signal?.aborted) cancel()
-    const timer = setTimeout(() => job.controller.abort(new Error(t('error.timeout'))), this.timeoutMs)
-    timer.unref?.()
+    const timer = this.timeoutMs > 0
+      ? setTimeout(() => job.controller.abort(new Error(t('error.timeout'))), this.timeoutMs)
+      : undefined
+    timer?.unref?.()
     job.finished = this.execute(job, { scope, id, question, signal: job.controller.signal, toolFilter: { allow: [] }, context, locale })
       .finally(() => {
-        clearTimeout(timer)
+        if (timer) clearTimeout(timer)
         signal?.removeEventListener('abort', cancel)
         this.release(job)
       })
