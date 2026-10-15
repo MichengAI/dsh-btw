@@ -2,8 +2,8 @@
 import React, { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { BubbleView } from '../src/client/BubbleView'
-import type { Bubble } from '../src/client/bubbles'
+import { BubbleDock, BubbleView } from '../src/client/BubbleView'
+import { BubbleStore, type Bubble } from '../src/client/bubbles'
 import { translate } from '../src/locales'
 
 let container: HTMLDivElement
@@ -62,28 +62,80 @@ it('正在回答时提供停止按钮，支持中英文无障碍提示且点击�
 it('复制保留原始 Markdown；折叠、展开和关闭可操作', async () => {
   const writeText = vi.fn(async () => {})
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
-  await render()
+  const toggle = vi.fn()
+  await act(async () => root.render(React.createElement(BubbleView, {
+    item: { id: 'request01', sessionId: 'session', question: '问题', answer, phase: 'done' },
+    close,
+    t: translate('en'),
+    collapsed: false,
+    onToggleCollapse: toggle,
+  })))
   await click('Copy answer')
   expect(writeText).toHaveBeenCalledWith(answer)
   expect(container.querySelector('button[title="Copied"]')).not.toBeNull()
   await click('Collapse answer')
-  expect(container.querySelector('.btw-answer')).toBeNull()
-  expect(container.querySelector('[aria-expanded="false"]')).not.toBeNull()
-  await click('Expand answer')
-  expect(container.querySelector('.btw-answer')).not.toBeNull()
+  expect(toggle).toHaveBeenCalledOnce()
   await click('Close side question')
   expect(close).toHaveBeenCalledOnce()
 })
 
-it('受控折叠状态与 Dock 自动收起老气泡逻辑', async () => {
-  const toggle = vi.fn()
-  const item: Bubble = { id: 'request01', sessionId: 'session', question: '问题', answer, phase: 'done' }
-  await act(async () => root.render(React.createElement(BubbleView, {
-    item, close, t: translate('en'), collapsed: true, onToggleCollapse: toggle,
-  })))
-  expect(container.querySelector('.btw-answer')).toBeNull()
-  await click('Expand answer')
-  expect(toggle).toHaveBeenCalledOnce()
+it('BubbleDock 真实生命周期：新气泡自动展开老气泡折叠、手动操作后新气泡仍夺回焦点、关闭展开项回落最新', async () => {
+  const transport = {
+    run: vi.fn(async () => ({ kind: 'success' as const, text: '回答' })),
+    close: vi.fn(async () => ({ kind: 'success' as const, text: '' })),
+  }
+  const store = new BubbleStore(transport, translate('en'))
+  const sessionId = 'session-dock'
+
+  await act(async () => root.render(React.createElement(BubbleDock, { store, sessionId, t: translate('en') })))
+  expect(container.querySelector('.btw-dock')).toBeNull()
+
+  // 1. 发送第 1 个气泡：自动展开
+  await act(async () => { await store.ask(sessionId, '问题1') })
+  const cards1 = container.querySelectorAll('.btw-bubble')
+  expect(cards1).toHaveLength(1)
+  expect(cards1[0]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+
+  // 2. 发送第 2 个气泡：第 1 个自动收起，第 2 个展开
+  await act(async () => { await store.ask(sessionId, '问题2') })
+  const cards2 = container.querySelectorAll('.btw-bubble')
+  expect(cards2).toHaveLength(2)
+  expect(cards2[0]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+  expect(cards2[1]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+
+  // 3. 用户手动收起最新气泡 (第 2 个)，此时两个都收起
+  const collapseBtn2 = cards2[1]?.querySelector<HTMLButtonElement>('button[aria-expanded="true"]')
+  expect(collapseBtn2).not.toBeNull()
+  await act(async () => collapseBtn2!.click())
+  expect(container.querySelectorAll('.btw-actions button[aria-expanded="true"]')).toHaveLength(0)
+
+  // 4. 发送第 3 个气泡：丢弃手动的收起，第 3 个稳定夺回展开焦点
+  await act(async () => { await store.ask(sessionId, '问题3') })
+  const cards3 = container.querySelectorAll('.btw-bubble')
+  expect(cards3).toHaveLength(3)
+  expect(cards3[0]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+  expect(cards3[1]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+  expect(cards3[2]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+
+  // 5. 用户手动展开第 1 个老气泡
+  const expandBtn1 = cards3[0]?.querySelector<HTMLButtonElement>('button[aria-expanded="false"]')
+  await act(async () => expandBtn1!.click())
+  expect(cards3[0]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+  expect(cards3[2]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+
+  // 6. 发送第 4 个气泡：丢弃老气泡固定，第 4 个夺回展开焦点
+  await act(async () => { await store.ask(sessionId, '问题4') })
+  const cards4 = container.querySelectorAll('.btw-bubble')
+  expect(cards4).toHaveLength(4)
+  expect(cards4[0]?.querySelector('.btw-actions button[aria-expanded="false"]')).not.toBeNull()
+  expect(cards4[3]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
+
+  // 7. 关闭第 4 个气泡：展开焦点自动回落到剩下的当前最新一条（即第 3 个气泡）
+  const closeBtn4 = cards4[3]?.querySelector<HTMLButtonElement>('button[aria-label="Close side question"]')
+  await act(async () => closeBtn4!.click())
+  const cardsAfterClose = container.querySelectorAll('.btw-bubble')
+  expect(cardsAfterClose).toHaveLength(3)
+  expect(cardsAfterClose[2]?.querySelector('.btw-actions button[aria-expanded="true"]')).not.toBeNull()
 })
 
 it('复制失败显示可恢复错误，重试成功清除提示', async () => {

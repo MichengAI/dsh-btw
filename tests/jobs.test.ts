@@ -28,18 +28,30 @@ describe('一次性旁问生命周期', () => {
     expect(jobs.size).toBe(0)
   })
 
-  it('默认不设硬超时，允许长时间思考直到完成', async () => {
+  it('默认 30 分钟兜底超时保护并发配额，允许长时间思考直到完成', async () => {
     vi.useFakeTimers()
     const pending = deferred<typeof answer>()
     const dispose = vi.fn(async () => {})
     const jobs = new SideJobs(async () => ({ result: pending.promise, dispose }))
     const task = jobs.ask('parent', 'request01', '深度思考题')
-    // 超过旧的 90s (比如推进 300s)
-    await vi.advanceTimersByTimeAsync(300_000)
+    // 超过旧的 90s (例如推进 10 分钟 600s)，依然正常思考不中断
+    await vi.advanceTimersByTimeAsync(600_000)
     expect(jobs.size).toBe(1)
     pending.resolve(answer)
     await vi.advanceTimersByTimeAsync(0)
     expect(await task).toEqual({ kind: 'success', text: '答案' })
+    expect(jobs.size).toBe(0)
+  })
+
+  it('超过 30 分钟兜底看门狗后主动取消，防止极端假死占满名额', async () => {
+    vi.useFakeTimers()
+    const pending = deferred<typeof answer>()
+    const dispose = vi.fn(async () => {})
+    const jobs = new SideJobs(async () => ({ result: pending.promise, dispose }))
+    const task = jobs.ask('parent', 'request01', '假死题')
+    // 推进超过 30 分钟 (1800s + 1s)
+    await vi.advanceTimersByTimeAsync(1_800_001)
+    expect((await task).kind).toBe('error')
     expect(jobs.size).toBe(0)
   })
 

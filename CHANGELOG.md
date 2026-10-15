@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Relax hardcoded timeout: Replace the strict 90s timer with a 30-minute watchdog, supporting long chain-of-thought and max-reasoning models while safeguarding concurrency slots against stalled connections (#6).
+- Prominent stop button during answering: Display a dedicated stop button with alert styling during generation, allowing users to manually abort reasoning and release subagent resources immediately (#6).
+- Smart auto-collapse for older side-question bubbles: Automatically collapse older bubbles when new side questions arrive, keeping the input area neat while preserving manual expansion controls and robust focus recovery.
+- Seamless dual-generation host compatibility: Retain strict typings for DSH 0.2.1-alpha.3+ `startActivation` while providing a robust `subagents.start` fallback for DSH 0.2.0-rc.2 and earlier.
+
 ## [0.1.22] - 2026-10-15
 
 - Support DSH `0.2.1-alpha.3` while retaining all existing supported versions; pin development `@deepseek-ai/dsh*` dependencies to host `0.2.1-alpha.3` and Cordis to `4.0.5-alpha.2`.

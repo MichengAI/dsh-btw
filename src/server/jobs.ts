@@ -46,7 +46,7 @@ export class SideJobs {
   private disposed = false
   private idleNotified = false
 
-  constructor(private readonly start: StartChild, private readonly timeoutMs = 0, private readonly options: JobOptions = {}) {}
+  constructor(private readonly start: StartChild, private readonly timeoutMs = 1_800_000, private readonly options: JobOptions = {}) {}
 
   get size(): number { return this.jobs.size }
 

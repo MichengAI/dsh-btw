@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Bubble, BubbleStore } from './bubbles';
 import type { BtwTranslate } from '../locales';
-export declare function BubbleView({ item, close, t, collapsed: externalCollapsed, onToggleCollapse }: {
+export declare function BubbleView({ item, close, t, collapsed, onToggleCollapse }: {
     item: Bubble;
     close: () => void;
     t: BtwTranslate;

@@ -57,19 +57,15 @@ export function apply(ctx: Context): void {
     // 兼容两代宿主 Subagent 接口：
     // 1. DSH 0.2.1-alpha.3+：start / persona / toolFilter 已废弃，采用 startActivation + agent/created 注入；
     // 2. DSH 0.2.0-rc.2 及更早：采用传统 subagents.start('fork', { parent, label, signal, toolFilter, persona, prompt })。
-    const subagents = ctx.subagents as unknown as {
-      getProvider(name: string): { inheritsParentContext?: boolean; capabilities?: { toolFilter?: boolean; persona?: boolean } } | undefined
-      startActivation?(options: unknown): Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; dispose(): Promise<void> }>
-      start?(provider: string, options: unknown): Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
-    }
-    const provider = subagents.getProvider('fork')
+    const provider = ctx.subagents.getProvider('fork')
     if (!provider?.inheritsParentContext) {
       throw new Error(translate(request.locale)('error.provider'))
     }
     const label = `michengai-btw:${globalThis.crypto.randomUUID()}`
     labels.add(label)
 
-    if (typeof subagents.startActivation === 'function') {
+    // DSH 0.2.1-alpha.3+ 主路径：保留强类型 startActivation
+    if (typeof (ctx.subagents as { startActivation?: unknown }).startActivation === 'function') {
       const childId = SessionId(globalThis.crypto.randomUUID())
       let childAgent: object | undefined
       try {
@@ -90,7 +86,7 @@ export function apply(ctx: Context): void {
         })
         let activation
         try {
-          activation = await subagents.startActivation({
+          activation = await ctx.subagents.startActivation({
             provider: 'fork',
             label,
             childId,
@@ -114,13 +110,23 @@ export function apply(ctx: Context): void {
       } catch (error) { labels.delete(label); throw error }
     }
 
-    // 回退旧宿主传统 start 接口
-    if (typeof subagents.start !== 'function') {
+    // 回退旧宿主传统 start 接口（精确映射 0.2.0-rc.2 及更早规范）
+    const legacySubagents = ctx.subagents as unknown as {
+      start(provider: string, options: {
+        parent: Agent
+        label: string
+        signal: AbortSignal
+        toolFilter: { allow: readonly string[] }
+        persona: string
+        prompt: readonly { type: string; text: string }[]
+      }): Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
+    }
+    if (typeof legacySubagents.start !== 'function') {
       labels.delete(label)
       throw new Error(translate(request.locale)('error.provider'))
     }
     try {
-      const run = await subagents.start('fork', {
+      const run = await legacySubagents.start('fork', {
         parent: request.context as Agent,
         label,
         signal: request.signal,
@@ -137,7 +143,7 @@ export function apply(ctx: Context): void {
         },
       }
     } catch (error) { labels.delete(label); throw error }
-  }, 0, {
+  }, 1_800_000, {
     onError: error => ctx.logger.warn(error),
     onIdle: async () => { stopWatch(); await releasePluginGuard() },
   })
