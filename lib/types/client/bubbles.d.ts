@@ -26,6 +26,8 @@ export declare class BubbleStore {
     private readonly active;
     private readonly closing;
     private readonly notStarted;
+    private readonly runEnd;
+    private readonly closeFenced;
     private readonly admitting;
     private disposed;
     constructor(transport: SideTransport, t?: BtwTranslate);
@@ -35,6 +37,7 @@ export declare class BubbleStore {
     ask(sessionId: string, question: string, reference?: string): Promise<string>;
     close(id: string): Promise<void>;
     dispose(): Promise<void>;
+    private dropIfCloseCannotFinish;
     private remove;
     private update;
     private publish;

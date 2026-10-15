@@ -115,7 +115,7 @@ it('子代理 dock 不挂划词旁问，但保留已有气泡的关闭入口', a
   } finally { await h.ctx.fiber.dispose() }
 })
 
-it('关闭比启动结果更早收到所有权拒绝时，没有答案的气泡直接移除', async () => {
+it('关闭比启动结果更早收到所有权拒绝时，不把仍在飞的请求当成没启动', async () => {
   const h = await setup()
   try {
     h.execute.mockImplementation(async (session: string, line: string) => {
@@ -127,7 +127,49 @@ it('关闭比启动结果更早收到所有权拒绝时，没有答案的气泡�
     const store = h.store()
     const id = await store.ask('child', '问题')
     await store.close(id)
+    expect(store.getSnapshot()[0]).toMatchObject({ id, closeFailed: true, answer: '' })
+    expect(h.execute).toHaveBeenCalledTimes(2)
+  } finally { await h.ctx.fiber.dispose() }
+})
+
+it('关闭被围栏拒绝后，启动也以同一围栏拒绝时才本地移除', async () => {
+  const h = await setup()
+  let finishRun!: (value: unknown) => void
+  try {
+    h.execute.mockImplementation(async (session: string, line: string) => {
+      if (line.startsWith('/btw-close')) return { ok: false, error: {
+        code: 'session/agent-busy', message: `session "${session}" is owned by subagent routing`,
+      } }
+      return new Promise(resolve => { finishRun = resolve })
+    })
+    const store = h.store()
+    const id = await store.ask('child', '问题')
+    await store.close(id)
+    expect(store.getSnapshot()).toHaveLength(1)
+    finishRun({ ok: false, error: {
+      code: 'session/agent-busy', message: 'session "child" is owned by subagent routing',
+    } })
+    await tick()
     expect(store.getSnapshot()).toEqual([])
+  } finally { await h.ctx.fiber.dispose() }
+})
+
+it('关闭被围栏拒绝后启动仍成功时，保留答案和重试入口', async () => {
+  const h = await setup()
+  let finishRun!: (value: unknown) => void
+  try {
+    h.execute.mockImplementation(async (session: string, line: string) => {
+      if (line.startsWith('/btw-close')) return { ok: false, error: {
+        code: 'session/agent-busy', message: `session "${session}" is owned by subagent routing`,
+      } }
+      return new Promise(resolve => { finishRun = resolve })
+    })
+    const store = h.store()
+    const id = await store.ask('child', '问题')
+    await store.close(id)
+    finishRun({ ok: true, value: { result: { kind: 'success', text: '迟到的回答' } } })
+    await tick()
+    expect(store.getSnapshot()[0]).toMatchObject({ id, answer: '迟到的回答', closeFailed: true })
   } finally { await h.ctx.fiber.dispose() }
 })
 
@@ -142,7 +184,10 @@ it.each(['agent-busy', 'session/agent-busy'])('启动被所有权围栏明确拒
     const store = h.store()
     const id = await store.ask('child', '问题')
     await tick()
-    expect(store.getSnapshot()[0]?.phase).toBe('error')
+    expect(store.getSnapshot()[0]).toMatchObject({
+      phase: 'error',
+      error: 'Side questions are not supported in subagent sessions. Use /btw in the main session.',
+    })
     await store.close(id)
     expect(store.getSnapshot()).toEqual([])
     expect(h.execute).toHaveBeenCalledTimes(1)
@@ -160,6 +205,23 @@ it('已返回答案的请求在关闭时被围栏拒绝，仍保留答案和重�
     } })
     await store.close(id)
     expect(store.getSnapshot()[0]).toMatchObject({ id, answer: '回答', closeFailed: true })
+  } finally { await h.ctx.fiber.dispose() }
+})
+
+it('只凭 details.reason 也能认出所有权围栏，不依赖英文文案', async () => {
+  const h = await setup()
+  try {
+    h.execute.mockResolvedValue({ ok: false, error: {
+      code: 'session/agent-busy',
+      message: 'subagent Sessions require their durable parent address',
+      details: { reason: 'use subagent delivery for this child session' },
+    } })
+    const store = h.store()
+    const id = await store.ask('child', '问题')
+    await tick()
+    await store.close(id)
+    expect(store.getSnapshot()).toEqual([])
+    expect(h.execute).toHaveBeenCalledTimes(1)
   } finally { await h.ctx.fiber.dispose() }
 })
 

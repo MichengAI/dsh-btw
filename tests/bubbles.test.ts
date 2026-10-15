@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { BubbleStore } from '../src/client/bubbles'
+import { BubbleStore, SideRequestNotStartedError } from '../src/client/bubbles'
 import { translate } from '../src/locales'
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve))
@@ -183,6 +183,32 @@ it('只裁剪当前会话的历史气泡，不淘汰其他会话的答案', asyn
   }
   expect(store.getSnapshot().filter(item => item.sessionId === 'A')).toHaveLength(1)
   expect(store.getSnapshot().filter(item => item.sessionId === 'B')).toHaveLength(20)
+})
+
+it('关闭期间被取消且没有成功结果时，围栏拒绝后本地移除', async () => {
+  const store = new BubbleStore({
+    run: (_session, _id, _question, signal) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')), { once: true })
+    }),
+    close: async () => { throw new SideRequestNotStartedError('子代理会话暂不支持旁问') },
+  })
+  const id = await store.ask('session', '会被取消')
+  await store.close(id)
+  await tick()
+  expect(store.getSnapshot()).toEqual([])
+})
+
+it('关闭期间已经成功的请求，围栏拒绝后仍保留答案', async () => {
+  let finish!: (value: { kind: 'success'; text: string }) => void
+  const store = new BubbleStore({
+    run: () => new Promise(resolve => { finish = resolve }),
+    close: async () => { throw new SideRequestNotStartedError('子代理会话暂不支持旁问') },
+  })
+  const id = await store.ask('session', '会成功')
+  const closing = store.close(id)
+  finish({ kind: 'success', text: '迟到的回答' })
+  await closing
+  expect(store.getSnapshot()[0]).toMatchObject({ id, answer: '迟到的回答', closeFailed: true })
 })
 
 it('淘汰气泡先确认关闭，清理失败保留答案和重试入口', async () => {

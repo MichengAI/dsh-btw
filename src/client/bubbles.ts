@@ -28,6 +28,8 @@ export class BubbleStore {
   private readonly active = new Map<string, AbortController>()
   private readonly closing = new Map<string, Promise<void>>()
   private readonly notStarted = new Set<string>()
+  private readonly runEnd = new Map<string, 'pending' | 'success' | 'not-started' | 'aborted' | 'failed'>()
+  private readonly closeFenced = new Set<string>()
   private readonly admitting = new Set<string>()
   private disposed = false
   constructor(private readonly transport: SideTransport, private readonly t: BtwTranslate = translate()) {}
@@ -64,13 +66,40 @@ export class BubbleStore {
     const id = crypto.randomUUID()
     const controller = new AbortController()
     this.active.set(id, controller)
+    this.runEnd.set(id, 'pending')
     this.publish([...this.snapshot, { id, sessionId, question, ...(reference === undefined ? {} : { reference }), answer: '', phase: 'answering' }])
     void Promise.resolve().then(() => reference === undefined ? this.transport.run(sessionId, id, question, controller.signal) : this.transport.run(sessionId, id, question, controller.signal, reference)).then(result => {
-      if (controller.signal.aborted || this.closing.has(id)) return
-      this.update(id, { phase: result.kind === 'success' ? 'done' : 'error', answer: result.kind === 'success' ? result.text : '', error: result.kind === 'error' ? result.text : undefined })
+      if (result.kind === 'success') {
+        this.runEnd.set(id, 'success')
+        if (!this.snapshot.some(item => item.id === id)) return
+        const failedClose = this.closeFenced.has(id) || Boolean(this.snapshot.find(item => item.id === id)?.closeFailed)
+        this.update(id, { phase: failedClose ? 'error' : this.closing.has(id) ? 'closing' : 'done', answer: result.text, ...(failedClose ? {} : { error: undefined }) })
+        return
+      }
+      if (controller.signal.aborted) {
+        if (this.runEnd.get(id) === 'pending') this.runEnd.set(id, 'aborted')
+        this.dropIfCloseCannotFinish(id)
+        return
+      }
+      this.runEnd.set(id, 'failed')
+      if (!this.closing.has(id)) this.update(id, { phase: 'error', answer: '', error: result.text })
     }).catch(error => {
-      if (error instanceof SideRequestNotStartedError && this.snapshot.some(item => item.id === id)) this.notStarted.add(id)
-      if (!controller.signal.aborted && !this.closing.has(id)) this.update(id, { phase: 'error', error: String(error) })
+      if (this.runEnd.get(id) === 'success') return
+      const message = error instanceof Error ? error.message : String(error)
+      if (error instanceof SideRequestNotStartedError && this.snapshot.some(item => item.id === id)) {
+        this.runEnd.set(id, 'not-started')
+        this.notStarted.add(id)
+        if (this.closeFenced.has(id) || this.closing.has(id)) { this.remove(id); return }
+        this.update(id, { phase: 'error', error: message })
+        return
+      }
+      if (controller.signal.aborted) {
+        if (this.runEnd.get(id) === 'pending') this.runEnd.set(id, 'aborted')
+        this.dropIfCloseCannotFinish(id)
+        return
+      }
+      this.runEnd.set(id, 'failed')
+      if (!this.closing.has(id)) this.update(id, { phase: 'error', error: message })
     }).finally(() => { this.active.delete(id) })
     return id
   }
@@ -87,7 +116,13 @@ export class BubbleStore {
       if (result.kind === 'error') throw new Error(result.text)
       this.remove(id)
     }).catch(error => {
-      if (this.notStarted.has(id) || (error instanceof SideRequestNotStartedError && !item.answer)) { this.remove(id); return }
+      if (this.notStarted.has(id) || this.runEnd.get(id) === 'not-started') { this.remove(id); return }
+      if (error instanceof SideRequestNotStartedError) {
+        // 关闭被围栏拒绝只说明这次关闭没进 handler，不能说明启动没开始。
+        this.closeFenced.add(id)
+        const end = this.runEnd.get(id)
+        if (end === 'aborted' || end === 'not-started') { this.remove(id); return }
+      }
       this.update(id, { phase: 'error', closeFailed: true, error: error instanceof Error ? error.message : String(error) })
     }).finally(() => { this.closing.delete(id); this.active.delete(id) })
     this.closing.set(id, operation)
@@ -98,7 +133,17 @@ export class BubbleStore {
     this.disposed = true
     await Promise.all(this.snapshot.map(item => this.close(item.id)))
   }
-  private remove(id: string): void { this.notStarted.delete(id); this.publish(this.snapshot.filter(item => item.id !== id)) }
+  private dropIfCloseCannotFinish(id: string): void {
+    if (!this.closeFenced.has(id)) return
+    const end = this.runEnd.get(id)
+    if (end === 'not-started' || end === 'aborted') this.remove(id)
+  }
+  private remove(id: string): void {
+    this.notStarted.delete(id)
+    this.runEnd.delete(id)
+    this.closeFenced.delete(id)
+    this.publish(this.snapshot.filter(item => item.id !== id))
+  }
   private update(id: string, patch: Partial<Bubble>): void { this.publish(this.snapshot.map(item => item.id === id ? { ...item, ...patch } : item)) }
   private publish(snapshot: readonly Bubble[]): void { this.snapshot = snapshot; for (const listener of this.listeners) listener() }
 }

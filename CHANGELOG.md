@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.24] - 2026-10-15
+
+- Side questions are no longer offered in a subagent session. Typing `/btw` there explains that you should return to the main session, instead of leaving a dialog that cannot be closed (#7).
+- Closing a side question that the host rejects because the session is owned by subagent routing no longer deletes an answer that is still on the way or already returned. A request that never started, or was cancelled before it produced an answer, can still be dismissed locally.
+
 ## [0.1.23] - 2026-10-15
 
 - Relax hardcoded timeout: Replace the strict 90s timer with a 30-minute watchdog, supporting long chain-of-thought and max-reasoning models while safeguarding concurrency slots against stalled connections (#6).

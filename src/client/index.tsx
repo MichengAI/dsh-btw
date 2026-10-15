@@ -119,11 +119,14 @@ export function apply(ctx: Context): void {
   const execute = async (session: string, line: string, signal?: AbortSignal): Promise<SideResult> => {
     const response = await remote.commands.execute(session as SessionId, line, [], signal)
     if (!response.ok) {
-      const { code, message }: { code: string; message: string } = response.error
-      if ((code === 'agent-busy' || code === 'session/agent-busy') && message === `session "${session}" is owned by subagent routing`) {
-        throw new SideRequestNotStartedError(t('error.subagent'))
-      }
-      throw new Error(message)
+      const failure = response.error
+      const code: string = failure.code
+      const details = failure.details
+      const reason = details && typeof details === 'object' && 'reason' in details && typeof details.reason === 'string' ? details.reason : undefined
+      const ownedBySubagent = (code === 'agent-busy' || code === 'session/agent-busy')
+        && (reason === 'use subagent delivery for this child session' || failure.message === `session "${session}" is owned by subagent routing`)
+      if (ownedBySubagent) throw new SideRequestNotStartedError(t('error.subagent'))
+      throw new Error(failure.message)
     }
     if (!response.value) throw new Error(t('error.backend'))
     return { kind: response.value.result.kind, text: response.value.result.text ?? '' }
