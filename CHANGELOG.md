@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.1.23] - 2026-10-15
 
 - Relax hardcoded timeout: Replace the strict 90s timer with a 30-minute watchdog, supporting long chain-of-thought and max-reasoning models while safeguarding concurrency slots against stalled connections (#6).
 - Prominent stop button during answering: Display a dedicated stop button with alert styling during generation, allowing users to manually abort reasoning and release subagent resources immediately (#6).
