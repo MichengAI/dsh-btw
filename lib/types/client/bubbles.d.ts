@@ -14,6 +14,9 @@ export interface SideTransport {
     run(session: string, id: string, question: string, signal: AbortSignal, reference?: string): Promise<SideResult>;
     close(session: string, id: string): Promise<SideResult>;
 }
+/** 宿主在进入 handler 前明确拒绝启动；没有后台任务需要清理。 */
+export declare class SideRequestNotStartedError extends Error {
+}
 /** 仅内存 UI 状态；关闭请求与答案返回按请求身份分别收敛。 */
 export declare class BubbleStore {
     private readonly transport;
@@ -22,6 +25,7 @@ export declare class BubbleStore {
     private readonly listeners;
     private readonly active;
     private readonly closing;
+    private readonly notStarted;
     private readonly admitting;
     private disposed;
     constructor(transport: SideTransport, t?: BtwTranslate);
@@ -31,6 +35,7 @@ export declare class BubbleStore {
     ask(sessionId: string, question: string, reference?: string): Promise<string>;
     close(id: string): Promise<void>;
     dispose(): Promise<void>;
+    private remove;
     private update;
     private publish;
 }

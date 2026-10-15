@@ -12,7 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { MessageCircle } from 'lucide-react'
 import { CLOSE_COMMAND, RUN_COMMAND, type SideResult } from '../shared'
-import { BubbleStore } from './bubbles'
+import { BubbleStore, SideRequestNotStartedError } from './bubbles'
 import { BubbleDock } from './BubbleView'
 import { addQuoteToComposer } from './composer'
 import { SelectionAsk } from './SelectionAsk'
@@ -40,7 +40,7 @@ type LiveCommandUi = {
 }
 
 /** 官方认领闭包在 commandUi 上；改 remote.commands 拦不到真实提交。 */
-function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => PickOutcome, t: BtwTranslate): () => void {
+function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => PickOutcome, t: BtwTranslate, isSubagent: (sessionId: string) => boolean): () => void {
   const live = commandUi as LiveCommandUi | undefined
   if (!live) return () => {}
   const restore: Array<() => void> = []
@@ -50,7 +50,7 @@ function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => Pic
     live.candidates = async (...args: unknown[]) => {
       const rows = await original.apply(live, args)
       if (!Array.isArray(rows)) return rows
-      return rows.map((row: unknown) => {
+      return rows.filter((row: unknown) => !(isSubagent(sessionIdOf(args[0])) && row && typeof row === 'object' && 'name' in row && row.name === 'btw')).map((row: unknown) => {
         if (!row || typeof row !== 'object' || !('name' in row) || (row as { name: unknown }).name !== 'btw') return row
         const item = row as { name: string; icon?: unknown }
         return {
@@ -67,13 +67,13 @@ function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => Pic
 
   if (typeof live.dispatch === 'function') {
     const original = live.dispatch.bind(live)
-    live.dispatch = pick => pick.candidate?.name === 'btw' ? claim(sessionIdOf(pick.session)) : original(pick)
+    live.dispatch = pick => pick.candidate?.name === 'btw' ? (isSubagent(sessionIdOf(pick.session)) ? undefined : claim(sessionIdOf(pick.session))) : original(pick)
     restore.push(() => { live.dispatch = original })
   }
 
   if (typeof live.matchSpace === 'function') {
     const original = live.matchSpace.bind(live)
-    live.matchSpace = (session, token) => token === '/btw' ? claim(sessionIdOf(session)) : original(session, token)
+    live.matchSpace = (session, token) => token === '/btw' ? (isSubagent(sessionIdOf(session)) ? undefined : claim(sessionIdOf(session))) : original(session, token)
     restore.push(() => { live.matchSpace = original })
   }
 
@@ -81,6 +81,7 @@ function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => Pic
     const original = live.matchEnter.bind(live)
     live.matchEnter = async (session, line, signal, envelope) => {
       if (!/^\/btw(?:\s|$)/.test(line.trim())) return original(session, line, signal, envelope)
+      if (isSubagent(sessionIdOf(session))) throw new Error(t('error.subagent'))
       if (envelope?.attachments || envelope?.images) throw new Error(t('error.removeAttachments'))
       return claim(sessionIdOf(session))
     }
@@ -91,6 +92,7 @@ function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => Pic
     const original = live.execute.bind(live)
     live.execute = async (session, line, attachments) => {
       if (!/^\/btw(?:\s|$)/.test(line)) return original(session, line, attachments)
+      if (isSubagent(sessionIdOf(session))) return { kind: 'error', text: t('error.subagent') }
       if (Array.isArray(attachments) && attachments.length) return { kind: 'error', text: t('error.attachments') }
       const outcome = claim(sessionIdOf(session))
       if (!outcome || typeof outcome !== 'object' || !('claim' in outcome)) return { kind: 'error', text: t('error.backend') }
@@ -111,9 +113,18 @@ export function apply(ctx: Context): void {
   const t = ctx.locale.bind(NS)
   const slots = ctx.get('slots') as SlotRegistry
   const remote = ctx.get('remote') as TypertClientRemote
+  const sessions = ctx.get('sessions') as unknown as ISessions
+  // 普通分叉也有父会话；只使用宿主明确给出的子代理身份，不按 parentId 猜测。
+  const isSubagent = (id: string): boolean => Boolean(sessions.subagentAddress?.(id as SessionId)) || sessions.list?.getSnapshot().byId[id as SessionId]?.origin === 'subagent'
   const execute = async (session: string, line: string, signal?: AbortSignal): Promise<SideResult> => {
     const response = await remote.commands.execute(session as SessionId, line, [], signal)
-    if (!response.ok) throw new Error(response.error.message)
+    if (!response.ok) {
+      const { code, message }: { code: string; message: string } = response.error
+      if ((code === 'agent-busy' || code === 'session/agent-busy') && message === `session "${session}" is owned by subagent routing`) {
+        throw new SideRequestNotStartedError(t('error.subagent'))
+      }
+      throw new Error(message)
+    }
     if (!response.value) throw new Error(t('error.backend'))
     return { kind: response.value.result.kind, text: response.value.result.text ?? '' }
   }
@@ -123,8 +134,9 @@ export function apply(ctx: Context): void {
   }, t)
 
   const claim = (sessionId: SessionId): PickOutcome => ({ claim: {
-    name: 'btw', token: '/btw', get hint() { return t('command.hint') },
+    name: 'btw', token: '/btw ', get hint() { return t('command.hint') },
     submit: async (args, _actx, attachments) => {
+      if (isSubagent(sessionId)) return { kind: 'error', text: t('error.subagent') }
       if (attachments.length) return { kind: 'error', text: t('error.attachments') }
       try {
         await store.ask(sessionId, args.trim())
@@ -132,8 +144,8 @@ export function apply(ctx: Context): void {
       } catch (error) { return { kind: 'error', text: error instanceof Error ? error.message : String(error) } }
     },
   } })
-  if (typeof ctx.inject === 'function') ctx.inject(['commandUi'], scope => attachOfficialBtw(scope.get('commandUi'), sessionId => claim(sessionId as SessionId), t))
-  else ctx.effect(() => attachOfficialBtw(ctx.get('commandUi'), sessionId => claim(sessionId as SessionId), t))
+  if (typeof ctx.inject === 'function') ctx.inject(['commandUi'], scope => attachOfficialBtw(scope.get('commandUi'), sessionId => claim(sessionId as SessionId), t, isSubagent))
+  else ctx.effect(() => attachOfficialBtw(ctx.get('commandUi'), sessionId => claim(sessionId as SessionId), t, isSubagent))
 
   ctx.effect(() => {
     const style = document.createElement('style')
@@ -147,11 +159,11 @@ export function apply(ctx: Context): void {
   ctx.effect(() => () => store.dispose())
 
   function Dock(props: PropsRuntime<'conversation.input.dock'> & { t: BtwTranslate }): React.JSX.Element {
-    return <><SelectionAsk key={props.session.sessionId} store={store} sessionId={props.session.sessionId} t={props.t} addToConversation={reference => {
+    return <>{!props.session.subagent && !isSubagent(props.session.sessionId) && <SelectionAsk key={props.session.sessionId} store={store} sessionId={props.session.sessionId} t={props.t} addToConversation={reference => {
       const session = (ctx.get('sessions') as unknown as ISessions).scope(props.session.sessionId)
       if (!session) throw new Error(props.t('error.backend'))
       addQuoteToComposer(ctx.conversation.input.for(session), reference, props.t)
-    }} /><BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
+    }} />}<BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
   }
   slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'michengai-btw', order: -50, locale: NS }, Dock))
   slots.inject('conversation.chat.commandview', () => {

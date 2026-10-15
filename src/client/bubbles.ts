@@ -18,12 +18,16 @@ export interface SideTransport {
   close(session: string, id: string): Promise<SideResult>
 }
 
+/** 宿主在进入 handler 前明确拒绝启动；没有后台任务需要清理。 */
+export class SideRequestNotStartedError extends Error {}
+
 /** 仅内存 UI 状态；关闭请求与答案返回按请求身份分别收敛。 */
 export class BubbleStore {
   private snapshot: readonly Bubble[] = []
   private readonly listeners = new Set<() => void>()
   private readonly active = new Map<string, AbortController>()
   private readonly closing = new Map<string, Promise<void>>()
+  private readonly notStarted = new Set<string>()
   private readonly admitting = new Set<string>()
   private disposed = false
   constructor(private readonly transport: SideTransport, private readonly t: BtwTranslate = translate()) {}
@@ -65,6 +69,7 @@ export class BubbleStore {
       if (controller.signal.aborted || this.closing.has(id)) return
       this.update(id, { phase: result.kind === 'success' ? 'done' : 'error', answer: result.kind === 'success' ? result.text : '', error: result.kind === 'error' ? result.text : undefined })
     }).catch(error => {
+      if (error instanceof SideRequestNotStartedError && this.snapshot.some(item => item.id === id)) this.notStarted.add(id)
       if (!controller.signal.aborted && !this.closing.has(id)) this.update(id, { phase: 'error', error: String(error) })
     }).finally(() => { this.active.delete(id) })
     return id
@@ -75,12 +80,14 @@ export class BubbleStore {
     if (existing) return existing
     const item = this.snapshot.find(bubble => bubble.id === id)
     if (!item) return Promise.resolve()
+    if (this.notStarted.has(id)) { this.remove(id); return Promise.resolve() }
     this.update(id, { phase: 'closing', error: undefined, closeFailed: false })
     this.active.get(id)?.abort()
     const operation = Promise.resolve().then(() => this.transport.close(item.sessionId, id)).then(result => {
       if (result.kind === 'error') throw new Error(result.text)
-      this.publish(this.snapshot.filter(bubble => bubble.id !== id))
+      this.remove(id)
     }).catch(error => {
+      if (this.notStarted.has(id) || (error instanceof SideRequestNotStartedError && !item.answer)) { this.remove(id); return }
       this.update(id, { phase: 'error', closeFailed: true, error: error instanceof Error ? error.message : String(error) })
     }).finally(() => { this.closing.delete(id); this.active.delete(id) })
     this.closing.set(id, operation)
@@ -91,6 +98,7 @@ export class BubbleStore {
     this.disposed = true
     await Promise.all(this.snapshot.map(item => this.close(item.id)))
   }
+  private remove(id: string): void { this.notStarted.delete(id); this.publish(this.snapshot.filter(item => item.id !== id)) }
   private update(id: string, patch: Partial<Bubble>): void { this.publish(this.snapshot.map(item => item.id === id ? { ...item, ...patch } : item)) }
   private publish(snapshot: readonly Bubble[]): void { this.snapshot = snapshot; for (const listener of this.listeners) listener() }
 }

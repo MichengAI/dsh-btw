@@ -35,6 +35,7 @@ export declare const zh: {
     'error.attachments': string;
     'error.removeAttachments': string;
     'error.backend': string;
+    'error.subagent': string;
     'error.empty': string;
     'error.length': string;
     'error.capacity': string;

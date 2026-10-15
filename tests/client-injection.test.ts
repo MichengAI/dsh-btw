@@ -63,6 +63,7 @@ it('真实 Cordis 依赖检查下可通过官方指令目录发送旁问', async
     await plugin.await()
     const picked = commandUi.dispatch({ candidate: { name: 'btw' }, session: { sessionId: 'test-session' } })
     if (!picked || typeof picked !== 'object' || !('claim' in picked) || !picked.claim || typeof picked.claim !== 'object' || !('submit' in picked.claim)) throw new Error('未取得旁问输入处理器')
+    expect(picked).toMatchObject({ claim: { name: 'btw', token: '/btw ' } })
     const submit = picked.claim.submit as (args: string, actx: unknown, attachments: unknown[]) => Promise<{ kind: string }>
     await expect(submit('你好', ctx, [{ type: 'image' }])).resolves.toMatchObject({ kind: 'error' })
     expect(execute).not.toHaveBeenCalled()
@@ -70,8 +71,18 @@ it('真实 Cordis 依赖检查下可通过官方指令目录发送旁问', async
     await new Promise(resolve => setImmediate(resolve))
     expect(denied).toEqual([])
     expect(execute).toHaveBeenCalledWith('test-session', expect.stringContaining('/btw-run '), [], expect.any(AbortSignal))
-    expect(execute.mock.calls[0]?.[1]).toContain('"locale":"en"')
-    expect(commandUi.matchSpace({ sessionId: 'test-session' }, '/btw')).toHaveProperty('claim')
+    expect(JSON.parse(execute.mock.calls[0]![1].slice('/btw-run '.length))).toMatchObject({ question: '你好', locale: 'en' })
+    const spaced = commandUi.matchSpace({ sessionId: 'test-session' }, '/btw')
+    expect(spaced).toMatchObject({ claim: { token: '/btw ' } })
+    const entered = await commandUi.matchEnter({ sessionId: 'test-session' }, '/btw abcdef', new AbortController().signal, { attachments: 0 })
+    expect(entered).toMatchObject({ claim: { token: '/btw ' } })
+    if (!entered || typeof entered !== 'object' || !('claim' in entered)) throw new Error('未取得回车认领结果')
+    const claim = entered.claim as { token: string; submit: typeof submit }
+    const draft = claim.token + 'abcdef'
+    expect(draft).toBe('/btw abcdef')
+    await claim.submit(draft.slice(claim.token.length), ctx, [])
+    await new Promise(resolve => setImmediate(resolve))
+    expect(JSON.parse(execute.mock.calls[1]![1].slice('/btw-run '.length))).toMatchObject({ question: 'abcdef' })
     await expect(commandUi.matchEnter({ sessionId: 'test-session' }, '/btw 你好', new AbortController().signal, { attachments: 1 })).rejects.toThrow()
     await expect(commandUi.execute({ sessionId: 'test-session' }, '/btw 你好')).resolves.toMatchObject({ kind: 'success' })
     const english = await commandUi.candidates() as { name: string; icon?: unknown }[]
