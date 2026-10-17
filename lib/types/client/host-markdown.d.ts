@@ -12,5 +12,5 @@ export type HostMarkdownText = ComponentType<{
     labels: HostMarkdownLabels;
     variant?: 'body' | 'compact';
 }>;
-/** 宿主基座模块。旧宿主没有它时返回 null，调用方改用自带 Markdown。 */
+/** 宿主基座模块。未导出 MarkdownText 时返回 null，调用方改用自带 Markdown。 */
 export declare function loadHostMarkdownText(): HostMarkdownText | null;

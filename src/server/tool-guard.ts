@@ -30,7 +30,7 @@ function descriptorLabel(data: unknown): string | undefined {
   return data.label
 }
 
-/** 新宿主读 sessionProjections.subagent；没有投影缝时才回退已弃用的同步快照。 */
+/** 有 sessionProjections 时读 subagent；没有该服务时才回退同步快照。0.2.0-rc.1 仍有 snapshotEvents。 */
 function lastDescriptorLabel(session: object | undefined, identityOf?: IdentityOf): string | undefined {
   if (!session) return undefined
   if (identityOf) {

@@ -16,7 +16,7 @@
 
 </div>
 
-> DSH BTW is a community-maintained DeepSeek Harness plugin, not an official DeepSeek AI product. Type `/btw your question` in the current conversation to get a context-aware answer in an independent bubble without interrupting the main task. Supports DSH Web and desktop apps that include DSH Web.
+> DSH BTW is a community-maintained DeepSeek Harness plugin, not an official DeepSeek AI product. Type `/btw your question` in the current conversation to get a context-aware answer in an independent bubble without interrupting the main task. Supports DSH Web and desktop apps that include DSH Web. From `1.0.0`, hosts outside the supported list are rejected by the version gate and the plugin will not run; installed configuration and main-conversation records are kept.
 
 ## Features
 
@@ -68,7 +68,8 @@ For a desktop workbench, download [DSH Codex Desktop](https://github.com/Micheng
 ## Prerequisites
 
 - An installed copy of DeepSeek Harness.
-- Host peers accept exactly `0.1.2-rc.1 || 0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.5-rc.3 || 0.1.7-rc.1 || 0.1.7-rc.2 || 0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-alpha.2 || 0.2.1-alpha.3`.
+- Plugin `1.0.0` is tested with DeepSeek Harness `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-alpha.1`, `0.2.1-alpha.2`, `0.2.1-alpha.3`, `0.2.1-alpha.4`, and `0.2.1-alpha.5`.
+- Hosts before `0.2.0` are no longer supported. The version gate rejects them, and the plugin will not load or run. Installed configuration and main-conversation records are kept. If you still use a `0.1.x` host, install plugin `0.1.24` instead of `@latest`.
 - Node.js 22+ and `dsh` available in your terminal.
 
 ## Installation
@@ -96,6 +97,8 @@ dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://regist
 
 Install or update after current tasks finish, as desktop apps may reload automatically. If the change has not taken effect, use the desktop app's reload action or restart the `dsh web` service. Refreshing the browser alone is not enough.
 
+Installing `@latest` on a host before `0.2.0` is rejected by the version gate, and the plugin will not run. Install `0.1.24` instead. Rejection does not delete existing configuration or main-conversation records.
+
 ## Usage
 
 ### Ask about selected text
@@ -108,7 +111,7 @@ Select text within a single conversation message, choose **Ask BTW** from the co
 - **Add to conversation** appends a quote to the existing draft without sending. After insertion, focus returns to the composer; insertion is blocked while a message is being submitted. Right-click keeps the browser's native menu.
 - Keyboard selection is supported inside focused message elements: release Shift to focus the toolbar. Browsers without the Popover API use a fixed-position fallback, which may be clipped by the host layout.
 - Coexists with `dsh-better-sidebar`: BTW handles conversation text only; file previews and editors retain the sidebar plugin's own **Add to conversation** action without a duplicate toolbar.
-- This entry uses host DOM markers and has been verified in DSH `0.1.5-rc.2` with Edge, including the selection toolbar, draft insertion, question form, and a real-model answer. Unrecognized layouts keep their normal context menu; `/btw` remains available.
+- This entry uses host DOM markers. Unrecognized layouts keep their normal context menu; `/btw` remains available.
 
 ### Command entry
 
@@ -160,9 +163,7 @@ npm run check
 
 `npm run check` runs type checking, tests, and a build.
 
-Development and builds target `0.2.0-rc.2`. `npm run test:compat` builds with that baseline and runs the test suite on each of the eight isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
-
-Previous manual end-to-end acceptance with Edge and a live DeepSeek model passed on `0.1.5-rc.1`: side questions, attachment rejection, copying, collapse/expand, cancellation, and continued parent-session operation. This is not part of `npm run test:compat`. The selection toolbar, draft insertion, sidebar coexistence, and real-model side answers were subsequently checked on `0.1.5-rc.2`; the full end-to-end suite remains pending on that version and the older three versions.
+Development and builds target `0.2.1-alpha.5`. `npm run test:compat` builds with that baseline and runs the test suite on each of the seven isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
 
 GitHub and npm both include a ready-to-run `lib`; after changing source, run `npm run build` before committing.
 

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
-const supported = ['0.1.2-rc.1', '0.1.5-rc.1', '0.1.5-rc.2', '0.1.5-rc.3', '0.1.7-rc.1', '0.1.7-rc.2', '0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-alpha.2', '0.2.1-alpha.3']
+const supported = ['0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-alpha.1', '0.2.1-alpha.2', '0.2.1-alpha.3', '0.2.1-alpha.4', '0.2.1-alpha.5']
 const versions = process.argv.slice(2)
 if (!versions.length) versions.push(...supported)
 if (versions.some(version => !supported.includes(version))) throw new Error('请使用指定的 DSH 候选版本')
@@ -28,22 +28,33 @@ for (const version of versions) {
     const dependencies = Object.fromEntries(Object.entries(pkg.devDependencies)
       .filter(([name]) => !name.startsWith('@deepseek-ai/dsh-'))
       .map(([name, range]) => [name, lock.packages[`node_modules/${name}`]?.version ?? range]))
-    // 内部辅助包由各版依赖图决定；新版拆出的控制器和 chat 并非旧版运行时入口。
-    const splitChat = version.startsWith('0.1.0') || version.startsWith('0.1.1')
+    // 内部辅助包由各版依赖图决定，不在这里钉死。
     const internal = new Set(['api-session-controller', 'subagent-in-process-driver', 'subagent-spawn-in-process', 'session-persistence', 'util-time', 'ptc-runtime'].map(name => `@deepseek-ai/dsh-${name}`))
     let pending = [...new Set([
-      ...Object.keys(pkg.devDependencies).filter(name => name.startsWith('@deepseek-ai/dsh-') && !internal.has(name) && !(splitChat && name === '@deepseek-ai/dsh-client-ui-chat')),
+      ...Object.keys(pkg.devDependencies).filter(name => name.startsWith('@deepseek-ai/dsh-') && !internal.has(name)),
       ...pkg.dsh.client.inject,
     ])]
     const seen = new Set()
+    const fetchJson = async url => {
+      let last
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
+          if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
+          return await response.json()
+        } catch (error) {
+          last = error
+          if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+        }
+      }
+      throw last
+    }
     while (pending.length) {
       const batch = [...new Set(pending)].filter(name => !seen.has(name))
       pending = []
       for (const name of batch) seen.add(name)
       await Promise.all(batch.map(async name => {
-        const response = await fetch(`https://registry.npmjs.org/${name}/${version}`, { signal: AbortSignal.timeout(30_000) })
-        if (!response.ok) throw new Error(`${name}@${version}: HTTP ${response.status}`)
-        const manifest = await response.json()
+        const manifest = await fetchJson(`https://registry.npmjs.org/${name}/${version}`)
         dependencies[name] = version
         for (const dependency of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
           if (dependency.startsWith('@deepseek-ai/dsh-') && !manifest.peerDependenciesMeta?.[dependency]?.optional) pending.push(dependency)

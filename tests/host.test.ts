@@ -122,7 +122,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await ctx.fiber.dispose()
   })
 
-  it('旧宿主回退路径：无 startActivation 时平滑调用 legacy subagents.start 并传递完整限制', async () => {
+  it('0.2.0-rc.1 至 0.2.1-alpha.1：无 startActivation 时调用 subagents.start 并传递完整限制', async () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
@@ -142,10 +142,10 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     }) => {
       scope = createScope(ctx, child)
       child.ctx = scope.ctx
-      // 验证旧宿主接收到了空白工具名单与独立角色
+      // 0.2.0-rc.1 至 0.2.1-alpha.1 的 start 必须收到空白名单和独立角色
       expect(options.toolFilter).toEqual({ allow: [] })
       expect(options.persona).toContain('一次性旁问助手')
-      return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '旧宿主答案' }] }), localAgent: child, dispose }
+      return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'start 回退答案' }] }), localAgent: child, dispose }
     })
 
     // 仅提供 legacy start，未提供 startActivation
@@ -163,11 +163,11 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
       signal: new AbortController().signal,
     } as never)
 
-    expect(outcome).toEqual({ kind: 'success', text: '旧宿主答案' })
+    expect(outcome).toEqual({ kind: 'success', text: 'start 回退答案' })
     expect(startLegacy).toHaveBeenCalledOnce()
     expect(dispose).toHaveBeenCalledOnce() // 正常完成在 SideJobs execute 结束时调用 cleanup 释放
 
-    // 严密断言安全承诺：旧宿主返回的 localAgent 已被 arm 纳入工具拦截保护
+    // start 回退返回的 localAgent 也要纳入工具拦截
     const currentScope = scope!
     currentScope.ctx.tools.register({ name: 'legacy_tool', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] }, execute: vi.fn() })
     const blocked = await ctx.tools.execute({ name: 'legacy_tool', callId: 'test-call' as never, arguments: {}, agent: child, signal: new AbortController().signal })

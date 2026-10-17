@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { Peer } from '@deepseek-ai/dsh-client-connection'
 import { expect, it, vi } from 'vitest'
 import { apply } from '../src/index'
 import { CLOSE_COMMAND, RUN_COMMAND } from '../src/shared'
@@ -14,19 +13,14 @@ const runtimeRoots = [...new Set([runtimeRoot, ...(process.env.DSH_DESKTOP_RUNTI
 
 it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正常：%s', async root => {
   const version = JSON.parse(readFileSync(join(root, '@deepseek-ai', 'dsh-commands', 'package.json'), 'utf8')).version as string
-  const attachmentFields: Record<string, 'images' | 'submittedAttachments'> = {
-    '0.1.0-rc.8': 'images',
-    '0.1.1-rc.2': 'images',
-    '0.1.2-rc.1': 'images',
-    '0.1.5-rc.1': 'submittedAttachments',
-    '0.1.5-rc.2': 'submittedAttachments',
-    '0.1.5-rc.3': 'submittedAttachments',
-    '0.1.7-rc.1': 'submittedAttachments',
-    '0.1.7-rc.2': 'submittedAttachments',
+  const attachmentFields: Record<string, 'submittedAttachments'> = {
     '0.2.0-rc.1': 'submittedAttachments',
     '0.2.0-rc.2': 'submittedAttachments',
+    '0.2.1-alpha.1': 'submittedAttachments',
     '0.2.1-alpha.2': 'submittedAttachments',
     '0.2.1-alpha.3': 'submittedAttachments',
+    '0.2.1-alpha.4': 'submittedAttachments',
+    '0.2.1-alpha.5': 'submittedAttachments',
   }
   const attachmentField = Object.hasOwn(attachmentFields, version) ? attachmentFields[version] : undefined
   if (!attachmentField) throw new Error(`未验证的 DSH RPC 附件协议版本：${version}；请先确认字段并更新测试映射。`)
@@ -54,7 +48,14 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     wireTypeSymbol: '@deepseek-ai/dsh-session/types#SessionId',
     resolve: (id: string) => id === 'main' ? agent : undefined,
   })
-  const peer = new Peer(ctx, { principal: { kind: 'owner' } })
+  const connection = await import(/* @vite-ignore */ modulePath('dsh-client-connection')) as {
+    Peer?: new (owner: ContextType, options: { principal: { kind: 'owner' } }) => object
+    OperatorPeer?: new (owner: ContextType) => object
+  }
+  // 0.2.1-alpha.3 起是 Peer(ctx, options)；更早的 0.2.0-rc.1 至 0.2.1-alpha.2 是 OperatorPeer(ctx)。
+  const peer = connection.Peer
+    ? new connection.Peer(ctx, { principal: { kind: 'owner' } })
+    : new connection.OperatorPeer!(ctx)
   const listRemote = () => gateway.invoke({ namespace: 'commands', method: 'list', args: { agentId: 'main' }, peer })
   ctx.commands.register({ name: 'other', description: '其他命令', handler: () => ({ kind: 'success', text: 'other' }) })
   const plugin = ctx.plugin(apply)

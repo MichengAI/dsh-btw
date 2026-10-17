@@ -58,7 +58,7 @@ it('无关增量描述符不认领', () => {
   expect(guard({ agent: { session } })).toBeUndefined()
 })
 
-it('没有投影缝时旧宿主仍可读 snapshotEvents', () => {
+it('没有投影服务时仍可读 snapshotEvents', () => {
   const labels = new Set(['michengai-btw:owned'])
   const guard = createAnswerOnlyGuard(labels)
   const agent = (label: string) => ({ session: { snapshotEvents: () => [{ type: 'subagent/descriptor', data: { label } }] } })

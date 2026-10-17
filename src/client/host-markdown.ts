@@ -21,7 +21,7 @@ function isHostMarkdown(value: unknown): value is HostMarkdownText {
   return typeof value === 'object' && value !== null && '$$typeof' in value
 }
 
-/** 宿主基座模块。旧宿主没有它时返回 null，调用方改用自带 Markdown。 */
+/** 宿主基座模块。未导出 MarkdownText 时返回 null，调用方改用自带 Markdown。 */
 export function loadHostMarkdownText(): HostMarkdownText | null {
   if (cached !== undefined) return cached
   try {

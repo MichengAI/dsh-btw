@@ -54,9 +54,9 @@ export function apply(ctx: Context): void {
   }
   const stopWatch = ctx.on('session/event', (session, event) => protection.recognize(session, event))
   const jobs = new SideJobs(async request => {
-    // 兼容两代宿主 Subagent 接口：
-    // 1. DSH 0.2.1-alpha.3+：start / persona / toolFilter 已废弃，采用 startActivation + agent/created 注入；
-    // 2. DSH 0.2.0-rc.2 及更早：采用传统 subagents.start('fork', { parent, label, signal, toolFilter, persona, prompt })。
+    // 矩阵内两代 Subagent 接口，都不能删：
+    // 1. DSH 0.2.1-alpha.2 起：start 已移除，用 startActivation，并在 agent/created 注入角色与工具限制；
+    // 2. DSH 0.2.0-rc.1、0.2.0-rc.2、0.2.1-alpha.1：仍只有 subagents.start('fork', { toolFilter, persona, ... })。
     const provider = ctx.subagents.getProvider('fork')
     if (!provider?.inheritsParentContext) {
       throw new Error(translate(request.locale)('error.provider'))
@@ -64,7 +64,7 @@ export function apply(ctx: Context): void {
     const label = `michengai-btw:${globalThis.crypto.randomUUID()}`
     labels.add(label)
 
-    // DSH 0.2.1-alpha.3+ 主路径：保留强类型 startActivation
+    // DSH 0.2.1-alpha.2 起：start 已移除，走 startActivation
     if (typeof (ctx.subagents as { startActivation?: unknown }).startActivation === 'function') {
       const childId = SessionId(globalThis.crypto.randomUUID())
       let childAgent: object | undefined
@@ -110,7 +110,7 @@ export function apply(ctx: Context): void {
       } catch (error) { labels.delete(label); throw error }
     }
 
-    // 回退旧宿主传统 start 接口（精确映射 0.2.0-rc.2 及更早规范）
+    // 0.2.0-rc.1、0.2.0-rc.2、0.2.1-alpha.1 仍只有 start
     const legacySubagents = ctx.subagents as unknown as {
       start(provider: string, options: {
         parent: Agent

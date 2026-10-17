@@ -28,7 +28,7 @@ it('提交阶段不写草稿、不聚焦；可编辑阶段写入后调用宿主 
   }
 })
 
-it('旧宿主没有 focus 时只写草稿', () => {
+it('输入框没有 focus 时只写草稿', () => {
   const setDraft = vi.fn()
   addQuoteToComposer({ state: { getSnapshot: () => ({ draft: '', phase: 'plain' }) }, setDraft }, 'q', translate())
   expect(setDraft).toHaveBeenCalledOnce()
