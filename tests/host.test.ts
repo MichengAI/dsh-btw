@@ -6,7 +6,7 @@ import type { Context as ContextType } from '@deepseek-ai/cordis'
 import type { ToolRuntime as RuntimeType } from '@deepseek-ai/dsh-tools'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { CommandDefinition } from '@deepseek-ai/dsh-commands'
-import type { SubagentActivation } from '@deepseek-ai/dsh-subagent'
+import type { SubagentRun } from '@deepseek-ai/dsh-subagent'
 import { apply } from '../src/index'
 import { RUN_COMMAND } from '../src/shared'
 import { createAnswerOnlyGuard } from '../src/server/tool-guard'
@@ -102,10 +102,10 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     const child = { session: { snapshotEvents: () => { throw new Error('生产路径不应再读 snapshotEvents') } } } as unknown as Agent
     ctx.provide('subagents', {
-      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      startActivation: async (spec: { label: string; childId: string }) => {
-        ctx.emit('session/event', child.session as never, { type: 'subagent/descriptor', data: { label: spec.label } } as never)
-        return { childId: spec.childId as never, result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'ok' }] }), dispose: async () => {} }
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
+      start: async (_provider: string, options: { label: string }) => {
+        ctx.emit('session/event', child.session as never, { type: 'subagent/descriptor', data: { label: options.label } } as never)
+        return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'ok' }] }), dispose: async () => {} }
       },
     })
     const plugin = ctx.plugin(apply)
@@ -122,7 +122,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await ctx.fiber.dispose()
   })
 
-  it('0.2.0-rc.1 至 0.2.1-alpha.1：无 startActivation 时调用 subagents.start 并传递完整限制', async () => {
+  it('subagents.start 传递空白名单和独立角色，并拦住返回的子代理', async () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
@@ -142,13 +142,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     }) => {
       scope = createScope(ctx, child)
       child.ctx = scope.ctx
-      // 0.2.0-rc.1 至 0.2.1-alpha.1 的 start 必须收到空白名单和独立角色
+      // 0.2.0-rc.1 与 0.2.0-rc.2 的 start 必须收到空白名单和独立角色
       expect(options.toolFilter).toEqual({ allow: [] })
       expect(options.persona).toContain('一次性旁问助手')
       return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'start 回退答案' }] }), localAgent: child, dispose }
     })
 
-    // 仅提供 legacy start，未提供 startActivation
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
       start: startLegacy,
@@ -190,7 +189,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      startActivation: async (spec: { childId: string }) => ({ childId: spec.childId as never, result: new Promise(() => {}), dispose: () => { cleanupStarted = true; return new Promise<void>(resolve => { finishCleanup = resolve }) } }),
+      start: async () => ({ result: new Promise(() => {}), dispose: () => { cleanupStarted = true; return new Promise<void>(resolve => { finishCleanup = resolve }) } }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
@@ -220,12 +219,10 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     let scope: { ctx: ContextType; dispose(): Promise<void> }
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      startActivation: async (spec: { childId: string }) => {
+      start: async () => {
         scope = createScope(ctx, child)
         child.ctx = scope.ctx
-        ;(child as { id?: string }).id = spec.childId
-        ctx.emit('agent/created', { agent: child, source: 'create' } as never)
-        return { childId: spec.childId as never, result: new Promise(() => {}), dispose }
+        return { result: new Promise(() => {}), localAgent: child, dispose }
       },
     })
     const plugin = ctx.plugin(apply)
@@ -260,12 +257,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const ctx = new Context()
     const commands = new Map<string, CommandDefinition>()
     let protectedNow = false
-    let finishStart!: (run: SubagentActivation) => void
+    let finishStart!: (run: SubagentRun) => void
     ctx.provide('tools', { guard: () => ctx.effect(() => { protectedNow = true; return () => { protectedNow = false } }) })
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      startActivation: () => new Promise(resolve => { finishStart = resolve }),
+      start: () => new Promise(resolve => { finishStart = resolve }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
@@ -276,7 +273,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await expect(unload).resolves.toBeUndefined()
     expect(protectedNow).toBe(true)
     const dispose = vi.fn(async () => {})
-    finishStart({ childId: 'late-start' as never, result: new Promise(() => {}), dispose })
+    finishStart({ id: 'late-start' as never, localAgent: undefined, result: new Promise(() => {}), dispose })
     await vi.advanceTimersByTimeAsync(0)
     expect(dispose).toHaveBeenCalledTimes(1)
     expect(protectedNow).toBe(false)

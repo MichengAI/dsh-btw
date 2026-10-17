@@ -2,8 +2,8 @@
 
 ## [1.0.0] - 2026-10-17
 
-- Supported hosts are now DeepSeek Harness `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-alpha.1`, `0.2.1-alpha.2`, `0.2.1-alpha.3`, `0.2.1-alpha.4`, and `0.2.1-alpha.5`. Hosts before `0.2.0` are rejected by the version gate, and the plugin will not load or run. Installed configuration and main-conversation records are kept. If you still use a `0.1.x` host, install plugin `0.1.24` instead of `@latest`.
-- Compatibility branches that existed only for `0.1.x` hosts are gone. `0.2.0-rc.1` through `0.2.1-alpha.1` still use `subagents.start`; `0.2.1-alpha.2` and later use `startActivation`. Both paths remain because both are still in the support matrix.
+- Supported hosts are now DeepSeek Harness `0.2.0-rc.1` and `0.2.0-rc.2`. Hosts before `0.2.0`, and `0.2.1` alphas, are rejected by the version gate, and the plugin will not load or run. Installed configuration and main-conversation records are kept. If you still use a `0.1.x` host, install plugin `0.1.24` instead of `@latest`.
+- Call paths that existed only for `0.1.x` hosts and `0.2.1` alphas are gone. Both remaining hosts use `subagents.start`.
 
 ## [0.1.24] - 2026-10-15
 

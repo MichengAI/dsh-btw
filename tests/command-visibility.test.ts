@@ -16,11 +16,6 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
   const attachmentFields: Record<string, 'submittedAttachments'> = {
     '0.2.0-rc.1': 'submittedAttachments',
     '0.2.0-rc.2': 'submittedAttachments',
-    '0.2.1-alpha.1': 'submittedAttachments',
-    '0.2.1-alpha.2': 'submittedAttachments',
-    '0.2.1-alpha.3': 'submittedAttachments',
-    '0.2.1-alpha.4': 'submittedAttachments',
-    '0.2.1-alpha.5': 'submittedAttachments',
   }
   const attachmentField = Object.hasOwn(attachmentFields, version) ? attachmentFields[version] : undefined
   if (!attachmentField) throw new Error(`未验证的 DSH RPC 附件协议版本：${version}；请先确认字段并更新测试映射。`)
@@ -39,7 +34,7 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
   ctx.provide('tools', { guard: () => () => {} })
   ctx.provide('subagents', {
     getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-    startActivation: async (spec: { childId: string }) => ({ childId: spec.childId as never, result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '回答' }] }), dispose: async () => {} }),
+    start: async () => ({ result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '回答' }] }), dispose: async () => {} }),
   })
   const agent = { session: { header: { id: 'main' }, append: vi.fn() } } as unknown as Agent
   registry.lookups.register('agent', {
@@ -49,13 +44,9 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     resolve: (id: string) => id === 'main' ? agent : undefined,
   })
   const connection = await import(/* @vite-ignore */ modulePath('dsh-client-connection')) as {
-    Peer?: new (owner: ContextType, options: { principal: { kind: 'owner' } }) => object
-    OperatorPeer?: new (owner: ContextType) => object
+    OperatorPeer: new (owner: ContextType) => object
   }
-  // 0.2.1-alpha.3 起是 Peer(ctx, options)；更早的 0.2.0-rc.1 至 0.2.1-alpha.2 是 OperatorPeer(ctx)。
-  const peer = connection.Peer
-    ? new connection.Peer(ctx, { principal: { kind: 'owner' } })
-    : new connection.OperatorPeer!(ctx)
+  const peer = new connection.OperatorPeer(ctx)
   const listRemote = () => gateway.invoke({ namespace: 'commands', method: 'list', args: { agentId: 'main' }, peer })
   ctx.commands.register({ name: 'other', description: '其他命令', handler: () => ({ kind: 'success', text: 'other' }) })
   const plugin = ctx.plugin(apply)
