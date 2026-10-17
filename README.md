@@ -68,7 +68,7 @@ For a desktop workbench, download [DSH Codex Desktop](https://github.com/Micheng
 ## Prerequisites
 
 - An installed copy of DeepSeek Harness.
-- Plugin `1.0.0` is tested with DeepSeek Harness `0.2.0-rc.1` and `0.2.0-rc.2`.
+- Plugin `1.0.0` is tested with DeepSeek Harness `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`, and `0.2.1-rc.2`.
 - Hosts before `0.2.0`, and `0.2.1` alphas, are no longer supported. The version gate rejects them, and the plugin will not load or run. Installed configuration and main-conversation records are kept. If you still use a `0.1.x` host, install plugin `0.1.24` instead of `@latest`.
 - Node.js 22+ and `dsh` available in your terminal.
 
@@ -163,7 +163,7 @@ npm run check
 
 `npm run check` runs type checking, tests, and a build.
 
-Development and builds target `0.2.0-rc.2`. `npm run test:compat` builds with that baseline and runs the test suite on each of the two isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
+Development and builds target `0.2.1-rc.2`. `npm run test:compat` builds with that baseline and runs the test suite on each of the four isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
 
 GitHub and npm both include a ready-to-run `lib`; after changing source, run `npm run build` before committing.
 

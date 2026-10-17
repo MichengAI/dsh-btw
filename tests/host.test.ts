@@ -6,7 +6,6 @@ import type { Context as ContextType } from '@deepseek-ai/cordis'
 import type { ToolRuntime as RuntimeType } from '@deepseek-ai/dsh-tools'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { CommandDefinition } from '@deepseek-ai/dsh-commands'
-import type { SubagentRun } from '@deepseek-ai/dsh-subagent'
 import { apply } from '../src/index'
 import { RUN_COMMAND } from '../src/shared'
 import { createAnswerOnlyGuard } from '../src/server/tool-guard'
@@ -257,12 +256,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const ctx = new Context()
     const commands = new Map<string, CommandDefinition>()
     let protectedNow = false
-    let finishStart!: (run: SubagentRun) => void
+    let finishStart!: (run: { result: Promise<unknown>; localAgent?: object; dispose: () => Promise<void> }) => void
     ctx.provide('tools', { guard: () => ctx.effect(() => { protectedNow = true; return () => { protectedNow = false } }) })
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      start: () => new Promise(resolve => { finishStart = resolve }),
+      start: () => new Promise(resolve => { finishStart = resolve as typeof finishStart }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
@@ -273,7 +272,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await expect(unload).resolves.toBeUndefined()
     expect(protectedNow).toBe(true)
     const dispose = vi.fn(async () => {})
-    finishStart({ id: 'late-start' as never, localAgent: undefined, result: new Promise(() => {}), dispose })
+    finishStart({ result: new Promise(() => {}), dispose })
     await vi.advanceTimersByTimeAsync(0)
     expect(dispose).toHaveBeenCalledTimes(1)
     expect(protectedNow).toBe(false)

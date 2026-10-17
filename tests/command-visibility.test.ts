@@ -16,6 +16,8 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
   const attachmentFields: Record<string, 'submittedAttachments'> = {
     '0.2.0-rc.1': 'submittedAttachments',
     '0.2.0-rc.2': 'submittedAttachments',
+    '0.2.1-rc.1': 'submittedAttachments',
+    '0.2.1-rc.2': 'submittedAttachments',
   }
   const attachmentField = Object.hasOwn(attachmentFields, version) ? attachmentFields[version] : undefined
   if (!attachmentField) throw new Error(`未验证的 DSH RPC 附件协议版本：${version}；请先确认字段并更新测试映射。`)
@@ -44,9 +46,13 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     resolve: (id: string) => id === 'main' ? agent : undefined,
   })
   const connection = await import(/* @vite-ignore */ modulePath('dsh-client-connection')) as {
-    OperatorPeer: new (owner: ContextType) => object
+    Peer?: new (owner: ContextType, options: { principal: { kind: 'owner' } }) => object
+    OperatorPeer?: new (owner: ContextType) => object
   }
-  const peer = new connection.OperatorPeer(ctx)
+  // 0.2.1-rc.1 起是 Peer(ctx, options)；0.2.0-rc.1 与 0.2.0-rc.2 是 OperatorPeer(ctx)。
+  const peer = connection.Peer
+    ? new connection.Peer(ctx, { principal: { kind: 'owner' } })
+    : new connection.OperatorPeer!(ctx)
   const listRemote = () => gateway.invoke({ namespace: 'commands', method: 'list', args: { agentId: 'main' }, peer })
   ctx.commands.register({ name: 'other', description: '其他命令', handler: () => ({ kind: 'success', text: 'other' }) })
   const plugin = ctx.plugin(apply)

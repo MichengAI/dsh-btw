@@ -2,6 +2,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-subagent'
+import { SessionId } from '@deepseek-ai/dsh-session'
+import { PERSONA_PREFIX_SECTION } from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
 import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { DEFAULT_TIMEOUT_MS, SideJobs } from './server/jobs'
@@ -21,6 +23,11 @@ interface GuardedAgent {
   ctx?: {
     tools: {
       guard(guard: ReturnType<typeof createAnswerOnlyGuard>): () => void | Promise<void>
+      restrict(filter: { allow?: readonly string[]; deny?: readonly string[] }): () => void
+    }
+    systemPrompt: {
+      section(spec: { name: string; order: number; text: string }): () => void
+      getSectionOrder(name: string): number
     }
   }
 }
@@ -47,14 +54,81 @@ export function apply(ctx: Context): void {
   }
   const stopWatch = ctx.on('session/event', (session, event) => protection.recognize(session, event))
   const jobs = new SideJobs(async request => {
+    // 0.2.1-rc.1 起只有 startActivation；0.2.0-rc.1 与 0.2.0-rc.2 仍只有 start。
     const provider = ctx.subagents.getProvider('fork')
     if (!provider?.inheritsParentContext) {
       throw new Error(translate(request.locale)('error.provider'))
     }
     const label = `michengai-btw:${globalThis.crypto.randomUUID()}`
     labels.add(label)
+    const subagents = ctx.subagents as unknown as {
+      startActivation?: (spec: {
+        provider: string
+        label: string
+        childId: ReturnType<typeof SessionId>
+        request: { parent: Agent; prompt: readonly { type: string; text: string }[] }
+        signal: AbortSignal
+        delivery: 'caller'
+      }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; dispose(): Promise<void> }>
+      start?: (provider: string, options: {
+        parent: Agent
+        label: string
+        signal: AbortSignal
+        toolFilter: { allow: readonly string[] }
+        persona: string
+        prompt: readonly { type: string; text: string }[]
+      }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
+    }
+    if (typeof subagents.startActivation === 'function') {
+      const childId = SessionId(globalThis.crypto.randomUUID())
+      let childAgent: object | undefined
+      try {
+        const stopCreated = ctx.on('agent/created', ({ agent }) => {
+          if (agent.id !== childId) return undefined
+          childAgent = agent
+          arm(agent as GuardedAgent)
+          const scoped = agent as GuardedAgent
+          if (scoped.ctx?.systemPrompt) {
+            scoped.ctx.systemPrompt.section({
+              name: PERSONA_PREFIX_SECTION,
+              order: scoped.ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_PREFIX'),
+              text: PERSONA,
+            })
+          }
+          if (scoped.ctx?.tools) scoped.ctx.tools.restrict(request.toolFilter)
+          return undefined
+        })
+        let activation
+        try {
+          activation = await subagents.startActivation({
+            provider: 'fork',
+            label,
+            childId,
+            request: {
+              parent: request.context as Agent,
+              prompt: [{ type: 'text', text: `以下是唯一需要回答的新问题；先前内容仅供参考。\n\n${request.question}` }],
+            },
+            signal: request.signal,
+            delivery: 'caller',
+          })
+        } finally {
+          stopCreated()
+        }
+        return {
+          result: activation.result,
+          dispose: async () => {
+            try { await activation.dispose() }
+            finally { await releaseChild(childAgent); labels.delete(label) }
+          },
+        }
+      } catch (error) { labels.delete(label); throw error }
+    }
+    if (typeof subagents.start !== 'function') {
+      labels.delete(label)
+      throw new Error(translate(request.locale)('error.provider'))
+    }
     try {
-      const run = await ctx.subagents.start('fork', {
+      const run = await subagents.start('fork', {
         parent: request.context as Agent,
         label,
         signal: request.signal,
