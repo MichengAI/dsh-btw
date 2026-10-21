@@ -29,6 +29,8 @@ interface JobOptions {
     /** 卸载后所有实际资源均释放时调用；用于释放执行保护。 */
     onIdle?: () => void | Promise<void>;
 }
+/** 清洗模型可能因上下文 toolcall 惯性残留的裸露工具调用标记与代码块伪影，保留纯文字回答 */
+export declare function sanitizeModelAnswer(raw: string): string;
 export declare const DEFAULT_TIMEOUT_MS = 1800000;
 /** 管理一次性任务；父会话和请求标识共同构成所有权边界。 */
 export declare class SideJobs {

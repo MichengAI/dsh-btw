@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SideJobs, type ChildRun, type StartChild } from '../src/server/jobs'
+import { sanitizeModelAnswer, SideJobs, type ChildRun, type StartChild } from '../src/server/jobs'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -240,5 +240,13 @@ describe('一次性旁问生命周期', () => {
     await vi.advanceTimersByTimeAsync(0)
     await Promise.all(tasks)
     expect(jobs.size).toBe(0)
+  })
+
+  it('清洗模型因上下文惯性残留的 <tool_call> 与 <function_call> 标签伪代码', () => {
+    expect(sanitizeModelAnswer('这是正常回答')).toBe('这是正常回答')
+    expect(sanitizeModelAnswer('这是前文<tool_call>\n{"name":"read_file"}\n</tool_call>这是后文')).toBe('这是前文这是后文')
+    expect(sanitizeModelAnswer('<function_call>{"test": 1}</function_call>\n解释如下：OK')).toBe('解释如下：OK')
+    expect(sanitizeModelAnswer('```tool_call\n{"action": "test"}\n```\n结论是正确的')).toBe('结论是正确的')
+    expect(sanitizeModelAnswer('<tool_call>\n{"name": "fail"}\n</tool_call>')).toBe('')
   })
 })

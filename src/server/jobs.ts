@@ -39,6 +39,16 @@ interface JobOptions {
 
 const failure = (error: unknown): SideResult => ({ kind: 'error', text: error instanceof Error ? error.message : String(error) })
 
+/** 清洗模型可能因上下文 toolcall 惯性残留的裸露工具调用标记与代码块伪影，保留纯文字回答 */
+export function sanitizeModelAnswer(raw: string): string {
+  if (!raw) return ''
+  return raw
+    .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+    .replace(/<function_call>[\s\S]*?<\/function_call>/gi, '')
+    .replace(/```(?:tool_call|function_call)[\s\S]*?```/gi, '')
+    .trim()
+}
+
 export const DEFAULT_TIMEOUT_MS = 1_800_000 // 30 分钟兜底看门狗，防长连接死锁占满并发配额
 
 /** 管理一次性任务；父会话和请求标识共同构成所有权边界。 */
@@ -125,7 +135,8 @@ export class SideJobs {
       const run = await this.interruptible(starting, request.signal)
       const response = await this.interruptible(run.result, request.signal)
       request.signal.throwIfAborted()
-      const text = response.output.filter(block => block.type === 'text').map(block => block.text ?? '').join('').trim()
+      const rawText = response.output.filter(block => block.type === 'text').map(block => block.text ?? '').join('').trim()
+      const text = sanitizeModelAnswer(rawText)
       if (response.stopReason !== 'completed') throw new Error(job.t('error.incomplete', { reason: response.stopReason, detail: text ? `\n\n${text}` : '' }))
       if (!text) throw new Error(job.t('error.noText'))
       result = { kind: 'success', text }

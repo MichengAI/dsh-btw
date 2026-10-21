@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2] - 2026-10-21
+
+- Prevent tool-call pattern pollution from inherited session context: Inject high-priority negative tool constraints into the trailing user prompt, instructing models that all tools are disabled and strictly forbidding tool calls or call tags in favor of direct text answers (#10).
+- Add resilient sanitization on model outputs: Automatically strip leftover `<tool_call>` and `<function_call>` raw pseudo-blocks from the generated text, ensuring answers displayed in the bubble remain clean and well-formed (#10).
+
 ## [1.0.1] - 2026-10-21
 
 - Align selection quoting and annotations with the Codex experience: Render a compact rounded pill above the composer, open an annotation drawer on click, support optional comments on selections, and serialize provenance metadata cleanly before send without flooding the main draft (#8).
