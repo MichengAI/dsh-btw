@@ -1,15 +1,46 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
-import { captureSelection } from './selection'
+import { QuoteDock } from './QuoteDock'
+import type { QuoteStore } from './quotes'
+import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
 
-interface SelectionDraft { reference: string; x: number; y: number; bottom: number; keyboard: boolean; form: boolean }
+interface DraftInput {
+  state: { getSnapshot(): { draft: string; phase: string } }
+  setDraft(text: string): void
+  focus?(): void
+}
+
+interface SelectionDraft {
+  reference: string
+  details?: CapturedSelectionDetails
+  x: number
+  y: number
+  bottom: number
+  keyboard: boolean
+  form: boolean
+}
 
 /** 只接管会话正文选区；非模态 popover 不抢选区，顶层避免滚动裁切。 */
-export function SelectionAsk({ store, sessionId, t, addToConversation }: { store: BubbleStore; sessionId: string; t: BtwTranslate; addToConversation: (reference: string) => void }): React.JSX.Element {
+export function SelectionAsk({
+  store,
+  quoteStore,
+  sessionId,
+  t,
+  input,
+  addToConversation,
+}: {
+  store: BubbleStore
+  quoteStore?: QuoteStore
+  sessionId: string
+  t: BtwTranslate
+  input?: DraftInput
+  addToConversation?: (reference: string) => void
+}): React.JSX.Element {
   const anchor = useRef<HTMLSpanElement>(null)
-  const dialog = useRef<HTMLDialogElement | HTMLDivElement | null>(null)
+  const menu = useRef<HTMLDivElement | null>(null)
   const previousFocus = useRef<HTMLElement | null>(null)
   const mounted = useRef(false)
   const submitting = useRef(false)
@@ -31,49 +62,48 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
     const open = (event: MouseEvent | KeyboardEvent) => {
       // 只响应选区按键，避免 Escape 的 keyup 撤销刚发生的关闭。
       if (event instanceof KeyboardEvent && (event.isComposing || !(event.key === 'Shift' || (event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))))) return
-      if ((dialog.current instanceof HTMLDialogElement && dialog.current.open) || (event instanceof MouseEvent && event.button !== 0)) return
+      if (draft?.form || (event instanceof MouseEvent && event.button !== 0)) return
       if (event.defaultPrevented || !(event.target instanceof Element)) return
-      const reference = captureSelection(scope, event.target)
-      if (!reference) return
+      const details = captureSelectionDetails(scope, event.target)
+      if (!details) return
       const rect = document.getSelection()!.getRangeAt(0).getBoundingClientRect()
       previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
       setQuestion('')
       setError('')
-      setDraft({ reference, x: rect.left + rect.width / 2, y: rect.top, bottom: rect.bottom, keyboard: event instanceof KeyboardEvent && event.key === 'Shift', form: false })
+      setDraft({
+        reference: details.text,
+        details,
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+        bottom: rect.bottom,
+        keyboard: event instanceof KeyboardEvent && event.key === 'Shift',
+        form: false,
+      })
     }
     scope.addEventListener('mouseup', open)
     scope.addEventListener('keyup', open)
     return () => { mounted.current = false; scope.removeEventListener('mouseup', open); scope.removeEventListener('keyup', open) }
-  }, [sessionId])
+  }, [sessionId, draft?.form])
 
   useLayoutEffect(() => {
-    const element = dialog.current
-    if (!draft || !element) return
-    if (!draft.form) {
-      if (typeof element.showPopover === 'function' && typeof element.hidePopover === 'function') {
-        element.setAttribute('popover', 'manual')
-        if (!element.matches(':popover-open')) element.showPopover()
-      }
-      const rect = element.getBoundingClientRect()
-      element.style.left = `${Math.max(8, Math.min(draft.x - rect.width / 2, window.innerWidth - rect.width - 8))}px`
-      element.style.top = `${Math.max(8, Math.min(draft.y >= rect.height + 16 ? draft.y - rect.height - 8 : draft.bottom + 8, window.innerHeight - rect.height - 8))}px`
-    } else {
-      if (element.hasAttribute('popover')) { element.hidePopover(); element.removeAttribute('popover') }
-      if (element instanceof HTMLDialogElement && !element.open) element.showModal()
-      element.style.removeProperty('left')
-      element.style.removeProperty('top')
+    const element = menu.current
+    if (!draft || draft.form || !element) return
+    if (typeof element.showPopover === 'function' && typeof element.hidePopover === 'function') {
+      element.setAttribute('popover', 'manual')
+      if (!element.matches(':popover-open')) element.showPopover()
     }
-    if (draft.form) element.querySelector<HTMLElement>('textarea')?.focus()
-    else if (draft.keyboard) element.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
+    const rect = element.getBoundingClientRect()
+    element.style.left = `${Math.max(8, Math.min(draft.x - rect.width / 2, window.innerWidth - rect.width - 8))}px`
+    element.style.top = `${Math.max(8, Math.min(draft.y >= rect.height + 16 ? draft.y - rect.height - 8 : draft.bottom + 8, window.innerHeight - rect.height - 8))}px`
+    if (draft.keyboard) element.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
   }, [draft])
 
-  // 只在浮层类型切换或卸载时释放顶层，不因坐标更新反复关闭。
+  // 只在浮层类型切换或卸载时释放顶层
   useLayoutEffect(() => {
-    const element = dialog.current
+    const element = menu.current
     return () => {
       if (!element) return
       if (typeof element.hidePopover === 'function' && element.hasAttribute('popover') && element.matches(':popover-open')) element.hidePopover()
-      if (element instanceof HTMLDialogElement && element.open) element.close()
     }
   }, [draft?.form])
 
@@ -85,12 +115,12 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
     const hideMenu = () => { if (!draft.form) hide() }
     const visibility = () => { if (document.hidden) hideMenu() }
     const scroll = (event: Event) => {
-      if (event.target instanceof Node && dialog.current?.contains(event.target)) return
+      if (event.target instanceof Node && menu.current?.contains(event.target)) return
       hideMenu()
     }
-    const outside = (event: MouseEvent) => { if (!dialog.current?.contains(event.target as Node)) hideMenu() }
+    const outside = (event: MouseEvent) => { if (!menu.current?.contains(event.target as Node)) hideMenu() }
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') hideMenu() }
-    const selection = () => { if (document.getSelection()?.isCollapsed && !dialog.current?.contains(document.activeElement)) hideMenu() }
+    const selection = () => { if (document.getSelection()?.isCollapsed && !menu.current?.contains(document.activeElement)) hideMenu() }
     document.addEventListener('mousedown', outside, true)
     document.addEventListener('keydown', key)
     document.addEventListener('selectionchange', selection)
@@ -132,38 +162,102 @@ export function SelectionAsk({ store, sessionId, t, addToConversation }: { store
 
   const add = () => {
     if (!draft) return
-    try { addToConversation(draft.reference); setDraft(undefined) }
-    catch (issue) { setError(issue instanceof Error ? issue.message : String(issue)) }
+    try {
+      if (quoteStore && draft.details) {
+        quoteStore.addQuote(sessionId, {
+          text: draft.details.text,
+          role: draft.details.role,
+          turnIndex: draft.details.turnIndex,
+          anchorElement: draft.details.element,
+        })
+      } else if (quoteStore) {
+        quoteStore.addQuote(sessionId, {
+          text: draft.reference,
+        })
+      }
+      addToConversation?.(draft.reference)
+      setDraft(undefined)
+    } catch (issue) {
+      setError(issue instanceof Error ? issue.message : String(issue))
+    }
   }
 
-  const Surface = draft?.form ? 'dialog' : 'div'
-  return <><span ref={anchor} hidden />{draft && <Surface ref={(element: HTMLDialogElement | HTMLDivElement | null) => { dialog.current = element }}
-    className={draft.form ? 'btw-selection-dialog' : 'btw-selection-menu'}
-    aria-label={t('selection.ask')}
-    onCancel={event => { event.preventDefault(); dismiss() }}
-    onClick={event => {
-      const rect = event.currentTarget.getBoundingClientRect()
-      if (event.target === event.currentTarget && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dismiss()
-    }}>
-    {draft.form ? <form onSubmit={event => { event.preventDefault(); void send(question) }}>
-      <h3>{t('selection.ask')}</h3>
-      <details className="btw-reference"><summary>{t('selection.reference')} · {draft.reference.length}<span className="btw-reference-preview">{draft.reference.slice(0, 120)}{draft.reference.length > 120 ? '…' : ''}</span></summary><blockquote>{draft.reference}</blockquote></details>
-      <label><span>{t('selection.question')}</span><textarea value={question} disabled={busy} maxLength={MAX_QUESTION_LENGTH}
-        onChange={event => setQuestion(event.target.value)}
-        onKeyDown={event => {
-          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void send(question) }
-        }} /></label>
-      <p className="btw-selection-hint">{t('selection.context')}</p>
-      <div className="btw-selection-actions">
-        <button type="button" disabled={busy} onClick={dismiss}>{t('selection.cancel')}</button>
-        <button type="button" disabled={busy || draft.reference.length > MAX_REFERENCE_LENGTH} onClick={() => { void send(t('selection.explain')) }}>{t('selection.explain')}</button>
-        <button type="submit" disabled={busy || !question.trim() || draft.reference.length > MAX_REFERENCE_LENGTH}>{t('selection.send')}</button>
-      </div>
-    </form> : <div role="toolbar" aria-label={t('selection.ask')} onMouseDown={event => event.preventDefault()}>
-      <button type="button" onClick={add}>{t('selection.add')}</button>
-      <button type="button" onClick={() => setDraft({ ...draft, form: true })}>{t('selection.btw')}</button>
-    </div>}
-    {draft.form && draft.reference.length > MAX_REFERENCE_LENGTH && <p className="btw-error" role="alert">{t('error.reference')}</p>}
-    {error && <p className="btw-error" role="alert">{error}</p>}
-  </Surface>}</>
+  return (
+    <>
+      <span ref={anchor} hidden />
+      {quoteStore && input && <QuoteDock store={quoteStore} sessionId={sessionId} t={t} input={input} />}
+      {draft && !draft.form && (
+        <div
+          ref={menu}
+          className="btw-selection-menu"
+          role="toolbar"
+          aria-label={t('selection.ask')}
+          onMouseDown={event => event.preventDefault()}
+        >
+          <button type="button" onClick={add}>{t('selection.add')}</button>
+          <button type="button" onClick={() => setDraft({ ...draft, form: true })}>{t('selection.btw')}</button>
+        </div>
+      )}
+      {draft?.form && (
+        <Modal
+          open={draft.form}
+          onClose={dismiss}
+          title={t('selection.ask')}
+          closeLabel={t('selection.cancel')}
+          className="btw-selection-dialog btw-selection-modal"
+          footer={
+            <div className="btw-selection-actions">
+              <Button variant="outline" disabled={busy} onClick={dismiss}>
+                {t('selection.cancel')}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={busy || draft.reference.length > MAX_REFERENCE_LENGTH}
+                onClick={() => { void send(t('selection.explain')) }}
+              >
+                {t('selection.explain')}
+              </Button>
+              <Button
+                variant="primary"
+                disabled={busy || !question.trim() || draft.reference.length > MAX_REFERENCE_LENGTH}
+                onClick={() => { void send(question) }}
+              >
+                {t('selection.send')}
+              </Button>
+            </div>
+          }
+        >
+          <form onSubmit={event => { event.preventDefault(); void send(question) }}>
+            <details className="btw-reference">
+              <summary>
+                <span className="btw-codex-tag-badge">{t('quote.source')}</span> {t('selection.reference')} · {draft.reference.length}
+                <span className="btw-reference-preview">{draft.reference.slice(0, 120)}{draft.reference.length > 120 ? '…' : ''}</span>
+              </summary>
+              <blockquote>{draft.reference}</blockquote>
+            </details>
+            <label className="btw-selection-label">
+              <span>{t('selection.question')}</span>
+              <textarea
+                value={question}
+                disabled={busy}
+                maxLength={MAX_QUESTION_LENGTH}
+                placeholder={t('selection.questionPlaceholder')}
+                autoFocus
+                onChange={event => setQuestion(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
+                    event.preventDefault()
+                    void send(question)
+                  }
+                }}
+              />
+            </label>
+            <p className="btw-selection-hint">{t('selection.context')}</p>
+            {draft.reference.length > MAX_REFERENCE_LENGTH && <p className="btw-error" role="alert">{t('error.reference')}</p>}
+            {error && <p className="btw-error" role="alert">{error}</p>}
+          </form>
+        </Modal>
+      )}
+    </>
+  )
 }

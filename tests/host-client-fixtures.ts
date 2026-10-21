@@ -5,6 +5,11 @@ import ts from 'typescript'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 
 const require = createRequire(import.meta.url)
+if (typeof require.extensions === 'object' && require.extensions) {
+  require.extensions['.css'] = (m: unknown) => {
+    (m as { exports: unknown }).exports = {}
+  }
+}
 export const localeBundle = readFileSync(require.resolve('@deepseek-ai/dsh-client-locale/client'), 'utf8')
 
 /** 仅装配语言注册表，不渲染宿主设置页，外部 UI 依赖不会被调用。 */

@@ -23,8 +23,10 @@ it('真实 Cordis 依赖检查下可通过官方指令目录发送旁问', async
     execute: async (_session: unknown, line: string, _attachments?: unknown) => ({ kind: 'host', line }),
   }
   let implementation = clientPlugin
-  const loader = { load: (entry: { factory: (require: ReturnType<typeof createRequire>) => typeof clientPlugin }) => {
-    implementation = entry.factory(createRequire(import.meta.url))
+  const fallback = createRequire(import.meta.url)
+  const safeRequire = ((id: string) => id === '@deepseek-ai/dsh-client-ui-primitives' ? { Modal: () => null, Button: () => null } : fallback(id)) as typeof fallback
+  const loader = { load: (entry: { factory: (require: typeof fallback) => typeof clientPlugin }) => {
+    implementation = entry.factory(safeRequire)
   } }
   class Remote extends Service {
     constructor(context: Context) { super(context, 'remote') }

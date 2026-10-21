@@ -31,8 +31,10 @@ async function setup() {
   const rows: Record<string, { origin?: 'subagent'; parentId?: string }> = {}
   let dock!: Dock
   let implementation = clientPlugin
-  const loader = { load: (entry: { factory: (require: ReturnType<typeof createRequire>) => typeof clientPlugin }) => {
-    implementation = entry.factory(createRequire(import.meta.url))
+  const fallback = createRequire(import.meta.url)
+  const safeRequire = ((id: string) => id === '@deepseek-ai/dsh-client-ui-primitives' ? { Modal: () => null, Button: () => null } : fallback(id)) as typeof fallback
+  const loader = { load: (entry: { factory: (require: typeof fallback) => typeof clientPlugin }) => {
+    implementation = entry.factory(safeRequire)
   } }
   vi.stubGlobal('window', { localStorage: { getItem: () => null, setItem: () => {} }, __ModuleLoader__: loader })
   vi.stubGlobal('document', {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1] - 2026-10-21
+
+- Align selection quoting and annotations with the Codex experience: Render a compact rounded pill above the composer, open an annotation drawer on click, support optional comments on selections, and serialize provenance metadata cleanly before send without flooding the main draft (#8).
+- Integrate the host's native `<Modal>` and `<Button>` primitives for the selection question dialog, dropping custom overlays and aligning fully with host tokens and themes.
+- Standardize subagent naming to "Side Question Expert", aligning with the expert agent roster and eliminating internal debug UUIDs from the task list.
+- Enhance prompt structuring and guidance for selections, preventing instruction injection from quoted text and directing models to focus on the user's intent.
+
 ## [1.0.0] - 2026-10-17
 
 - Supported hosts are now DeepSeek Harness `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`, and `0.2.1-rc.2`. Hosts before `0.2.0`, and `0.2.1` alphas, are rejected by the version gate, and the plugin will not load or run. Installed configuration and main-conversation records are kept. If you still use a `0.1.x` host, install plugin `0.1.24` instead of `@latest`.
