@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.4] - 2026-10-22
+
+- Support structured quote references via host input trigger channel: Register `@dsh-btw-quote` source with dedicated clipboard and model prompt codecs, allowing quotes to be managed as atomic mention references without flattening long excerpts into composer drafts (#12).
+- Render quote context in conversation bubbles as native ReferenceChip capsules: Parse leading selected context blocks into structured quote nodes, rendering compact capsules at the top of message bubbles with full card details mounted via React Portal to prevent container clipping (#12).
+- Multi-card popover list with independent navigation: Display multiple referenced excerpts as discrete cards with distinct provenance badges, scrolling preview, and dedicated "Jump to source" actions for pinpoint anchor navigation (#12).
+- Fortify quote heading parser against false positives: Enforce whitespace-only prefix bounds and require at least one valid quote item before creating a capsule, preventing in-text discussions or bare headings from being captured (#12).
+- Harmonize detect coordinates and bilingual locale support: Use `captureInsertion()` for accurate detect-span offsets across existing mention chips, bind slot locale to `QuoteUserTextNode`, and complete bilingual localization (#12).
+- Add `@deepseek-ai/dsh-client-ui-input-trigger` to peerDependencies across all supported host versions (0.2.0-rc.1 through 0.2.1-rc.2).
+
 ## [1.0.3] - 2026-10-22
 
 - Fix main-session tool calls being suppressed when quoting text: Remove side-ask-specific tool prohibition instructions from quote prompt formatting so the main agent can still invoke tools as needed (#11).
