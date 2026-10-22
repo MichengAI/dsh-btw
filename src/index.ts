@@ -10,6 +10,7 @@ import { DEFAULT_TIMEOUT_MS, SideJobs } from './server/jobs'
 import { createAnswerOnlyGuard, identityOfFromContext } from './server/tool-guard'
 import { translate } from './locales'
 import { hideInternalCommands } from './server/command-visibility'
+import { observeCurrentTurn } from './server/current-turn'
 
 export const name = 'michengai-btw'
 export const inject = ['commands', 'subagents', 'tools']
@@ -29,6 +30,7 @@ interface GuardedAgent {
 
 /** 宿主命令只负责接入与身份绑定，不创建 HTTP 或持久侧聊接口。 */
 export function apply(ctx: Context): void {
+  const currentTurn = observeCurrentTurn(ctx)
   ctx.effect(() => hideInternalCommands(ctx.commands))
   const labels = new Set<string>()
   // 保护挂在子代理自己的上下文上，随子代理释放，不借用宿主根 fiber。
@@ -72,7 +74,7 @@ export function apply(ctx: Context): void {
     }
     const label = t('agent.name')
     retainLabel(label)
-    const promptText = `${t('agent.promptPrefix')}\n\n${request.question}`
+    const promptText = [currentTurn(request.context as Agent), t('agent.promptPrefix'), request.question].filter(Boolean).join('\n\n')
     const subagents = ctx.subagents as unknown as {
       startActivation?: (spec: {
         provider: string

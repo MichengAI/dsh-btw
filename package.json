@@ -55,9 +55,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:release": "node --test tests/release.test.mjs tests/npm-oidc.test.mjs tests/github-release.test.mjs",
-    "check": "npm run typecheck && npm test && npm run test:release && npm run build",
+    "check": "npm run typecheck && npm test && npm run test:release && npm run build && npm run test:runtime",
     "prepack": "npm run build",
-    "test:compat": "node scripts/test-compatibility.mjs"
+    "test:compat": "node scripts/test-compatibility.mjs",
+    "test:runtime": "node --test tests/live-context.test.mjs"
   },
   "engines": {
     "node": ">=22"

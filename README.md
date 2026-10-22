@@ -106,7 +106,7 @@ Installing `@latest` on a host before `0.2.0`, or on a `0.2.1` alpha, is rejecte
 Select text within a single conversation message, choose **Ask BTW** from the compact selection toolbar, and enter a question or choose **Explain this**. Enter sends, Shift+Enter inserts a newline, and Esc cancels. Answers use the existing BTW bubbles with an expandable quote.
 
 - Supports prose, lists, and code text; quotes are limited to 8,000 UTF-16 code units including whitespace and are never silently truncated.
-- The quote is frozen when the menu opens. Other context comes from completed main-chat content at send time.
+- The quote is frozen when the menu opens. Other context includes the current turn, recorded tool results, and text received at send time.
 - Main-composer drafts are preserved. Cross-message selections, editable fields, and tool output do not show the menu.
 - **Add to conversation** appends a quote to the existing draft without sending. After insertion, focus returns to the composer; insertion is blocked while a message is being submitted. Right-click keeps the browser's native menu.
 - Keyboard selection is supported inside focused message elements: release Shift to focus the toolbar. Browsers without the Popover API use a fixed-position fallback, which may be clipped by the host layout.
@@ -137,7 +137,9 @@ BTW accepts text only. Side questions with images or files are rejected without 
 
 ### Usage Notes
 
-- Each question is independent and uses completed content from the main conversation at the time you ask. It does not include an answer still being generated or previous side questions.
+- Each question inherits completed history and records a read-only snapshot of the current turn in its child session, including user messages, recorded tool results, and received streaming text.
+Pending tool calls remain reference text and are not replayed; later parent output does not update the snapshot, and other side questions are excluded.
+Streaming capture starts when the plugin loads; if enabled during a response, earlier text becomes available only after that response is logged.
 - Bubbles are not restored after refreshing the page. Copy any answers you want to keep first.
 
 ## Uninstallation

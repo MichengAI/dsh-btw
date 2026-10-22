@@ -112,7 +112,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const scope = createScope(ctx, child)
     const body = vi.fn(async () => 'executed')
     scope.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
-    await commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-evt', question: '问题' }), signal: new AbortController().signal } as never)
+    await commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' }, snapshotEvents: () => [] } }, rawInput: JSON.stringify({ id: 'request-evt', question: '问题' }), signal: new AbortController().signal } as never)
     const blocked = await ctx.tools.execute({ name: 'child_local', callId: 'event' as never, arguments: {}, agent: child, signal: new AbortController().signal })
     expect(blocked.isError).toBe(true)
     expect(body).not.toHaveBeenCalled()
@@ -156,7 +156,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await plugin.await()
 
     const outcome = await commands.get(RUN_COMMAND)!.handler({
-      agent: { session: { header: { id: 'main' } } },
+      agent: { session: { header: { id: 'main' }, snapshotEvents: () => [] } },
       rawInput: JSON.stringify({ id: 'legacy-req', question: '旧版问题' }),
       signal: new AbortController().signal,
     } as never)
@@ -192,7 +192,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
-    const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
+    const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' }, snapshotEvents: () => [] } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
     await Promise.resolve()
     const unload = plugin.dispose()
     await vi.waitFor(() => expect(cleanupStarted).toBe(true))
@@ -227,7 +227,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const plugin = ctx.plugin(apply)
     await plugin.await()
     vi.useFakeTimers()
-    const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
+    const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' }, snapshotEvents: () => [] } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
     await vi.advanceTimersByTimeAsync(0)
     const body = vi.fn(async () => 'executed')
     scope!.ctx.tools.register({ name: 'orphan_tool', description: '未释放子代理的工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
@@ -266,7 +266,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const plugin = ctx.plugin(apply)
     await plugin.await()
     vi.useFakeTimers()
-    const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
+    const answer = commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' }, snapshotEvents: () => [] } }, rawInput: JSON.stringify({ id: 'request-123', question: '问题' }), signal: new AbortController().signal } as never)
     const unload = plugin.dispose()
     await vi.advanceTimersByTimeAsync(5_001)
     await expect(unload).resolves.toBeUndefined()
