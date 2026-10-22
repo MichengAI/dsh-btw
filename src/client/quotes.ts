@@ -90,14 +90,6 @@ export class QuoteStore {
     return quote
   }
 
-  updateComment(sessionId: string, quoteId: string, comment: string): void {
-    const list = this.sessionQuotes.get(sessionId)
-    if (!list) return
-    const next = list.map(q => q.id === quoteId ? { ...q, comment } : q)
-    this.sessionQuotes.set(sessionId, next)
-    this.notify()
-  }
-
   removeQuote(sessionId: string, quoteId: string): void {
     const list = this.sessionQuotes.get(sessionId)
     if (!list) return

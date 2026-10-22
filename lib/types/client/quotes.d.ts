@@ -22,7 +22,6 @@ export declare class QuoteStore {
         comment?: string;
         t?: BtwTranslate;
     }): QuotedReference;
-    updateComment(sessionId: string, quoteId: string, comment: string): void;
     removeQuote(sessionId: string, quoteId: string): void;
     clearQuotes(sessionId: string): void;
     subscribe(listener: () => void): () => void;
