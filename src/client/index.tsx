@@ -164,7 +164,7 @@ export function apply(ctx: Context): void {
 
   function Dock(props: PropsRuntime<'conversation.input.dock'> & { t: BtwTranslate }): React.JSX.Element {
     const session = (ctx.get('sessions') as unknown as ISessions).scope(props.session.sessionId)
-    return <>{!props.session.subagent && !isSubagent(props.session.sessionId) && <SelectionAsk key={props.session.sessionId} store={store} quoteStore={quoteStore} sessionId={props.session.sessionId} t={props.t} input={session ? ctx.conversation.input.for(session) : undefined} addToConversation={() => {}} />}<BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
+    return <>{!props.session.subagent && !isSubagent(props.session.sessionId) && <SelectionAsk key={props.session.sessionId} store={store} quoteStore={quoteStore} sessionId={props.session.sessionId} t={props.t} input={session ? ctx.conversation.input.for(session) : undefined} />}<BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
   }
   slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'michengai-btw', order: -50, locale: NS }, Dock))
   slots.inject('conversation.chat.commandview', () => {

@@ -276,3 +276,82 @@ it('草稿为空时按 Enter 不执行合并，不清空 store 中的 quotes', a
   expect(mockSetDraft).not.toHaveBeenCalled()
   expect(store.getQuotes('session-a')).toHaveLength(1)
 })
+
+it('点击宿主真实的 InputBar 发送按钮（type="button", aria-label="发送消息"）能够正确触发合并并清空 quotes', async () => {
+  mockDraft = '要发送的真实问题'
+  await act(async () => {
+    root.render(React.createElement(QuoteDock, {
+      store,
+      sessionId: 'session-a',
+      t: translate('zh'),
+      input: getDraftInput(),
+    }))
+  })
+
+  act(() => {
+    store.addQuote('session-a', {
+      text: '待合并的引文',
+      role: 'assistant',
+      turnIndex: 1,
+    })
+  })
+
+  // 创建一个模拟宿主真实 InputBar 的 primary 按钮（type="button"，无 type="submit"）
+  const composerCard = document.createElement('div')
+  composerCard.setAttribute('data-composer-card', 'true')
+  const sendButton = document.createElement('button')
+  sendButton.type = 'button'
+  sendButton.className = 'InputBar_primary__mock'
+  sendButton.setAttribute('aria-label', '发送消息')
+  composerCard.append(sendButton)
+  document.body.append(composerCard)
+
+  act(() => {
+    sendButton.click()
+  })
+
+  expect(mockSetDraft).toHaveBeenCalled()
+  expect(mockDraft).toContain('待合并的引文')
+  expect(mockDraft).toContain('要发送的真实问题')
+  expect(store.getQuotes('session-a')).toHaveLength(0)
+  composerCard.remove()
+})
+
+it('点击宿主停止生成按钮（aria-label="停止生成"，具备 primary 样式）不触发合并，不清空 quotes', async () => {
+  mockDraft = '草稿内容'
+  await act(async () => {
+    root.render(React.createElement(QuoteDock, {
+      store,
+      sessionId: 'session-a',
+      t: translate('zh'),
+      input: getDraftInput(),
+    }))
+  })
+
+  act(() => {
+    store.addQuote('session-a', {
+      text: '正在生成的背景引文',
+      role: 'assistant',
+      turnIndex: 1,
+    })
+  })
+
+  // 模拟宿主的停止按钮：同样具备 primary 类名，但 aria-label 为停止生成
+  const composerCard = document.createElement('div')
+  composerCard.setAttribute('data-composer-card', 'true')
+  const stopButton = document.createElement('button')
+  stopButton.type = 'button'
+  stopButton.className = 'InputBar_primary__mock'
+  stopButton.setAttribute('aria-label', '停止生成')
+  composerCard.append(stopButton)
+  document.body.append(composerCard)
+
+  act(() => {
+    stopButton.click()
+  })
+
+  // 停止生成绝不能触发合并与清空
+  expect(mockSetDraft).not.toHaveBeenCalled()
+  expect(store.getQuotes('session-a')).toHaveLength(1)
+  composerCard.remove()
+})

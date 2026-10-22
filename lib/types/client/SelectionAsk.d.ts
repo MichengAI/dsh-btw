@@ -11,6 +11,7 @@ interface DraftInput {
     };
     setDraft(text: string): void;
     focus?(): void;
+    notify?(level: 'info' | 'error', text: string): void;
 }
 /** 只接管会话正文选区；非模态 popover 不抢选区，顶层避免滚动裁切。 */
 export declare function SelectionAsk({ store, quoteStore, sessionId, t, input, addToConversation, }: {

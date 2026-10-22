@@ -1,14 +1,16 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { QuoteStore, formatQuotesWithDraft } from '../src/client/quotes'
+import { QuoteStore, formatQuotesWithDraft, jumpToQuote } from '../src/client/quotes'
 import { captureSelectionDetails } from '../src/client/selection'
 import { translate } from '../src/locales'
 
+beforeEach(() => {
+  document.body.replaceChildren()
+  window.getSelection()?.removeAllRanges()
+  window.HTMLElement.prototype.scrollIntoView = vi.fn()
+})
+
 describe('captureSelectionDetails 提取选区与出处元数据', () => {
-  beforeEach(() => {
-    document.body.replaceChildren()
-    window.getSelection()?.removeAllRanges()
-  })
 
   function fixture() {
     document.body.innerHTML = `
@@ -200,19 +202,116 @@ describe('formatQuotesWithDraft 拼装输出', () => {
     expect(div2.hasAttribute('data-btw-anchor')).toBe(false)
   })
 
-  it('多条引用合计长度超过 MAX_TOTAL_QUOTES_LENGTH 时抛出上限错误', () => {
+  it('同一 DOM 行挂载多条引用时，锚点 id 列表共存不覆盖，每条引用均可正确定位与独立清理', () => {
     const store = new QuoteStore()
+    const rowEl = document.createElement('div')
+    document.body.append(rowEl)
+
+    const q1 = store.addQuote('s1', {
+      text: '第一句引用',
+      role: 'assistant',
+      turnIndex: 1,
+      anchorElement: rowEl,
+    })
+    const q2 = store.addQuote('s1', {
+      text: '第二句引用',
+      role: 'assistant',
+      turnIndex: 1,
+      anchorElement: rowEl,
+    })
+
+    // 两条引用的 jumpToQuote 都必须成功定位到 rowEl
+    expect(jumpToQuote(q1, document.body)).toBe(true)
+    expect(jumpToQuote(q2, document.body)).toBe(true)
+
+    // 移除第一条，第二条依然可以正常定位，DOM 属性不被彻底移空
+    store.removeQuote('s1', q1.id)
+    expect(jumpToQuote(q2, document.body)).toBe(true)
+    expect(rowEl.hasAttribute('data-btw-anchor')).toBe(true)
+
+    // 移除第二条后，DOM 属性彻底移除
+    store.removeQuote('s1', q2.id)
+    expect(rowEl.hasAttribute('data-btw-anchor')).toBe(false)
+  })
+
+  it('多条引用合计长度超过 MAX_TOTAL_QUOTES_LENGTH 时抛出对应语言的上限错误', () => {
+    const store = new QuoteStore()
+    const tEn = translate('en')
     store.addQuote('s1', {
       text: 'a'.repeat(9_000),
       role: 'assistant',
       turnIndex: 1,
     })
+
+    // 中文默认抛出中文提示
     expect(() => {
       store.addQuote('s1', {
         text: 'b'.repeat(8_000),
         role: 'assistant',
         turnIndex: 2,
       })
-    }).toThrow()
+    }).toThrow('引用合计长度超出上限（最多 16,000 字符）。')
+
+    // 传入英文 t 时抛出英文提示
+    expect(() => {
+      store.addQuote('s1', {
+        text: 'c'.repeat(8_000),
+        role: 'assistant',
+        turnIndex: 3,
+        t: tEn,
+      })
+    }).toThrow('Total length of quoted selections exceeds the limit (max 16,000 characters).')
+
+    // 但如果重复添加的是同一条已有的 9,000 字符引用，应当去重返回 existing，绝不误抛超长异常
+    expect(() => {
+      const reAdd = store.addQuote('s1', {
+        text: 'a'.repeat(9_000),
+        role: 'assistant',
+        turnIndex: 1,
+      })
+      expect(reAdd.text).toBe('a'.repeat(9_000))
+    }).not.toThrow()
+  })
+
+  it('DOM 锚点丢失时，降级轮次匹配严格对齐 selection.ts 独立轮次算法并忽略工具过程节点', () => {
+    // 构造复杂消息流：包含工具过程 (turn-process) 与助手多步回答
+    document.body.innerHTML = `
+      <div data-conversation-scroll>
+        <div data-chat-flow-kind="assistant-step" id="assistant-1"><p>助手第1轮回复</p></div>
+        <div data-chat-flow-kind="user" id="user-1"><p>用户第1轮提问</p></div>
+        <div data-chat-flow-kind="turn-process" id="process-1"><p>工具执行过程</p></div>
+        <div data-chat-flow-kind="assistant-step" id="assistant-2"><p>助手第2轮回复</p></div>
+      </div>
+    `
+    const quoteAssistant1 = {
+      id: 'q-a1',
+      sessionId: 's',
+      text: '助手第1轮回复',
+      role: 'assistant' as const,
+      turnIndex: 1,
+      createdAt: Date.now(),
+      // 模拟 anchorId 在 DOM 上已经丢失（如列表虚拟化卸载后重装）
+      anchorId: 'missing-anchor-id',
+    }
+
+    const quoteAssistant2 = {
+      id: 'q-a2',
+      sessionId: 's',
+      text: '助手第2轮回复',
+      role: 'assistant' as const,
+      turnIndex: 2,
+      createdAt: Date.now(),
+      anchorId: 'missing-anchor-id-2',
+    }
+
+    const scope = document.querySelector('[data-conversation-scroll]') as HTMLElement
+    // 助手第 1 轮引用应当准确降级高亮匹配到 assistant-1
+    expect(jumpToQuote(quoteAssistant1, scope)).toBe(true)
+    expect(document.getElementById('assistant-1')?.classList.contains('btw-anchor-highlight')).toBe(true)
+
+    // 助手第 2 轮引用应当准确降级高亮匹配到 assistant-2（跳过 process-1）
+    expect(jumpToQuote(quoteAssistant2, scope)).toBe(true)
+    expect(document.getElementById('assistant-2')?.classList.contains('btw-anchor-highlight')).toBe(true)
+    expect(document.getElementById('process-1')?.classList.contains('btw-anchor-highlight')).toBe(false)
   })
 })

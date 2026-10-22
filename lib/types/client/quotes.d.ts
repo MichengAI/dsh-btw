@@ -20,6 +20,7 @@ export declare class QuoteStore {
         turnIndex?: number;
         anchorElement?: Element;
         comment?: string;
+        t?: BtwTranslate;
     }): QuotedReference;
     updateComment(sessionId: string, quoteId: string, comment: string): void;
     removeQuote(sessionId: string, quoteId: string): void;

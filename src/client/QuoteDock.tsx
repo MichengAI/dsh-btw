@@ -88,9 +88,27 @@ export function QuoteDock({
     const onClick = (event: MouseEvent) => {
       const target = event.target as Element | null
       if (!target) return
-      // 排除弹窗内部的任何提交或发送按钮
+      // 严格排除：弹窗、模态对话框内部的任何按钮
       if (target.closest('.btw-selection-dialog, .btw-selection-modal, [role="dialog"], [data-btw-modal]')) return
-      const isSubmit = Boolean(target.closest('button[type="submit"], [data-composer-submit]'))
+
+      // 明确排除停止生成按钮（宿主停止按钮同样位于 composerCard 内部且为 primary，但不是提交操作）
+      if (target.closest('button[aria-label*="停止"], button[aria-label*="Stop"]')) return
+
+      // 宿主输入框发送按钮匹配：
+      // 1. 标准属性：button[type="submit"], [data-composer-submit]
+      // 2. 涵盖宿主中英文四态中除停止外的发送语义：发送/Send、排队/Queue、插话/Steer
+      const isSubmit = Boolean(
+        target.closest(
+          'button[type="submit"], ' +
+          '[data-composer-submit], ' +
+          'button[aria-label*="发送"], ' +
+          'button[aria-label*="Send"], ' +
+          'button[aria-label*="排队"], ' +
+          'button[aria-label*="Queue"], ' +
+          'button[aria-label*="插话"], ' +
+          'button[aria-label*="Steer"]'
+        )
+      )
       if (!isSubmit) return
       consumeAndMerge()
     }

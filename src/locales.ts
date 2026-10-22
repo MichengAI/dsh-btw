@@ -68,7 +68,7 @@ export const zh = {
   'quote.jump': '定位到原文',
   'quote.jumpFailed': '原文已不在当前视图。',
   'quote.fromRole': '> [来自{role}{turn}]:',
-  'quote.source': '原帖',
+  'quote.source': '出处',
   'quote.panelTitle': '引用',
   'quote.commentLabel': '批注',
   'agent.name': '旁问专家',

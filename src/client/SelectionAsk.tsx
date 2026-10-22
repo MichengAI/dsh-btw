@@ -11,6 +11,7 @@ interface DraftInput {
   state: { getSnapshot(): { draft: string; phase: string } }
   setDraft(text: string): void
   focus?(): void
+  notify?(level: 'info' | 'error', text: string): void
 }
 
 interface SelectionDraft {
@@ -169,16 +170,20 @@ export function SelectionAsk({
           role: draft.details.role,
           turnIndex: draft.details.turnIndex,
           anchorElement: draft.details.element,
+          t,
         })
       } else if (quoteStore) {
         quoteStore.addQuote(sessionId, {
           text: draft.reference,
+          t,
         })
       }
       addToConversation?.(draft.reference)
       setDraft(undefined)
     } catch (issue) {
-      setError(issue instanceof Error ? issue.message : String(issue))
+      const msg = issue instanceof Error ? issue.message : String(issue)
+      setError(msg)
+      input?.notify?.('error', msg)
     }
   }
 
