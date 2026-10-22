@@ -1,4 +1,4 @@
-import type { BtwTranslate } from '../locales';
+import { type BtwTranslate } from '../locales';
 export interface QuotedReference {
     readonly id: string;
     readonly sessionId: string;
@@ -29,5 +29,5 @@ export declare class QuoteStore {
 }
 /** 序列化引用块并与草稿合并为规范 Markdown，附带大模型意图引导词。 */
 export declare function formatQuotesWithDraft(draft: string, quotes: readonly QuotedReference[], t: BtwTranslate): string;
-/** 滚动并高亮原文锚点 */
+/** 滚动并高亮原文锚点，DOM 节点丢失时尝试降级寻找轮次容器 */
 export declare function jumpToQuote(quote: QuotedReference, scope?: HTMLElement | null): boolean;

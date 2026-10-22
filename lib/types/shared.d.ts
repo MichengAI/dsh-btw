@@ -1,4 +1,4 @@
-export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits';
+export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH, MAX_TOTAL_QUOTES_LENGTH } from './limits';
 import { type BtwLocale } from './locales';
 export declare const RUN_COMMAND = "btw-run";
 export declare const CLOSE_COMMAND = "btw-close";

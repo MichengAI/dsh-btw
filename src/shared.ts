@@ -1,5 +1,5 @@
-import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits'
-export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from './limits'
+import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH, MAX_TOTAL_QUOTES_LENGTH } from './limits'
+export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH, MAX_TOTAL_QUOTES_LENGTH } from './limits'
 import { normalizeLocale, translate, type BtwLocale } from './locales'
 
 export const RUN_COMMAND = 'btw-run'

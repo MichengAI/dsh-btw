@@ -6,6 +6,7 @@ interface DraftInput {
   state: { getSnapshot(): { draft: string; phase: string } }
   setDraft(text: string): void
   focus?(): void
+  notify?(level: 'info' | 'error', text: string): void
 }
 
 export function QuoteDock({
@@ -59,6 +60,11 @@ export function QuoteDock({
       const current = store.getQuotes(sessionId)
       if (current.length === 0) return
       const snapshot = input.state.getSnapshot()
+      // 事务守卫：如果宿主处于提交事务中（submitting, adjudicating 等），严禁改写草稿，且绝不能清空引用
+      if (snapshot.phase && snapshot.phase !== 'plain') return
+      // 空草稿守卫：如果用户未输入任何有效问题，不发起空问题发送，保留引用在药丸中
+      if (!snapshot.draft.trim()) return
+
       const merged = formatQuotesWithDraft(snapshot.draft, current, t)
       input.setDraft(merged)
       store.clearQuotes(sessionId)
@@ -67,14 +73,24 @@ export function QuoteDock({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return
       const active = document.activeElement
-      const isInput = active instanceof HTMLTextAreaElement || (active instanceof HTMLElement && (active.isContentEditable || active.matches('[data-dsh-composer-input], textarea, [contenteditable="true"]')))
+      if (!active || !(active instanceof HTMLElement)) return
+
+      // 严格排除：任何位于旁问弹窗、各种 Modal/Dialog 内部的输入框，防止污染主会话
+      if (active.closest('.btw-selection-dialog, .btw-selection-modal, [role="dialog"], [data-btw-modal]')) return
+
+      const isInput = active.matches('[data-dsh-composer-input]') ||
+        active instanceof HTMLTextAreaElement ||
+        (active.isContentEditable || active.matches('textarea, [contenteditable="true"]'))
       if (!isInput) return
       consumeAndMerge()
     }
 
     const onClick = (event: MouseEvent) => {
       const target = event.target as Element | null
-      const isSubmit = target?.closest('button[type="submit"], [data-composer-submit], [aria-label*="发送"], [aria-label*="Send"]')
+      if (!target) return
+      // 排除弹窗内部的任何提交或发送按钮
+      if (target.closest('.btw-selection-dialog, .btw-selection-modal, [role="dialog"], [data-btw-modal]')) return
+      const isSubmit = Boolean(target.closest('button[type="submit"], [data-composer-submit]'))
       if (!isSubmit) return
       consumeAndMerge()
     }
@@ -91,6 +107,7 @@ export function QuoteDock({
 
   const expandToDraft = () => {
     const snapshot = input.state.getSnapshot()
+    if (snapshot.phase && snapshot.phase !== 'plain') return
     const merged = formatQuotesWithDraft(snapshot.draft, quotes, t)
     input.setDraft(merged)
     store.clearQuotes(sessionId)
@@ -186,11 +203,15 @@ export function QuoteDock({
                     className="btw-codex-card-body"
                     role="button"
                     tabIndex={0}
-                    onClick={() => jumpToQuote(quote)}
+                    onClick={() => {
+                      const ok = jumpToQuote(quote)
+                      if (!ok) input.notify?.('info', t('quote.jumpFailed'))
+                    }}
                     onKeyDown={e => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        jumpToQuote(quote)
+                        const ok = jumpToQuote(quote)
+                        if (!ok) input.notify?.('info', t('quote.jumpFailed'))
                       }
                     }}
                     title={t('quote.jump')}

@@ -77,7 +77,7 @@ it('添加注释后渲染 Codex 胶囊药丸，支持展开 Popover 与单条删
   })
 
   expect(mount.querySelector('.btw-quote-dock')).not.toBeNull()
-  expect(mount.querySelector('.btw-codex-pill')?.textContent).toContain('1 条注释')
+  expect(mount.querySelector('.btw-codex-pill')?.textContent).toContain('1 条引用')
 
   // 点击药丸展开 Popover
   act(() => {
@@ -160,4 +160,119 @@ it('在输入框敲击 Enter 时自动合并引用并清空 store', async () => 
   expect(mockDraft).toContain('> 待发送的引文')
   expect(mockDraft).toContain('用户打的问题')
   expect(store.getQuotes('session-a')).toHaveLength(0)
+})
+
+it('弹窗内的 textarea 按 Enter 不触发主会话 QuoteDock 的合并与清空', async () => {
+  await act(async () => {
+    root.render(React.createElement(QuoteDock, {
+      store,
+      sessionId: 'session-a',
+      t: translate('zh'),
+      input: getDraftInput(),
+    }))
+  })
+
+  act(() => {
+    store.addQuote('session-a', {
+      text: '主会话挂着的引文',
+      role: 'assistant',
+      turnIndex: 1,
+    })
+  })
+
+  // 创建一个模拟弹窗及其内部的 textarea
+  const dialog = document.createElement('div')
+  dialog.className = 'btw-selection-dialog btw-selection-modal'
+  const dialogTextarea = document.createElement('textarea')
+  dialog.append(dialogTextarea)
+  document.body.append(dialog)
+
+  dialogTextarea.focus()
+  const enterEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    bubbles: true,
+    cancelable: true,
+  })
+  act(() => {
+    dialogTextarea.dispatchEvent(enterEvent)
+  })
+
+  // 验证：主会话草稿绝不能被污染，quotes 也不能被清空
+  expect(mockSetDraft).not.toHaveBeenCalled()
+  expect(store.getQuotes('session-a')).toHaveLength(1)
+  dialog.remove()
+})
+
+it('处于 submitting/adjudicating 状态时，按 Enter 或展开草稿不合并且不清空 quotes', async () => {
+  let submittingPhase = 'submitting'
+  const busyInput = {
+    state: { getSnapshot: () => ({ draft: mockDraft, phase: submittingPhase }) },
+    setDraft: mockSetDraft,
+    focus: mockFocus,
+  }
+
+  await act(async () => {
+    root.render(React.createElement(QuoteDock, {
+      store,
+      sessionId: 'session-a',
+      t: translate('zh'),
+      input: busyInput,
+    }))
+  })
+
+  act(() => {
+    store.addQuote('session-a', {
+      text: '不可丢失的引文',
+      role: 'assistant',
+      turnIndex: 1,
+    })
+  })
+
+  inputElement.focus()
+  const enterEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    bubbles: true,
+    cancelable: true,
+  })
+  act(() => {
+    inputElement.dispatchEvent(enterEvent)
+  })
+
+  // 提交中禁止改写，且引用绝不能丢失
+  expect(mockSetDraft).not.toHaveBeenCalled()
+  expect(store.getQuotes('session-a')).toHaveLength(1)
+})
+
+it('草稿为空时按 Enter 不执行合并，不清空 store 中的 quotes', async () => {
+  mockDraft = '   ' // 空白草稿
+  await act(async () => {
+    root.render(React.createElement(QuoteDock, {
+      store,
+      sessionId: 'session-a',
+      t: translate('zh'),
+      input: getDraftInput(),
+    }))
+  })
+
+  act(() => {
+    store.addQuote('session-a', {
+      text: '引文',
+      role: 'assistant',
+      turnIndex: 1,
+    })
+  })
+
+  inputElement.focus()
+  const enterEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    bubbles: true,
+    cancelable: true,
+  })
+  act(() => {
+    inputElement.dispatchEvent(enterEvent)
+  })
+
+  // 不合并、不清空
+  expect(mockSetDraft).not.toHaveBeenCalled()
+  expect(store.getQuotes('session-a')).toHaveLength(1)
 })

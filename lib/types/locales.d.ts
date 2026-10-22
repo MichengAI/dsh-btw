@@ -54,6 +54,7 @@ export declare const zh: {
     'error.noText': string;
     'error.cleanup': string;
     'error.cleanupTimeout': string;
+    'error.quotesTotalLength': string;
     'quote.count': string;
     'quote.clear': string;
     'quote.toDraft': string;
@@ -62,9 +63,11 @@ export declare const zh: {
     'quote.turn': string;
     'quote.remove': string;
     'quote.jump': string;
+    'quote.jumpFailed': string;
     'quote.fromRole': string;
     'quote.source': string;
     'quote.panelTitle': string;
+    'quote.commentLabel': string;
     'agent.name': string;
     'agent.promptPrefix': string;
     'quote.promptHeading': string;

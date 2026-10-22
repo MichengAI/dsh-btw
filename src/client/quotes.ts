@@ -1,4 +1,5 @@
-import type { BtwTranslate } from '../locales'
+import { MAX_TOTAL_QUOTES_LENGTH } from '../limits'
+import { translate, type BtwTranslate } from '../locales'
 
 export interface QuotedReference {
   readonly id: string
@@ -30,9 +31,21 @@ export class QuoteStore {
     comment?: string
   }): QuotedReference {
     const list = this.sessionQuotes.get(sessionId) ?? []
-    // 避免完全相同的文本在同一会话中重复堆积
-    const existing = list.find(q => q.text === input.text)
-    if (existing) return existing
+    // 校验合计总长度，防止合并草稿无上限膨胀
+    const currentTotalLength = list.reduce((sum, q) => sum + q.text.length, 0)
+    if (currentTotalLength + input.text.length > MAX_TOTAL_QUOTES_LENGTH) {
+      throw new Error(translate()('error.quotesTotalLength'))
+    }
+
+    // 区分角色和轮次出处，避免同文本不同出处被误丢弃
+    const role = input.role ?? 'assistant'
+    const existing = list.find(q => q.text === input.text && q.role === role && q.turnIndex === input.turnIndex)
+    if (existing) {
+      if (input.anchorElement && existing.anchorId) {
+        input.anchorElement.setAttribute('data-btw-anchor', existing.anchorId)
+      }
+      return existing
+    }
 
     const id = `quote-${++quoteIdCounter}-${Date.now().toString(36)}`
     let anchorId: string | undefined
@@ -45,7 +58,7 @@ export class QuoteStore {
       id,
       sessionId,
       text: input.text,
-      role: input.role ?? 'assistant',
+      role,
       turnIndex: input.turnIndex,
       createdAt: Date.now(),
       anchorId,
@@ -68,6 +81,13 @@ export class QuoteStore {
   removeQuote(sessionId: string, quoteId: string): void {
     const list = this.sessionQuotes.get(sessionId)
     if (!list) return
+    const target = list.find(q => q.id === quoteId)
+    if (target?.anchorId) {
+      try {
+        const el = document.querySelector(`[data-btw-anchor="${target.anchorId}"]`)
+        el?.removeAttribute('data-btw-anchor')
+      } catch {}
+    }
     const next = list.filter(q => q.id !== quoteId)
     if (next.length === list.length) return
     if (next.length === 0) this.sessionQuotes.delete(sessionId)
@@ -76,7 +96,16 @@ export class QuoteStore {
   }
 
   clearQuotes(sessionId: string): void {
-    if (!this.sessionQuotes.has(sessionId)) return
+    const list = this.sessionQuotes.get(sessionId)
+    if (!list) return
+    for (const q of list) {
+      if (q.anchorId) {
+        try {
+          const el = document.querySelector(`[data-btw-anchor="${q.anchorId}"]`)
+          el?.removeAttribute('data-btw-anchor')
+        } catch {}
+      }
+    }
     this.sessionQuotes.delete(sessionId)
     this.notify()
   }
@@ -102,7 +131,7 @@ export function formatQuotesWithDraft(draft: string, quotes: readonly QuotedRefe
     const turnStr = q.turnIndex ? t('quote.turn', { turn: q.turnIndex }) : ''
     const header = t('quote.fromRole', { role: roleName, turn: turnStr })
     const body = q.text.split(/\r\n|\r|\n/).map(line => `> ${line}`).join('\n')
-    const commentPart = q.comment?.trim() ? `\n> **${t('quote.panelTitle')}**: ${q.comment.trim()}` : ''
+    const commentPart = q.comment?.trim() ? `\n> **${t('quote.commentLabel')}**: ${q.comment.trim()}` : ''
     return `${header}\n${body}${commentPart}`
   })
 
@@ -112,16 +141,36 @@ export function formatQuotesWithDraft(draft: string, quotes: readonly QuotedRefe
   return `${quotesText}\n\n${t('quote.userRequestHeading')}\n\n${draft.trim()}`
 }
 
-/** 滚动并高亮原文锚点 */
+/** 滚动并高亮原文锚点，DOM 节点丢失时尝试降级寻找轮次容器 */
 export function jumpToQuote(quote: QuotedReference, scope?: HTMLElement | null): boolean {
-  if (!quote.anchorId) return false
-  const target = (scope ?? document).querySelector(`[data-btw-anchor="${quote.anchorId}"]`)
+  const root = scope ?? document
+  let target = quote.anchorId ? root.querySelector(`[data-btw-anchor="${quote.anchorId}"]`) : null
+
+  // 降级：如果虚拟滚动列表或重新渲染导致 data-btw-anchor 属性丢失，尝试匹配轮次
+  if (!target && quote.turnIndex !== undefined) {
+    const rows = root.querySelectorAll<HTMLElement>('[data-chat-flow-kind]')
+    let currentTurn = 0
+    let lastRole: string | undefined
+    for (const row of rows) {
+      const kind = row.getAttribute('data-chat-flow-kind')
+      const role = kind === 'user' ? 'user' : 'assistant'
+      if (role !== lastRole) {
+        lastRole = role
+        if (role === 'user') currentTurn++
+      }
+      if (role === quote.role && currentTurn === quote.turnIndex) {
+        target = row
+        break
+      }
+    }
+  }
+
   if (!target) return false
 
   target.scrollIntoView({ behavior: 'smooth', block: 'center' })
   target.classList.add('btw-anchor-highlight')
   setTimeout(() => {
-    target.classList.remove('btw-anchor-highlight')
+    target?.classList.remove('btw-anchor-highlight')
   }, 1600)
   return true
 }

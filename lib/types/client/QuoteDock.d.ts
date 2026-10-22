@@ -10,6 +10,7 @@ interface DraftInput {
     };
     setDraft(text: string): void;
     focus?(): void;
+    notify?(level: 'info' | 'error', text: string): void;
 }
 export declare function QuoteDock({ store, sessionId, t, input, }: {
     store: QuoteStore;
