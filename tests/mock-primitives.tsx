@@ -56,9 +56,33 @@ export function Button({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`dsh-button-mock ${variant ?? ''} ${className ?? ''}`}
+      className={`dsh-button-mock ${variant ? `dsh-button-${variant}` : ''} ${className ?? ''}`}
     >
       {children}
+    </button>
+  )
+}
+
+export function ReferenceChip({
+  appearance,
+  label,
+  title,
+  onActivate,
+}: {
+  appearance: 'session' | 'file' | 'folder' | 'skill' | 'command'
+  label: string
+  title?: string
+  onActivate?: () => void
+}): ReactElement {
+  return (
+    <button
+      type="button"
+      data-ref-chip={appearance}
+      title={title}
+      onClick={onActivate}
+      className="dsh-reference-chip-mock"
+    >
+      <span className="dsh-ref-label">{label}</span>
     </button>
   )
 }

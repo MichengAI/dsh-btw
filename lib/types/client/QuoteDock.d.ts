@@ -5,12 +5,18 @@ interface DraftInput {
     state: {
         getSnapshot(): {
             draft: string;
+            draftRev?: number;
             phase: string;
+            occurrences?: readonly {
+                source: string;
+                ref: string;
+            }[];
         };
     };
     setDraft(text: string): void;
     focus?(): void;
     notify?(level: 'info' | 'error', text: string): void;
+    insertReference?(ref: unknown, span: unknown): boolean;
 }
 export declare function QuoteDock({ store, sessionId, t, input, }: {
     store: QuoteStore;

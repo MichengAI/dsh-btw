@@ -18,6 +18,8 @@ for (const args of [['node_modules/typescript/bin/tsc', '--noEmit'], ['scripts/b
   if (result.error || result.status !== 0) throw new Error('最新版开发依赖下的类型检查或构建失败')
 }
 
+const manifestCache = new Map()
+
 for (const version of versions) {
   const directory = join(root, '.cache', 'compatibility', version)
   mkdirSync(directory, { recursive: true })
@@ -36,15 +38,18 @@ for (const version of versions) {
     ])]
     const seen = new Set()
     const fetchJson = async url => {
+      if (manifestCache.has(url)) return manifestCache.get(url)
       let last
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (let attempt = 1; attempt <= 4; attempt++) {
         try {
-          const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
+          const response = await fetch(url, { signal: AbortSignal.timeout(45_000) })
           if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
-          return await response.json()
+          const data = await response.json()
+          manifestCache.set(url, data)
+          return data
         } catch (error) {
           last = error
-          if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+          if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 1500 * attempt))
         }
       }
       throw last

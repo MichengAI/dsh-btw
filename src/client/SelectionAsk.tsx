@@ -4,14 +4,16 @@ import type { BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
 import { QuoteDock } from './QuoteDock'
-import type { QuoteStore } from './quotes'
+import type { QuotedReference, QuoteStore } from './quotes'
 import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
+import { insertQuoteReference } from './trigger-source'
 
 interface DraftInput {
-  state: { getSnapshot(): { draft: string; phase: string } }
+  state: { getSnapshot(): { draft: string; draftRev?: number; phase: string; occurrences?: readonly { source: string; ref: string }[] } }
   setDraft(text: string): void
   focus?(): void
   notify?(level: 'info' | 'error', text: string): void
+  insertReference?(ref: unknown, span: unknown): boolean
 }
 
 interface SelectionDraft {
@@ -176,6 +178,7 @@ export function SelectionAsk({
           t,
         })
       }
+
       setDraft(undefined)
     } catch (issue) {
       const msg = issue instanceof Error ? issue.message : String(issue)

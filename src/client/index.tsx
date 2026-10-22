@@ -17,6 +17,8 @@ import { BubbleDock } from './BubbleView'
 import { QuoteStore } from './quotes'
 import { SelectionAsk } from './SelectionAsk'
 import { CSS } from './styles'
+import { createQuoteTriggerSource } from './trigger-source'
+import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
 
 export const inject = ['slots', 'remote', 'remote.commands', 'locale', 'conversation', 'sessions']
@@ -148,8 +150,39 @@ export function apply(ctx: Context): void {
       } catch (error) { return { kind: 'error', text: error instanceof Error ? error.message : String(error) } }
     },
   } })
-  if (typeof ctx.inject === 'function') ctx.inject(['commandUi'], scope => attachOfficialBtw(scope.get('commandUi'), sessionId => claim(sessionId as SessionId), t, isSubagent))
-  else ctx.effect(() => attachOfficialBtw(ctx.get('commandUi'), sessionId => claim(sessionId as SessionId), t, isSubagent))
+  const registerTriggerSource = (inputTriggers: unknown) => {
+    const it = inputTriggers as { registerSource?: (src: unknown) => () => void } | undefined
+    if (it && typeof it.registerSource === 'function') {
+      return it.registerSource(createQuoteTriggerSource({ quoteStore, t }))
+    }
+    return undefined
+  }
+
+  const registerUserTextRule = (uiConversation: unknown) => {
+    const uc = uiConversation as { userText?: { register?: (rule: unknown) => () => void } } | undefined
+    if (uc?.userText && typeof uc.userText.register === 'function') {
+      return uc.userText.register(quoteUserTextRule)
+    }
+    return undefined
+  }
+
+  if (typeof ctx.inject === 'function') {
+    ctx.inject(['commandUi'], scope => attachOfficialBtw(scope.get('commandUi'), sessionId => claim(sessionId as SessionId), t, isSubagent))
+    ctx.inject(['inputTriggers'], scope => {
+      const off = registerTriggerSource(scope.get('inputTriggers'))
+      if (typeof off === 'function') scope.effect(() => off)
+    })
+    ctx.inject(['uiConversation'], scope => {
+      const off = registerUserTextRule(scope.get('uiConversation'))
+      if (typeof off === 'function') scope.effect(() => off)
+    })
+  } else {
+    ctx.effect(() => attachOfficialBtw(ctx.get('commandUi'), sessionId => claim(sessionId as SessionId), t, isSubagent))
+    const offTrigger = registerTriggerSource(ctx.get('inputTriggers'))
+    if (typeof offTrigger === 'function') ctx.effect(() => offTrigger)
+    const offRule = registerUserTextRule(ctx.get('uiConversation'))
+    if (typeof offRule === 'function') ctx.effect(() => offRule)
+  }
 
   ctx.effect(() => {
     const style = document.createElement('style')
@@ -167,6 +200,11 @@ export function apply(ctx: Context): void {
     return <>{!props.session.subagent && !isSubagent(props.session.sessionId) && <SelectionAsk key={props.session.sessionId} store={store} quoteStore={quoteStore} sessionId={props.session.sessionId} t={props.t} input={session ? ctx.conversation.input.for(session) : undefined} />}<BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
   }
   slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'michengai-btw', order: -50, locale: NS }, Dock))
+  slots.inject('conversation.user.text.node', () => slots.register({
+    name: 'conversation.user.text.node',
+    key: 'dsh-btw-quote',
+    priority: 100,
+  }, QuoteUserTextNode as any))
   slots.inject('conversation.chat.commandview', () => {
     const off = [RUN_COMMAND, CLOSE_COMMAND].map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))
     return () => off.forEach(dispose => dispose())

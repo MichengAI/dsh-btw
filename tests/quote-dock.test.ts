@@ -243,7 +243,7 @@ it('处于 submitting/adjudicating 状态时，按 Enter 或展开草稿不合�
   expect(store.getQuotes('session-a')).toHaveLength(1)
 })
 
-it('草稿为空时按 Enter 不执行合并，不清空 store 中的 quotes', async () => {
+it('草稿为空时按 Enter 依然按照 Codex 规范执行发送并清空 store 中的 quotes', async () => {
   mockDraft = '   ' // 空白草稿
   await act(async () => {
     root.render(React.createElement(QuoteDock, {
@@ -272,9 +272,9 @@ it('草稿为空时按 Enter 不执行合并，不清空 store 中的 quotes', a
     inputElement.dispatchEvent(enterEvent)
   })
 
-  // 不合并、不清空
-  expect(mockSetDraft).not.toHaveBeenCalled()
-  expect(store.getQuotes('session-a')).toHaveLength(1)
+  // 对齐 Codex：输入框为空时依然正常将引文提交并清空药丸
+  expect(mockSetDraft).toHaveBeenCalledTimes(1)
+  expect(store.getQuotes('session-a')).toHaveLength(0)
 })
 
 it('点击宿主真实的 InputBar 发送按钮（type="button", aria-label="发送消息"）能够正确触发合并并清空 quotes', async () => {
@@ -354,4 +354,100 @@ it('点击宿主停止生成按钮（aria-label="停止生成"，具备 primary 
   expect(mockSetDraft).not.toHaveBeenCalled()
   expect(store.getQuotes('session-a')).toHaveLength(1)
   composerCard.remove()
+})
+
+it('当宿主支持 insertReference 且存在结构化 occurrences 时，回车发送不拍平草稿，保留纯净用户正文', async () => {
+  const insertedRefs: any[] = []
+  mockDraft = '我的提问'
+  const occurrences = [{ source: 'dsh-btw-quote', ref: '{"text":"引用"}' }]
+  const structuredInput = {
+    state: { getSnapshot: () => ({ draft: mockDraft, phase: 'plain', occurrences }) },
+    setDraft: mockSetDraft,
+    focus: mockFocus,
+    insertReference: vi.fn((ref) => {
+      insertedRefs.push(ref)
+      return true
+    }),
+  }
+
+  await act(async () => {
+    root.render(React.createElement(QuoteDock, {
+      store,
+      sessionId: 'session-a',
+      t: translate('zh'),
+      input: structuredInput as any,
+    }))
+  })
+
+  act(() => {
+    store.addQuote('session-a', {
+      text: '已转化为 Mention 的引文',
+      role: 'assistant',
+      turnIndex: 1,
+    })
+  })
+
+  inputElement.focus()
+  const enterEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    bubbles: true,
+    cancelable: true,
+  })
+  act(() => {
+    inputElement.dispatchEvent(enterEvent)
+  })
+
+  // 关键断言：setDraft 绝不能被调用（不把草稿拍平成大段 Markdown）！
+  expect(mockSetDraft).not.toHaveBeenCalled()
+  // quotes 成功提交清理
+  expect(store.getQuotes('session-a')).toHaveLength(0)
+})
+
+it('对齐 Codex：当输入框完全为空时，按回车依然能够正常发送引文并清空药丸', async () => {
+  mockDraft = ''
+  const mockSubmit = vi.fn()
+  const emptyInput = {
+    state: { getSnapshot: () => ({ draft: '', phase: 'plain' }) },
+    setDraft: mockSetDraft,
+    focus: mockFocus,
+    submit: mockSubmit,
+  }
+
+  await act(async () => {
+    root.render(React.createElement(QuoteDock, {
+      store,
+      sessionId: 'session-a',
+      t: translate('zh'),
+      input: emptyInput as any,
+    }))
+  })
+
+  act(() => {
+    store.addQuote('session-a', {
+      text: '只引用文本，输入框一字没打',
+      role: 'assistant',
+      turnIndex: 2,
+    })
+  })
+
+  expect(store.getQuotes('session-a')).toHaveLength(1)
+
+  inputElement.value = ''
+  inputElement.focus()
+  const enterEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    bubbles: true,
+    cancelable: true,
+  })
+  act(() => {
+    inputElement.dispatchEvent(enterEvent)
+  })
+
+  // 关键断言：setDraft 被调用，且包含引文提示词
+  expect(mockSetDraft).toHaveBeenCalledTimes(1)
+  expect(mockSetDraft.mock.calls[0]?.[0]).toContain('只引用文本，输入框一字没打')
+  // 不包含尾部的空提问段落
+  expect(mockSetDraft.mock.calls[0]?.[0]).not.toContain('## 用户需求与指示：')
+  // 药丸被清空
+  expect(store.getQuotes('session-a')).toHaveLength(0)
 })

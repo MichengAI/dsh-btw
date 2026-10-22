@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type { BtwTranslate } from '../locales'
 import { formatQuotesWithDraft, jumpToQuote, type QuotedReference, type QuoteStore } from './quotes'
+import { insertQuoteReference, QUOTE_TRIGGER_SOURCE } from './trigger-source'
 
 interface DraftInput {
-  state: { getSnapshot(): { draft: string; phase: string } }
+  state: { getSnapshot(): { draft: string; draftRev?: number; phase: string; occurrences?: readonly { source: string; ref: string }[] } }
   setDraft(text: string): void
   focus?(): void
   notify?(level: 'info' | 'error', text: string): void
+  insertReference?(ref: unknown, span: unknown): boolean
 }
 
 export function QuoteDock({
@@ -56,18 +58,33 @@ export function QuoteDock({
       return
     }
 
-    const consumeAndMerge = () => {
+    const consumeAndMerge = (source: 'enter' | 'click') => {
       const current = store.getQuotes(sessionId)
       if (current.length === 0) return
       const snapshot = input.state.getSnapshot()
       // 事务守卫：如果宿主处于提交事务中（submitting, adjudicating 等），严禁改写草稿，且绝不能清空引用
       if (snapshot.phase && snapshot.phase !== 'plain') return
-      // 空草稿守卫：如果用户未输入任何有效问题，不发起空问题发送，保留引用在药丸中
-      if (!snapshot.draft.trim()) return
 
+      // 结构化引用守卫：若草稿中已挂载结构化引用，提交时由宿主按 source 自动序列化，不强行拍平！
+      const hasStructuredRef = snapshot.occurrences?.some(o => o.source === QUOTE_TRIGGER_SOURCE)
+      if (hasStructuredRef) {
+        store.clearQuotes(sessionId)
+        return
+      }
+
+      const isDraftEmpty = !snapshot.draft.trim()
       const merged = formatQuotesWithDraft(snapshot.draft, current, t)
       input.setDraft(merged)
       store.clearQuotes(sessionId)
+
+      // 空草稿对齐 Codex：当用户未输入额外文字时，输入框已注入引文提示词，由我们主动触发宿主提交
+      if (isDraftEmpty && typeof (input as any).submit === 'function') {
+        queueMicrotask(() => {
+          try {
+            (input as any).submit('queue', source)
+          } catch {}
+        })
+      }
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -82,7 +99,7 @@ export function QuoteDock({
         active instanceof HTMLTextAreaElement ||
         (active.isContentEditable || active.matches('textarea, [contenteditable="true"]'))
       if (!isInput) return
-      consumeAndMerge()
+      consumeAndMerge('enter')
     }
 
     const onClick = (event: MouseEvent) => {
@@ -110,12 +127,32 @@ export function QuoteDock({
         )
       )
       if (!isSubmit) return
-      consumeAndMerge()
+      consumeAndMerge('click')
+    }
+
+    // 对齐 Codex：当存在引用药丸但输入框无字时，点亮宿主发送按钮使其允许点击
+    const findSendButton = () => {
+      const seat = containerRef.current?.closest('[data-composer-seat], .dsh-composer-root, form') ?? document
+      return seat.querySelector<HTMLButtonElement>(
+        'button[type="submit"], [data-composer-submit], button[aria-label*="发送"], button[aria-label*="Send"], button[aria-label*="排队"], button[aria-label*="Queue"]'
+      )
+    }
+    const sendBtn = findSendButton()
+    let restoredDisabled = false
+    if (sendBtn && sendBtn.disabled) {
+      sendBtn.disabled = false
+      sendBtn.setAttribute('data-btw-unlocked', '')
+      restoredDisabled = true
     }
 
     window.addEventListener('keydown', onKeyDown, true)
     window.addEventListener('click', onClick, true)
     return () => {
+      if (restoredDisabled && sendBtn && sendBtn.hasAttribute('data-btw-unlocked')) {
+        sendBtn.removeAttribute('data-btw-unlocked')
+        const currentSnap = input.state.getSnapshot()
+        if (!currentSnap.draft.trim()) sendBtn.disabled = true
+      }
       window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('click', onClick, true)
     }
@@ -126,6 +163,24 @@ export function QuoteDock({
   const expandToDraft = () => {
     const snapshot = input.state.getSnapshot()
     if (snapshot.phase && snapshot.phase !== 'plain') return
+
+    // 优先尝试作为结构化 Mention 胶囊插入输入框
+    let allInserted = quotes.length > 0
+    for (const q of quotes) {
+      if (!insertQuoteReference(input as any, q, t)) {
+        allInserted = false
+        break
+      }
+    }
+
+    if (allInserted) {
+      store.clearQuotes(sessionId)
+      setPopoverOpen(false)
+      input.focus?.()
+      return
+    }
+
+    // 降级回退到明文格式化草稿
     const merged = formatQuotesWithDraft(snapshot.draft, quotes, t)
     input.setDraft(merged)
     store.clearQuotes(sessionId)
