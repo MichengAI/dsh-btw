@@ -1,4 +1,5 @@
 import React from 'react';
+import { type BtwTranslate } from '../locales';
 export interface ParsedQuoteItem {
     readonly label: string;
     readonly text: string;
@@ -10,6 +11,7 @@ export interface QuoteNodeData {
     readonly count: number;
     readonly raw: string;
     readonly items: readonly ParsedQuoteItem[];
+    readonly isEn: boolean;
     readonly role?: 'assistant' | 'user';
     readonly turnIndex?: number;
 }
@@ -33,9 +35,10 @@ export declare const quoteUserTextRule: {
         data: QuoteNodeData;
     } | undefined;
 };
-export declare function QuoteUserTextNode({ node, }: {
-    node: {
+export declare function QuoteUserTextNode(props: {
+    readonly node: {
         readonly id: 'dsh-btw-quote';
         readonly data: QuoteNodeData;
     };
+    readonly t?: BtwTranslate;
 }): React.JSX.Element;

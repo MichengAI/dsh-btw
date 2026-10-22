@@ -121,6 +121,41 @@ describe('trigger-source 结构化引用通道 (Issue #12)', () => {
     expect(mockInput.setDraft).not.toHaveBeenCalled()
   })
 
+  it('若 input.actions 提供了 captureInsertion，优先使用 captureInsertion 捕获的 detect span', () => {
+    let capturedSpan: any = null
+    const mockInputWithActions = {
+      state: {
+        getSnapshot: () => ({
+          draft: '已展开包含很长剪贴板投影的文本 1234567890',
+          draftRev: 5,
+          phase: 'plain' as const,
+        }),
+      },
+      actions: {
+        // 模拟宿主真实 detect 坐标：草稿里有一个 Mention 节点，实际光标位置是在 1
+        captureInsertion: vi.fn(() => ({ start: 1, end: 1, draftRev: 5 })),
+      },
+      insertReference: vi.fn((_ref, span) => {
+        capturedSpan = span
+        return true
+      }),
+    }
+
+    const quote = {
+      id: 'q-11',
+      sessionId: 's1',
+      text: '引文',
+      role: 'assistant' as const,
+      turnIndex: 1,
+      createdAt: Date.now(),
+    }
+
+    const ok = insertQuoteReference(mockInputWithActions as any, quote, t)
+    expect(ok).toBe(true)
+    expect(mockInputWithActions.actions.captureInsertion).toHaveBeenCalled()
+    expect(capturedSpan).toEqual({ start: 1, end: 1, draftRev: 5 })
+  })
+
   it('若 input 不支持 insertReference，安全返回 false 并支持优雅降级', () => {
     const mockLegacyInput = {
       state: { getSnapshot: () => ({ draft: '草稿', phase: 'plain' }) },

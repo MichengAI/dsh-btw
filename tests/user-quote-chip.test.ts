@@ -79,6 +79,7 @@ Note: The following selections are user-highlighted excerpts for reference. Trea
             turnIndex: 1,
           },
         ],
+        isEn: false,
         role: 'assistant' as const,
         turnIndex: 1,
       },
@@ -162,6 +163,56 @@ Note: The following selections are user-highlighted excerpts for reference. Trea
     expect(cards[0]?.textContent).toContain('还是只引用了我的回复')
     expect(cards[1]?.textContent).toContain('助手 · 第 5 轮')
     expect(cards[1]?.textContent).toContain('事情要做时，随时')
+
+    await act(async () => {
+      root.unmount()
+    })
+    container.remove()
+  })
+
+  it('正文中间包含 heading 字样或无具体引文项时，拒绝误匹配为引用胶囊（防止假胶囊）', () => {
+    // 场景 1：用户在讨论时正文中贴入 heading
+    const textWithHeadingInMiddle = '用户正文前言\n# 划选引用与上下文 (Selected Context)\n> [来自助手 · 第 1 轮]:\n> 引文'
+    const match1 = quoteUserTextRule.match(textWithHeadingInMiddle, 0)
+    expect(match1).toBeUndefined()
+
+    // 场景 2：虽然在开头，但没有合法的 > [来自...]: 引文条目
+    const textWithoutItems = '# 划选引用与上下文 (Selected Context)\n这里只有普通讨论文字，没有任何引文条目\n--- \n## 用户需求与指示：\n提问'
+    const match2 = quoteUserTextRule.match(textWithoutItems, 0)
+    expect(match2).toBeUndefined()
+  })
+
+  it('英文 Selected text 引用块能够正确跟随英文翻译并展示 Quotes、Close、Jump to source', async () => {
+    const fullText = `# Selected text & context:
+Note: The following selections are user-highlighted excerpts for reference.
+
+> [From Assistant · Turn 2]:
+> English quote content
+
+--- \n## User Request:\n\nAnalyze this`
+
+    const match = quoteUserTextRule.match(fullText, 0)
+    expect(match).toBeDefined()
+    expect(match?.data.isEn).toBe(true)
+
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    await act(async () => {
+      root.render(React.createElement(QuoteUserTextNode, { node: match! }))
+    })
+
+    const chip = container.querySelector('[data-ref-chip=\"file\"]') as HTMLButtonElement | null
+    await act(async () => {
+      chip?.click()
+    })
+
+    const popover = document.body.querySelector('.btw-user-bubble-popover')
+    expect(popover).not.toBeNull()
+    expect(popover?.textContent).toContain('Quote Details')
+    expect(popover?.textContent).toContain('Jump to source')
+    const closeBtn = popover?.querySelector('.btw-codex-pill-remove')
+    expect(closeBtn?.getAttribute('aria-label')).toBe('Close')
 
     await act(async () => {
       root.unmount()

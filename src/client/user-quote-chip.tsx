@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ReferenceChip } from '@deepseek-ai/dsh-client-ui-primitives'
 import { jumpToQuote } from './quotes'
-import { translate } from '../locales'
+import { translate, type BtwTranslate } from '../locales'
 
 export interface ParsedQuoteItem {
   readonly label: string
@@ -16,6 +16,7 @@ export interface QuoteNodeData {
   readonly count: number
   readonly raw: string
   readonly items: readonly ParsedQuoteItem[]
+  readonly isEn: boolean
   readonly role?: 'assistant' | 'user'
   readonly turnIndex?: number
 }
@@ -42,6 +43,10 @@ export function parseQuotePromptBlock(text: string, from = 0): {
   }
 
   if (start < 0) return undefined
+
+  // 约束：heading 之前只允许空白字符，防止匹配正文中偶尔贴入的字样
+  const prefix = text.slice(from, start)
+  if (prefix.trim().length > 0) return undefined
 
   const sep = isEn ? '--- \n## User Request:\n\n' : '--- \n## 用户需求与指示：\n\n'
   const altSep = isEn ? '## User Request:\n\n' : '## 用户需求与指示：\n\n'
@@ -88,7 +93,10 @@ export function parseQuotePromptBlock(text: string, from = 0): {
     })
   }
 
-  const count = Math.max(1, items.length)
+  // 约束：必须真正包含至少一条解析成功的引文条目，否则不视为合法引用块
+  if (items.length === 0) return undefined
+
+  const count = items.length
   let label: string
   let role: 'assistant' | 'user' | undefined
   let turnIndex: number | undefined
@@ -113,6 +121,7 @@ export function parseQuotePromptBlock(text: string, from = 0): {
       count,
       raw: block,
       items,
+      isEn,
       role,
       turnIndex,
     },
@@ -139,18 +148,18 @@ export const quoteUserTextRule = {
   },
 }
 
-export function QuoteUserTextNode({
-  node,
-}: {
-  node: {
+export function QuoteUserTextNode(props: {
+  readonly node: {
     readonly id: 'dsh-btw-quote'
     readonly data: QuoteNodeData
   }
+  readonly t?: BtwTranslate
 }): React.JSX.Element {
+  const { node } = props
   const [open, setOpen] = useState(false)
   const chipWrapperRef = useRef<HTMLSpanElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
-  const t = translate()
+  const t = props.t ?? translate(node.data.isEn ? 'en' : 'zh')
 
   const updatePosition = () => {
     if (!chipWrapperRef.current) return
@@ -244,7 +253,7 @@ export function QuoteUserTextNode({
                   <path d="M2.5 4.75a.75.75 0 0 1 .75-.75h9.5a.75.75 0 0 1 0 1.5h-9.5a.75.75 0 0 1-.75-.75zm0 5a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75z" />
                 </svg>
               </span>
-              <span className="btw-codex-popover-title-text">{t('quote.panelTitle')}</span>
+              <span className="btw-codex-popover-title-text">{t('quote.detailTitle')}</span>
               <span className="btw-codex-count-badge">{node.data.items.length}</span>
             </div>
             <div className="btw-codex-popover-actions">
@@ -252,7 +261,8 @@ export function QuoteUserTextNode({
                 type="button"
                 className="btw-codex-pill-remove"
                 onClick={() => setOpen(false)}
-                aria-label="Close"
+                aria-label={t('quote.close')}
+                title={t('quote.close')}
               >
                 ×
               </button>

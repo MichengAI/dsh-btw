@@ -67,6 +67,8 @@ export declare const zh: {
     'quote.fromRole': string;
     'quote.source': string;
     'quote.panelTitle': string;
+    'quote.detailTitle': string;
+    'quote.close': string;
     'quote.commentLabel': string;
     'agent.name': string;
     'agent.promptPrefix': string;

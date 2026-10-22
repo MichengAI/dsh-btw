@@ -72,19 +72,9 @@ export function QuoteDock({
         return
       }
 
-      const isDraftEmpty = !snapshot.draft.trim()
       const merged = formatQuotesWithDraft(snapshot.draft, current, t)
       input.setDraft(merged)
       store.clearQuotes(sessionId)
-
-      // 空草稿对齐 Codex：当用户未输入额外文字时，输入框已注入引文提示词，由我们主动触发宿主提交
-      if (isDraftEmpty && typeof (input as any).submit === 'function') {
-        queueMicrotask(() => {
-          try {
-            (input as any).submit('queue', source)
-          } catch {}
-        })
-      }
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -130,29 +120,9 @@ export function QuoteDock({
       consumeAndMerge('click')
     }
 
-    // 对齐 Codex：当存在引用药丸但输入框无字时，点亮宿主发送按钮使其允许点击
-    const findSendButton = () => {
-      const seat = containerRef.current?.closest('[data-composer-seat], .dsh-composer-root, form') ?? document
-      return seat.querySelector<HTMLButtonElement>(
-        'button[type="submit"], [data-composer-submit], button[aria-label*="发送"], button[aria-label*="Send"], button[aria-label*="排队"], button[aria-label*="Queue"]'
-      )
-    }
-    const sendBtn = findSendButton()
-    let restoredDisabled = false
-    if (sendBtn && sendBtn.disabled) {
-      sendBtn.disabled = false
-      sendBtn.setAttribute('data-btw-unlocked', '')
-      restoredDisabled = true
-    }
-
     window.addEventListener('keydown', onKeyDown, true)
     window.addEventListener('click', onClick, true)
     return () => {
-      if (restoredDisabled && sendBtn && sendBtn.hasAttribute('data-btw-unlocked')) {
-        sendBtn.removeAttribute('data-btw-unlocked')
-        const currentSnap = input.state.getSnapshot()
-        if (!currentSnap.draft.trim()) sendBtn.disabled = true
-      }
       window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('click', onClick, true)
     }

@@ -187,13 +187,16 @@ export function insertQuoteReference(
   if (typeof input.insertReference !== 'function') return false
 
   try {
-    const snapshot = input.state.getSnapshot()
-    const caret = snapshot.draft.length
-    const span: TokenSpan = {
-      start: caret,
-      end: caret,
-      draftRev: snapshot.draftRev ?? 0,
-    }
+    const actions = (input as any).actions
+    const span: TokenSpan = typeof actions?.captureInsertion === 'function'
+      ? actions.captureInsertion()
+      : typeof (input as any).captureInsertion === 'function'
+        ? (input as any).captureInsertion()
+        : {
+            start: input.state.getSnapshot().draft.length,
+            end: input.state.getSnapshot().draft.length,
+            draftRev: input.state.getSnapshot().draftRev ?? 0,
+          }
     const refInsert = createQuoteReferenceInsert(quote, t)
     return input.insertReference(refInsert, span)
   } catch {

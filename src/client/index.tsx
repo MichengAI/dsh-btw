@@ -204,6 +204,7 @@ export function apply(ctx: Context): void {
     name: 'conversation.user.text.node',
     key: 'dsh-btw-quote',
     priority: 100,
+    locale: NS,
   }, QuoteUserTextNode as any))
   slots.inject('conversation.chat.commandview', () => {
     const off = [RUN_COMMAND, CLOSE_COMMAND].map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))
