@@ -14,7 +14,6 @@ export interface ChildRequest {
   id: string
   question: string
   signal: AbortSignal
-  toolFilter: { allow: readonly string[] }
   context?: unknown
   locale: BtwLocale
 }
@@ -78,7 +77,7 @@ export class SideJobs {
       ? setTimeout(() => job.controller.abort(new Error(t('error.timeout'))), this.timeoutMs)
       : undefined
     timer?.unref?.()
-    job.finished = this.execute(job, { scope, id, question, signal: job.controller.signal, toolFilter: { allow: [] }, context, locale })
+    job.finished = this.execute(job, { scope, id, question, signal: job.controller.signal, context, locale })
       .finally(() => {
         if (timer) clearTimeout(timer)
         signal?.removeEventListener('abort', cancel)

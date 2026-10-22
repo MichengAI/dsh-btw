@@ -121,7 +121,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await ctx.fiber.dispose()
   })
 
-  it('subagents.start 传递空白名单和独立角色，并拦住返回的子代理', async () => {
+  it('subagents.start 不改系统提示与工具定义，并拦住返回的子代理', async () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
@@ -135,15 +135,15 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const startLegacy = vi.fn(async (_provider: string, options: {
       parent: Agent
       label: string
-      toolFilter: { allow: readonly string[] }
-      persona: string
+      toolFilter?: unknown
+      persona?: unknown
       prompt: readonly { type: string; text: string }[]
     }) => {
       scope = createScope(ctx, child)
       child.ctx = scope.ctx
-      // 0.2.0-rc.1 与 0.2.0-rc.2 的 start 必须收到空白名单和独立角色
-      expect(options.toolFilter).toEqual({ allow: [] })
-      expect(options.persona).toContain('一次性旁问助手')
+      // persona / toolFilter 会改写请求前缀，使旁问无法复用主会话的 prompt cache
+      expect(options.toolFilter).toBeUndefined()
+      expect(options.persona).toBeUndefined()
       return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'start 回退答案' }] }), localAgent: child, dispose }
     })
 

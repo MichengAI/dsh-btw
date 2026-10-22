@@ -16,9 +16,6 @@ export interface ChildRequest {
     id: string;
     question: string;
     signal: AbortSignal;
-    toolFilter: {
-        allow: readonly string[];
-    };
     context?: unknown;
     locale: BtwLocale;
 }
