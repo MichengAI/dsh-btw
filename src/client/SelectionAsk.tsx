@@ -31,14 +31,12 @@ export function SelectionAsk({
   sessionId,
   t,
   input,
-  addToConversation,
 }: {
   store: BubbleStore
   quoteStore?: QuoteStore
   sessionId: string
   t: BtwTranslate
   input?: DraftInput
-  addToConversation?: (reference: string) => void
 }): React.JSX.Element {
   const anchor = useRef<HTMLSpanElement>(null)
   const menu = useRef<HTMLDivElement | null>(null)
@@ -178,12 +176,14 @@ export function SelectionAsk({
           t,
         })
       }
-      addToConversation?.(draft.reference)
       setDraft(undefined)
     } catch (issue) {
       const msg = issue instanceof Error ? issue.message : String(issue)
-      setError(msg)
-      input?.notify?.('error', msg)
+      if (input?.notify) {
+        input.notify('error', msg)
+      } else {
+        setError(msg)
+      }
     }
   }
 

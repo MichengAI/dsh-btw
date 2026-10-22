@@ -14,12 +14,11 @@ interface DraftInput {
     notify?(level: 'info' | 'error', text: string): void;
 }
 /** 只接管会话正文选区；非模态 popover 不抢选区，顶层避免滚动裁切。 */
-export declare function SelectionAsk({ store, quoteStore, sessionId, t, input, addToConversation, }: {
+export declare function SelectionAsk({ store, quoteStore, sessionId, t, input, }: {
     store: BubbleStore;
     quoteStore?: QuoteStore;
     sessionId: string;
     t: BtwTranslate;
     input?: DraftInput;
-    addToConversation?: (reference: string) => void;
 }): React.JSX.Element;
 export {};

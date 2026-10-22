@@ -5,13 +5,14 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SelectionAsk } from '../src/client/SelectionAsk'
 import { BubbleDock } from '../src/client/BubbleView'
 import { BubbleStore } from '../src/client/bubbles'
+import { QuoteStore } from '../src/client/quotes'
 import { translate } from '../src/locales'
 
 let root: Root
 let scope: HTMLDivElement
 let mount: HTMLDivElement
 let store: BubbleStore
-const add = vi.fn()
+let quoteStore: QuoteStore
 const run = vi.fn(async () => ({ kind: 'success' as const, text: '引用解释' }))
 const close = vi.fn(async () => ({ kind: 'success' as const, text: '' }))
 
@@ -35,10 +36,11 @@ beforeEach(async () => {
   scope.append(seat)
   document.body.append(scope)
   root = createRoot(mount)
-  run.mockClear(); close.mockClear(); add.mockClear()
+  run.mockClear(); close.mockClear()
   store = new BubbleStore({ run, close })
+  quoteStore = new QuoteStore()
   await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), addToConversation: add }),
+    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate() }),
     React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
 })
 afterEach(async () => {
@@ -146,7 +148,8 @@ it('正文滚动、窗口失焦和隐藏会话关闭菜单，已打开的提问�
 it('添加引用不发送，右键保持原生，侧边栏选区不触发正文工具条', async () => {
   await open()
   await click('添加到对话')
-  expect(add).toHaveBeenCalledWith('引用中的原始正文')
+  expect(quoteStore.getQuotes('session-a')).toHaveLength(1)
+  expect(quoteStore.getQuotes('session-a')[0]?.text).toBe('引用中的原始正文')
   expect(run).not.toHaveBeenCalled()
   expect(mount.querySelector<HTMLElement>('dialog, .btw-selection-menu')).toBeNull()
   const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.3] - 2026-10-22
+
+- Fix main-session tool calls being suppressed when quoting text: Remove side-ask-specific tool prohibition instructions from quote prompt formatting so the main agent can still invoke tools as needed (#11).
+- Prevent Enter key and click event overreach in dialogs: Exclude selection modals and dialogs from global keydown capture and click handlers, preventing side-question input from polluting the main draft (#13).
+- Guard draft merging and expansion against non-plain submission phases: Prevent quote data loss when submitting messages in flight (#13).
+- Refine quote deduplication and prevent empty-question submission: Deduplicate quotes by content, role, and turn index to support identical excerpts across turns, and intercept Enter on empty drafts to avoid sending blank queries (#14).
+- Distinguish host send and stop buttons: Accurately match send, queue, and steer message actions in the host InputBar while explicitly ignoring the stop generation button, avoiding premature quote consumption (#13).
+- Support multiple quotes on the same DOM element and improve anchor lifecycle: Store space-separated anchor IDs on DOM nodes, recycle `data-btw-anchor` upon quote removal, and align fallback jump turn counting strictly with selection logic (#15).
+- Unify terminology and enforce quote limits: Unify quote and note wording across UI and prompt, cap cumulative quotes at 16,000 characters with localized error messages, and clean up legacy callbacks (#15).
+
 ## [1.0.2] - 2026-10-21
 
 - Prevent tool-call pattern pollution from inherited session context: Inject high-priority negative tool constraints into the trailing user prompt, instructing models that all tools are disabled and strictly forbidding tool calls or call tags in favor of direct text answers (#10).
