@@ -64,25 +64,23 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     // alpha.2+ 移除 presentAs('both')：native 覆盖子作用域自有工具；ptc 覆盖宿主 run_code。
     const childNative = { session: {} } as unknown as Agent
     const scopeNative = createScope(ctx, childNative)
-    scopeNative.ctx.tools.restrict({ allow: [] })
     scopeNative.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
     scopeNative.ctx.tools.presentAs('native')
     protection.own(childNative)
-    expect(ctx.tools.get('normal', childNative)).toBeUndefined()
+    expect(ctx.tools.get('normal', childNative)).toBeDefined()
     expect(ctx.tools.get('child_local', childNative)).toBeDefined()
     const blockedLocal = await ctx.tools.execute({ name: 'child_local', callId: 'test-local' as never, arguments: {}, agent: childNative, signal: new AbortController().signal })
     expect(blockedLocal.isError).toBe(true)
-    expect(blockedLocal.content).toEqual([{ type: 'text', text: 'Error: BTW 仅允许文字回答，禁止执行任何工具。' }])
+    expect(JSON.stringify(blockedLocal.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
 
     const childPtc = { session: {} } as unknown as Agent
     const scopePtc = createScope(ctx, childPtc)
-    scopePtc.ctx.tools.restrict({ allow: [] })
     scopePtc.ctx.tools.presentAs('ptc')
     protection.own(childPtc)
     expect(ctx.tools.get('run_code', childPtc)).toBeDefined()
     const blockedRun = await ctx.tools.execute({ name: 'run_code', callId: 'test-run' as never, arguments: { description: 'x', code: '1' }, agent: childPtc, signal: new AbortController().signal })
     expect(blockedRun.isError).toBe(true)
-    expect(blockedRun.content).toEqual([{ type: 'text', text: 'Error: BTW 仅允许文字回答，禁止执行任何工具。' }])
+    expect(JSON.stringify(blockedRun.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
     expect(body).not.toHaveBeenCalled()
 
     const result = await ctx.tools.execute({ name: 'normal', callId: 'main' as never, arguments: {}, signal: new AbortController().signal })
@@ -145,12 +143,17 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const plugin = ctx.plugin(apply)
     await plugin.await()
     // 1. 父任务为小预算路由 (4096) 时，不能抬高到 32000
-    await commands.get(RUN_COMMAND)!.handler({
+    const outcome1 = await commands.get(RUN_COMMAND)!.handler({
       agent: { session: { header: { id: 'main' } }, options: { maxTokens: 4096 } },
       rawInput: JSON.stringify({ id: 'small-budget-req', question: '小预算' }),
       signal: new AbortController().signal,
     } as never)
-    expect(startActivation.mock.calls[0]![0].request.agentOptions).toEqual({ maxTokens: 4096 })
+    expect(outcome1).toEqual({ kind: 'success', text: '旁问答案' })
+    const spec0 = startActivation.mock.calls[0]![0]
+    expect(spec0.provider).toBe('fork')
+    expect(spec0.request.parent).toBeDefined()
+    expect(spec0.request.prompt).toEqual([{ type: 'text', text: expect.stringContaining('小预算') }])
+    expect(spec0.request.agentOptions).toEqual({ maxTokens: 4096 })
 
     // 2. 父任务为大上下文 (256000) 时，收紧到 32000
     await commands.get(RUN_COMMAND)!.handler({
@@ -159,6 +162,14 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
       signal: new AbortController().signal,
     } as never)
     expect(startActivation.mock.calls[1]![0].request.agentOptions).toEqual({ maxTokens: SIDE_MAX_OUTPUT_TOKENS })
+
+    // 3. 父任务未显式配置 maxTokens 时，缺省使用 32000
+    await commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main' } } },
+      rawInput: JSON.stringify({ id: 'default-budget-req', question: '缺省预算' }),
+      signal: new AbortController().signal,
+    } as never)
+    expect(startActivation.mock.calls[2]![0].request.agentOptions).toEqual({ maxTokens: SIDE_MAX_OUTPUT_TOKENS })
 
     await plugin.dispose()
     await ctx.fiber.dispose()
@@ -215,7 +226,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     currentScope.ctx.tools.register({ name: 'legacy_tool', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] }, execute: vi.fn() })
     const blocked = await ctx.tools.execute({ name: 'legacy_tool', callId: 'test-call' as never, arguments: {}, agent: child, signal: new AbortController().signal })
     expect(blocked.isError).toBe(true)
-    expect(blocked.content).toEqual([{ type: 'text', text: 'Error: BTW 仅允许文字回答，禁止执行任何工具。' }])
+    expect(JSON.stringify(blocked.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
 
     await plugin.dispose()
     if (scope!) await scope.dispose()

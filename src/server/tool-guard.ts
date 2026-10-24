@@ -23,7 +23,7 @@ export interface AnswerOnlyGuard {
   recognize(session: object, event: SessionEventLike): void
 }
 
-const DENY = 'BTW 仅允许文字回答，禁止执行任何工具。'
+const DENY = 'BTW 仅允许文字回答，禁止执行任何工具。 / BTW allows text responses only; tool execution is strictly prohibited.'
 
 function descriptorLabel(data: unknown): string | undefined {
   if (typeof data !== 'object' || data === null || !('label' in data) || typeof data.label !== 'string') return undefined
