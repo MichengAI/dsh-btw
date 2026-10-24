@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -67,7 +67,11 @@ for (const version of versions) {
       }))
     }
     writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: 'dsh-btw-compatibility', private: true, type: 'module', dependencies }, null, 2) + '\n', 'utf8')
-    for (const name of ['src', 'lib', 'tests', 'scripts', 'tsconfig.json', 'tsconfig.build.json', 'vitest.config.ts', 'cordis.patch.yml']) cpSync(join(root, name), join(directory, name), { recursive: true })
+    for (const name of ['src', 'lib', 'tests', 'scripts', 'tsconfig.json', 'tsconfig.build.json', 'vitest.config.ts', 'cordis.patch.yml']) {
+      const dest = join(directory, name)
+      rmSync(dest, { recursive: true, force: true })
+      cpSync(join(root, name), dest, { recursive: true })
+    }
     const env = { ...process.env }
     delete env.DSH_RUNTIME_ROOT
     delete env.DSH_DESKTOP_RUNTIME_ROOT

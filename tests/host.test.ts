@@ -122,7 +122,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await ctx.fiber.dispose()
   })
 
-  it('startActivation 路径收紧旁问输出预算，避免继承主任务的大 max_tokens', async () => {
+  it('startActivation 路径收紧旁问输出预算，取 min 避免抬高小预算路由', async () => {
     const { Context, ToolRuntime } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
@@ -144,25 +144,27 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
 
     const plugin = ctx.plugin(apply)
     await plugin.await()
-    const outcome = await commands.get(RUN_COMMAND)!.handler({
-      agent: { session: { header: { id: 'main' } } },
-      rawInput: JSON.stringify({ id: 'budget-req', question: '预算问题' }),
+    // 1. 父任务为小预算路由 (4096) 时，不能抬高到 32000
+    await commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main' } }, options: { maxTokens: 4096 } },
+      rawInput: JSON.stringify({ id: 'small-budget-req', question: '小预算' }),
       signal: new AbortController().signal,
     } as never)
+    expect(startActivation.mock.calls[0]![0].request.agentOptions).toEqual({ maxTokens: 4096 })
 
-    expect(outcome).toEqual({ kind: 'success', text: '旁问答案' })
-    expect(startActivation).toHaveBeenCalledOnce()
-    const spec = startActivation.mock.calls[0]![0]
-    expect(spec.provider).toBe('fork')
-    // 大历史 + 继承来的 256k 输出预留会越过上游窗口；旁问固定使用自己的小预算。
-    expect(spec.request.agentOptions).toEqual({ maxTokens: SIDE_MAX_OUTPUT_TOKENS })
-    expect(spec.request.parent).toBeDefined()
-    expect(spec.request.prompt).toEqual([{ type: 'text', text: expect.stringContaining('预算问题') }])
+    // 2. 父任务为大上下文 (256000) 时，收紧到 32000
+    await commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main' } }, options: { maxTokens: 256_000 } },
+      rawInput: JSON.stringify({ id: 'large-budget-req', question: '大预算' }),
+      signal: new AbortController().signal,
+    } as never)
+    expect(startActivation.mock.calls[1]![0].request.agentOptions).toEqual({ maxTokens: SIDE_MAX_OUTPUT_TOKENS })
+
     await plugin.dispose()
     await ctx.fiber.dispose()
   })
 
-  it('subagents.start 不改系统提示与工具定义，并拦住返回的子代理', async () => {
+  it('subagents.start 不改系统提示与工具定义，并传递 agentOptions 预算限制', async () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
@@ -176,6 +178,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const startLegacy = vi.fn(async (_provider: string, options: {
       parent: Agent
       label: string
+      agentOptions?: { maxTokens?: number }
       toolFilter?: unknown
       persona?: unknown
       prompt: readonly { type: string; text: string }[]
@@ -185,11 +188,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
       // persona / toolFilter 会改写请求前缀，使旁问无法复用主会话的 prompt cache
       expect(options.toolFilter).toBeUndefined()
       expect(options.persona).toBeUndefined()
+      expect(options.agentOptions).toEqual({ maxTokens: 4096 })
       return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'start 回退答案' }] }), localAgent: child, dispose }
     })
 
     ctx.provide('subagents', {
-      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true, agentOptions: true } }),
       start: startLegacy,
     })
 
@@ -197,7 +201,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await plugin.await()
 
     const outcome = await commands.get(RUN_COMMAND)!.handler({
-      agent: { session: { header: { id: 'main' } } },
+      agent: { session: { header: { id: 'main' } }, options: { maxTokens: 4096 } },
       rawInput: JSON.stringify({ id: 'legacy-req', question: '旧版问题' }),
       signal: new AbortController().signal,
     } as never)
