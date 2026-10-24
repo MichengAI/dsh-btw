@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6] - 2026-10-24
+
+- Restore composer focus immediately after adding quotes from text selection, allowing uninterrupted keyboard typing and command entry (#18).
+- Reuse parent session prompt cache for side questions by keeping tools, system prompt, and message history identical, drastically reducing side-ask token costs and first-token latency (#16).
+- Clamp side-question output budget (up to 32,000 completion tokens) against parent maxTokens, preventing HTTP 400 window overflow errors on ultra-long context sessions (#19).
+- Forward output token budget on legacy DSH 0.2.0 `subagents.start` path and provide bilingual tool execution denial notices.
+
 ## [1.0.5] - 2026-10-24
 
 - Support DeepSeek Harness `0.2.1-rc.3` while retaining all existing supported versions.
