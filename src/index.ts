@@ -6,6 +6,7 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import { PERSONA_PREFIX_SECTION } from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
 import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
+import { SIDE_MAX_OUTPUT_TOKENS } from './limits'
 import { DEFAULT_TIMEOUT_MS, SideJobs } from './server/jobs'
 import { createAnswerOnlyGuard, identityOfFromContext } from './server/tool-guard'
 import { translate } from './locales'
@@ -78,7 +79,7 @@ export function apply(ctx: Context): void {
         provider: string
         label: string
         childId: ReturnType<typeof SessionId>
-        request: { parent: Agent; prompt: readonly { type: string; text: string }[] }
+        request: { parent: Agent; prompt: readonly { type: string; text: string }[]; agentOptions?: { maxTokens?: number } }
         signal: AbortSignal
         delivery: 'caller'
       }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; dispose(): Promise<void> }>
@@ -118,6 +119,9 @@ export function apply(ctx: Context): void {
             childId,
             request: {
               parent: request.context as Agent,
+              // 旁问只需一次性只读回答：覆盖继承来的输出预算，避免大历史 + 大
+              // max_tokens 叠加越过上游窗口（见 limits.ts 的说明）。
+              agentOptions: { maxTokens: SIDE_MAX_OUTPUT_TOKENS },
               prompt: [{ type: 'text', text: promptText }],
             },
             signal: request.signal,
