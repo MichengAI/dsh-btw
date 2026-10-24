@@ -8,6 +8,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { CommandDefinition } from '@deepseek-ai/dsh-commands'
 import { apply } from '../src/index'
 import { RUN_COMMAND } from '../src/shared'
+import { SIDE_MAX_OUTPUT_TOKENS } from '../src/limits'
 import { createAnswerOnlyGuard } from '../src/server/tool-guard'
 
 // 默认验证锁文件中的宿主版本；允许显式指定旧版依赖图做兼容回归。
@@ -118,6 +119,46 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(body).not.toHaveBeenCalled()
     await plugin.dispose()
     await scope.dispose()
+    await ctx.fiber.dispose()
+  })
+
+  it('startActivation 路径收紧旁问输出预算，避免继承主任务的大 max_tokens', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    new ToolRuntime(ctx)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
+    const dispose = vi.fn(async () => {})
+    const startActivation = vi.fn(async (spec: {
+      provider: string
+      request: { parent: unknown; agentOptions?: { maxTokens?: number }; prompt: readonly { type: string; text: string }[] }
+    }) => ({
+      result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '旁问答案' }] }),
+      dispose,
+    }))
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
+      startActivation,
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+    const outcome = await commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main' } } },
+      rawInput: JSON.stringify({ id: 'budget-req', question: '预算问题' }),
+      signal: new AbortController().signal,
+    } as never)
+
+    expect(outcome).toEqual({ kind: 'success', text: '旁问答案' })
+    expect(startActivation).toHaveBeenCalledOnce()
+    const spec = startActivation.mock.calls[0]![0]
+    expect(spec.provider).toBe('fork')
+    // 大历史 + 继承来的 256k 输出预留会越过上游窗口；旁问固定使用自己的小预算。
+    expect(spec.request.agentOptions).toEqual({ maxTokens: SIDE_MAX_OUTPUT_TOKENS })
+    expect(spec.request.parent).toBeDefined()
+    expect(spec.request.prompt).toEqual([{ type: 'text', text: expect.stringContaining('预算问题') }])
+    await plugin.dispose()
     await ctx.fiber.dispose()
   })
 
