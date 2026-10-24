@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.5] - 2026-10-24
+
+- Support DeepSeek Harness `0.2.1-rc.3` while retaining all existing supported versions.
+
 ## [1.0.4] - 2026-10-22
 
 - Support structured quote references via host input trigger channel: Register `@dsh-btw-quote` source with dedicated clipboard and model prompt codecs, allowing quotes to be managed as atomic mention references without flattening long excerpts into composer drafts (#12).
