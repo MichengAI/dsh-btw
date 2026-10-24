@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.8] - 2026-10-24
+
+- Upgrade build-time development dependencies: Bump all `@deepseek-ai/dsh-*` devDependencies to latest `0.2.1-rc.3` to keep type declarations and build toolchains strictly aligned.
+
 ## [1.0.7] - 2026-10-24
 
 - Upgrade host admission policy: Declare `engines.dsh: ">=0.2.0-rc.1 <0.3.0-0"` to support the entire DeepSeek Harness `0.2.x` line (including `0.2.0-rc.1` onwards, future `0.2.x-alpha.*`, `0.2.x-rc.*`, and stable releases) without requiring routine plugin version bumps.
