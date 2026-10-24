@@ -22,7 +22,7 @@ class MemoryWorkingDirectory extends Service {
 }
 
 describe('继承父会话包含工具调用时的旁问隔离与反污染约束', () => {
-  it('验证 1：子代理继承的 messages 包含父会话的 tool-call 与 tool/result，但 tools 定义为空且末尾注入强反工具约束', async () => {
+  it('验证 1：子代理继承的 messages 包含父会话的 tool-call 与 tool/result，工具定义与主会话一致（复用 prompt cache）且末尾注入强反工具约束', async () => {
     const ctx = new Context()
     try {
       new MemoryWorkingDirectory(ctx)
@@ -114,8 +114,10 @@ describe('继承父会话包含工具调用时的旁问隔离与反污染约束'
       console.log('--- 子代理 messages 角色流:', subagentRequest.messages.map(m => m.role))
 
       // 验证现象：
-      // 1. tools 定义为空（因为 BTW 限制了 allow: []）
-      expect(subagentRequest.tools ?? []).toEqual([])
+      // 1. 工具定义与主会话最近一次请求逐字节一致，前缀才能命中 prompt cache；
+      //    工具调用改由 AnswerOnlyGuard 在执行期拒绝（见验证 2）。
+      expect(JSON.stringify(subagentRequest.tools ?? [])).toBe(JSON.stringify(requests[1]!.tools ?? []))
+      expect((subagentRequest.tools ?? []).map(tool => tool.name)).toContain('read_file')
 
       // 2. 但 messages 里面包含了父会话的 tool-call 和 tool/result 记录！
       const subagentHasToolCall = subagentRequest.messages.some(m => m.role === 'assistant' && m.content.some(b => b.type === 'tool-call'))
@@ -128,7 +130,7 @@ describe('继承父会话包含工具调用时的旁问隔离与反污染约束'
       const targetUserMsg = userMessages.find(m => JSON.stringify(m.content).includes('刚刚的 debug 是什么意思？'))
       const targetUserText = JSON.stringify(targetUserMsg?.content)
       expect(targetUserText).toContain('严禁尝试发起工具调用或输出 <tool_call> 等调用标记')
-      expect(targetUserText).toContain('当前没有任何可用工具')
+      expect(targetUserText).toContain('任何工具调用都会被拒绝')
 
       console.log('【验证 1 成功】子代理在继承工具历史的同时，最新 Prompt 已注入最高权重的禁止工具约束！')
 

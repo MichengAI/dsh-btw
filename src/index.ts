@@ -3,7 +3,6 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-subagent'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { PERSONA_PREFIX_SECTION } from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
 import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SIDE_MAX_OUTPUT_TOKENS } from './limits'
@@ -19,11 +18,6 @@ interface GuardedAgent {
   ctx?: {
     tools: {
       guard(guard: ReturnType<typeof createAnswerOnlyGuard>): () => void | Promise<void>
-      restrict(filter: { allow?: readonly string[]; deny?: readonly string[] }): () => void
-    }
-    systemPrompt: {
-      section(spec: { name: string; order: number; text: string }): () => void
-      getSectionOrder(name: string): number
     }
   }
 }
@@ -87,8 +81,6 @@ export function apply(ctx: Context): void {
         parent: Agent
         label: string
         signal: AbortSignal
-        toolFilter: { allow: readonly string[] }
-        persona: string
         prompt: readonly { type: string; text: string }[]
       }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
     }
@@ -99,16 +91,9 @@ export function apply(ctx: Context): void {
         const stopCreated = ctx.on('agent/created', ({ agent }) => {
           if (agent.id !== childId) return undefined
           childAgent = agent
+          // 只挂执行期拦截，不改系统提示、不过滤工具定义：请求前缀与主会话逐字节一致，
+          // 才能复用主会话的 prompt cache（与 Claude Code /btw 一致）。
           arm(agent as GuardedAgent)
-          const scoped = agent as GuardedAgent
-          if (scoped.ctx?.systemPrompt) {
-            scoped.ctx.systemPrompt.section({
-              name: PERSONA_PREFIX_SECTION,
-              order: scoped.ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_PREFIX'),
-              text: t('agent.persona'),
-            })
-          }
-          if (scoped.ctx?.tools) scoped.ctx.tools.restrict(request.toolFilter)
           return undefined
         })
         let activation
@@ -144,12 +129,11 @@ export function apply(ctx: Context): void {
       throw new Error(t('error.provider'))
     }
     try {
+      // 不传 persona / toolFilter，理由同上；工具由 AnswerOnlyGuard 在执行期拒绝。
       const run = await subagents.start('fork', {
         parent: request.context as Agent,
         label,
         signal: request.signal,
-        toolFilter: request.toolFilter,
-        persona: t('agent.persona'),
         prompt: [{ type: 'text', text: promptText }],
       })
       if (run.localAgent) arm(run.localAgent)

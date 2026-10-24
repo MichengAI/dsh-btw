@@ -75,7 +75,6 @@ export declare const zh: {
     'quote.promptHeading': string;
     'quote.promptInstruction': string;
     'quote.userRequestHeading': string;
-    'agent.persona': string;
     'command.internalRun': string;
     'command.internalClose': string;
 };

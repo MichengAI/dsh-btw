@@ -69,8 +69,12 @@ it('真实 fork 继承已完成上下文、独立回答并可取消，主任务�
     expect(JSON.stringify(request.messages)).toContain('主任务背景')
     expect(JSON.stringify(request.messages)).toContain('旁问专属问题')
     expect(JSON.stringify(request.messages)).toContain('选中时固定的正文片段')
-    expect(JSON.stringify({ system: request.system, messages: request.messages })).toContain('一次性旁问助手')
-    expect(request.tools ?? []).toEqual([])
+    // 旁问说明位于提问消息内（种子之后），宿主的 subagent:delegation 运行时上下文追加在最末。
+    expect(JSON.stringify(request.messages.find(m => JSON.stringify(m).includes('旁问专属问题')))).toContain('一次性旁问')
+    // 不改系统提示与工具定义：与主会话最近一次请求一致，复用 prompt cache。
+    const parentRequest = adapter.requests[0]!
+    expect(JSON.stringify(request.tools ?? [])).toBe(JSON.stringify(parentRequest.tools ?? []))
+    expect(JSON.stringify(request.messages[0])).toBe(JSON.stringify(parentRequest.messages[0]))
     // 命令结果会进入审计日志，但不得进入主任务的模型上下文。
     expect(JSON.stringify(parent.session.deriveMessages())).not.toContain('独立旁问答案')
     expect(JSON.stringify(parent.session.deriveMessages())).not.toContain('选中时固定的正文片段')
