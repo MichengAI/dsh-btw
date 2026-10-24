@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.7] - 2026-10-24
+
+- Upgrade host admission policy: Declare `engines.dsh: ">=0.2.0-rc.1 <0.3.0-0"` to support the entire DeepSeek Harness `0.2.x` line (including `0.2.0-rc.1` onwards, future `0.2.x-alpha.*`, `0.2.x-rc.*`, and stable releases) without requiring routine plugin version bumps.
+- Decouple peerDependencies version pinning: Broaden `@deepseek-ai/dsh-*` peer ranges to the `0.2.x` generation to prevent version-gate refusals on new host releases.
+- Automated admission boundary verification: Add contract boundary tests to verify seamless admission of `0.2.x` prereleases while strictly blocking `0.3.0` breaking changes.
+
 ## [1.0.6] - 2026-10-24
 
 - Restore composer focus immediately after adding quotes from text selection, allowing uninterrupted keyboard typing and command entry (#18).
