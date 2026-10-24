@@ -211,3 +211,27 @@ it('选区坐标更新保留已打开的 popover，卸载主动关闭', async ()
   expect(hide).toHaveBeenCalledTimes(1)
 })
 
+it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）', async () => {
+  const focus = vi.fn()
+  const mockInput = {
+    state: { getSnapshot: () => ({ draft: '', phase: 'plain' }) },
+    setDraft: vi.fn(),
+    focus,
+  }
+  await act(async () => root.render(React.createElement(React.Fragment, null,
+    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
+
+  await open()
+  await click('添加到对话')
+  expect(quoteStore.getQuotes('session-a')).toHaveLength(1)
+  expect(focus).toHaveBeenCalledTimes(1)
+
+  // 连续引用第二条同样保持聚焦输入框
+  scope.querySelector('p')!.textContent = '第二段不同的引用文本'
+  await open()
+  await click('添加到对话')
+  expect(quoteStore.getQuotes('session-a')).toHaveLength(2)
+  expect(focus).toHaveBeenCalledTimes(2)
+})
+

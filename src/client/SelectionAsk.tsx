@@ -180,6 +180,7 @@ export function SelectionAsk({
       }
 
       setDraft(undefined)
+      input?.focus?.()
     } catch (issue) {
       const msg = issue instanceof Error ? issue.message : String(issue)
       if (input?.notify) {
