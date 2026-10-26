@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.0] - 2026-10-26
 
 - Return an answer to the main conversation on request: a side ask may now call the host's inherited `send_message` — but only addressed at its own parent session (`agent_id` = `session.header.parentSession`) — so the conclusion can be delivered back when the user asks for it. Every other tool call, and any `send_message` aimed at another agent, stays rejected. Reusing one inherited tool instead of registering a new one keeps the side-ask request's tool list byte-identical, so parent prompt cache reuse is preserved.
 - State the reply channel in the prompt: the side-ask prompt now says answers stay in the bubble by default, names the parent agent id, and limits returning to the case where the user explicitly asks for it.
