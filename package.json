@@ -34,7 +34,8 @@
     "README.zh-CN.md",
     "CHANGELOG.md",
     "CHANGELOG.zh-CN.md",
-    "LICENSE"
+    "LICENSE",
+    "assets/icon.webp"
   ],
   "dsh": {
     "bundle": {
@@ -127,5 +128,6 @@
   "allowScripts": {
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true
-  }
+  },
+  "icon": "assets/icon.webp"
 }
