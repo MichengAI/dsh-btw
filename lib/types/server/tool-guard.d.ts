@@ -6,7 +6,14 @@ export interface SessionIdentityHint {
     snapshotEvents?(): readonly SessionEventLike[];
 }
 export interface AgentIdentity {
-    session?: object;
+    id?: string;
+    session?: {
+        id?: string;
+        header?: {
+            id?: string;
+        };
+        snapshotEvents?(): readonly SessionEventLike[];
+    } | object;
 }
 export interface SubagentIdentityHint {
     readonly label?: string;
@@ -17,6 +24,7 @@ export interface AnswerOnlyGuard {
         agent?: AgentIdentity;
     }): string | undefined;
     own(agent: object): void;
+    ownId(id: string): () => void;
     recognize(session: object, event: SessionEventLike): void;
 }
 /** 官方替换同步事件扫描：ctx.sessionProjections.snapshot(session, ['subagent']).values.subagent */

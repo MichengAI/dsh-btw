@@ -335,4 +335,81 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect((await answer)?.kind).toBe('error')
     await ctx.fiber.dispose()
   })
+
+  it('Issue #21: startActivation 下即使错过 agent/created 且投影未返回 label，仍凭预登记 childId 和快照回落确定性拦截工具', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    new ToolRuntime(ctx)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
+
+    let capturedChildId: string | undefined
+    let resolveRun!: (value: { stopReason: string; output: readonly { type: string; text?: string }[] }) => void
+    const runPromise = new Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>(resolve => { resolveRun = resolve })
+
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, outputSchema: true } }),
+      startActivation: async (spec: { childId: string }) => {
+        capturedChildId = spec.childId
+        return {
+          result: runPromise,
+          dispose: async () => {},
+        }
+      },
+    })
+
+    const body = vi.fn(async () => 'should-not-run')
+    ctx.tools.register({
+      name: 'ops_bash',
+      description: '执行命令',
+      parameters: { type: 'object', properties: {} },
+      output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] },
+      execute: body,
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    // 发起旁问任务（非阻塞挂起）
+    const sideAsk = commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main' } } },
+      rawInput: JSON.stringify({ id: 'issue-21-req', question: '测试命令拦截' }),
+      signal: new AbortController().signal,
+    } as never)
+
+    // 等待 startActivation 被调用并记录分配的 childId
+    await vi.waitFor(() => expect(capturedChildId).toBeDefined())
+
+    // 1. 模拟子代理在 live 段尝试执行 ops_bash，由于预登记了 childId，凭 agent.id 立即单调拒绝
+    const blockedById = await ctx.tools.execute({
+      name: 'ops_bash',
+      callId: 'call-1' as never,
+      arguments: {},
+      agent: { id: capturedChildId } as never,
+      signal: new AbortController().signal,
+    })
+    expect(blockedById.isError).toBe(true)
+    expect(JSON.stringify(blockedById.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
+    expect(body).not.toHaveBeenCalled()
+
+    // 2. 模拟以 session.header.id 传入（包装 agent 场景），同样单调拒绝
+    const blockedByHeader = await ctx.tools.execute({
+      name: 'ops_bash',
+      callId: 'call-2' as never,
+      arguments: {},
+      agent: { session: { header: { id: capturedChildId } } } as never,
+      signal: new AbortController().signal,
+    })
+    expect(blockedByHeader.isError).toBe(true)
+    expect(JSON.stringify(blockedByHeader.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
+    expect(body).not.toHaveBeenCalled()
+
+    // 结束旁问
+    resolveRun({ stopReason: 'completed', output: [{ type: 'text', text: '完成回答' }] })
+    await sideAsk
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
 })

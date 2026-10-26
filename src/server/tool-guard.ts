@@ -8,7 +8,12 @@ export interface SessionIdentityHint {
 }
 
 export interface AgentIdentity {
-  session?: object
+  id?: string
+  session?: {
+    id?: string
+    header?: { id?: string }
+    snapshotEvents?(): readonly SessionEventLike[]
+  } | object
 }
 
 export interface SubagentIdentityHint {
@@ -20,6 +25,7 @@ export type IdentityOf = (session: object) => SubagentIdentityHint | null | unde
 export interface AnswerOnlyGuard {
   (execution: { agent?: AgentIdentity }): string | undefined
   own(agent: object): void
+  ownId(id: string): () => void
   recognize(session: object, event: SessionEventLike): void
 }
 
@@ -30,12 +36,12 @@ function descriptorLabel(data: unknown): string | undefined {
   return data.label
 }
 
-/** 有 sessionProjections 时读 subagent；没有该服务时才回退同步快照。0.2.0-rc.1 仍有 snapshotEvents。 */
+/** 有 sessionProjections 时优先读 subagent；投影未返回合法标签时回退同步快照。0.2.0-rc.1 仍有 snapshotEvents。 */
 function lastDescriptorLabel(session: object | undefined, identityOf?: IdentityOf): string | undefined {
   if (!session) return undefined
   if (identityOf) {
     const identity = identityOf(session)
-    return typeof identity?.label === 'string' ? identity.label : undefined
+    if (typeof identity?.label === 'string') return identity.label
   }
   const events = (session as SessionIdentityHint).snapshotEvents
   if (typeof events !== 'function') return undefined
@@ -58,19 +64,42 @@ export function identityOfFromContext(ctx: { get(name: string): unknown }): Iden
 /** 空白名单过滤继承工具；本保护额外拒绝 PTC 及子作用域自注册工具。 */
 export function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: IdentityOf): AnswerOnlyGuard {
   const owned = new WeakSet<object>()
+  const ownedIds = new Set<string>()
   const claim = (value: object | undefined) => {
-    if (value) owned.add(value)
+    if (value && typeof value === 'object') owned.add(value)
   }
+  const claimAgent = (agent: object | undefined) => {
+    if (!agent) return
+    claim(agent)
+    if (typeof agent === 'object' && 'session' in agent) {
+      claim((agent as { session?: object }).session)
+    }
+  }
+  const isOwnedId = (agent: AgentIdentity): boolean => {
+    if (ownedIds.size === 0) return false
+    if (typeof agent.id === 'string' && ownedIds.has(agent.id)) return true
+    const session = agent.session as { id?: unknown; header?: { id?: unknown } } | undefined
+    if (session && typeof session === 'object') {
+      if (typeof session.id === 'string' && ownedIds.has(session.id)) return true
+      if (typeof session.header?.id === 'string' && ownedIds.has(session.header.id)) return true
+    }
+    return false
+  }
+
   const guard: AnswerOnlyGuard = ({ agent }) => {
     if (!agent) return undefined
+    if (isOwnedId(agent)) return DENY
     if (owned.has(agent) || (agent.session !== undefined && owned.has(agent.session))) return DENY
     const label = lastDescriptorLabel(agent.session, identityOf)
     if (!label || !labels.has(label)) return undefined
-    claim(agent)
-    claim(agent.session)
+    claimAgent(agent)
     return DENY
   }
-  guard.own = agent => { claim(agent) }
+  guard.own = agent => { claimAgent(agent) }
+  guard.ownId = id => {
+    ownedIds.add(id)
+    return () => { ownedIds.delete(id) }
+  }
   guard.recognize = (session, event) => {
     if (event.type !== 'subagent/descriptor') return
     const label = descriptorLabel(event.data)

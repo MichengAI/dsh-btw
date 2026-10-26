@@ -21,10 +21,30 @@ it('投影 last-wins 不把继承的旧描述当成当前旁问', () => {
   expect(guard({ agent: { session: { snapshotEvents: deprecated } } })).toBeUndefined()
 })
 
-it('有投影时不回退 snapshotEvents', () => {
-  const session = { snapshotEvents: deprecated }
+it('投影未解析到合法 label 时回退 snapshotEvents 拦截', () => {
+  const session = { snapshotEvents: () => [{ type: 'subagent/descriptor', data: { label: 'michengai-btw:owned' } }] }
   const guard = createAnswerOnlyGuard(new Set(['michengai-btw:owned']), () => null)
-  expect(guard({ agent: { session } })).toBeUndefined()
+  expect(guard({ agent: { session } })).toContain('禁止执行任何工具')
+})
+
+it('ownId 凭会话或代理 ID 确定性拦截，脱钩生命周期时序与弱引用', () => {
+  const guard = createAnswerOnlyGuard(new Set(['michengai-btw:owned']))
+  const unregister = guard.ownId('child-123')
+  expect(guard({ agent: { id: 'child-123' } })).toContain('禁止执行任何工具')
+  expect(guard({ agent: { session: { header: { id: 'child-123' } } } })).toContain('禁止执行任何工具')
+  expect(guard({ agent: { session: { id: 'child-123' } } })).toContain('禁止执行任何工具')
+  expect(guard({ agent: { id: 'other' } })).toBeUndefined()
+  unregister()
+  expect(guard({ agent: { id: 'child-123' } })).toBeUndefined()
+})
+
+it('own 同时 claim agent 及其 session，避免代理对象引用变化导致漏拦', () => {
+  const guard = createAnswerOnlyGuard(new Set(['michengai-btw:owned']))
+  const session = {}
+  const originalAgent = { session }
+  guard.own(originalAgent)
+  const wrappedAgent = { session }
+  expect(guard({ agent: wrappedAgent })).toContain('禁止执行任何工具')
 })
 
 it('认领后不再读投影或 snapshotEvents', () => {

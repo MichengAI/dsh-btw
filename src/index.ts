@@ -92,6 +92,7 @@ export function apply(ctx: Context): void {
       : SIDE_MAX_OUTPUT_TOKENS
     if (typeof subagents.startActivation === 'function') {
       const childId = SessionId(globalThis.crypto.randomUUID())
+      const releaseChildId = protection.ownId(childId)
       let childAgent: object | undefined
       try {
         const stopCreated = ctx.on('agent/created', ({ agent }) => {
@@ -125,10 +126,17 @@ export function apply(ctx: Context): void {
           result: activation.result,
           dispose: async () => {
             try { await activation.dispose() }
-            finally { await releaseChild(childAgent); releaseLabel(label) }
+            finally {
+              try { await releaseChild(childAgent) }
+              finally { releaseChildId(); releaseLabel(label) }
+            }
           },
         }
-      } catch (error) { releaseLabel(label); throw error }
+      } catch (error) {
+        releaseChildId()
+        releaseLabel(label)
+        throw error
+      }
     }
     if (typeof subagents.start !== 'function') {
       releaseLabel(label)
