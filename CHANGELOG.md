@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.9] - 2026-10-26
+
+- Deterministically block tool execution inside `/btw` bubbles: pre-register the child session id before the side question starts, so interception no longer depends on the host announcing the child agent in time (#21).
+- Fall back to the child session's own descriptor when the host subagent projection carries no label, closing the remaining silent-allow path (#21).
+- Harden the guard: an unreadable session snapshot now falls back to the previous allow-on-unknown behavior instead of surfacing an error in the tool call, and the pre-registered id is released as soon as the side question settles.
+
 ## [1.0.8] - 2026-10-24
 
 - Upgrade build-time development dependencies: Bump all `@deepseek-ai/dsh-*` devDependencies to latest `0.2.1-rc.3` to keep type declarations and build toolchains strictly aligned.
