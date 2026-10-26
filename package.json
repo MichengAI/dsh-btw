@@ -35,7 +35,7 @@
     "CHANGELOG.md",
     "CHANGELOG.zh-CN.md",
     "LICENSE",
-    "assets/icon.webp"
+    "assets/icon.svg"
   ],
   "dsh": {
     "bundle": {
@@ -129,5 +129,5 @@
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true
   },
-  "icon": "assets/icon.webp"
+  "icon": "assets/icon.svg"
 }

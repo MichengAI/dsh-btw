@@ -1,0 +1,18 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dsh_svg_btw_g" x1="6" y1="8" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F97316"/>
+      <stop offset="1" stop-color="#FB7185"/>
+    </linearGradient>
+  </defs>
+  <!-- Secondary Top-Right Bubble -->
+  <path d="M19 8C23.97 8 28 11.58 28 16C28 17.6 27.2 19.1 25.9 20.2L27 24L23.3 22.6C22 23.5 20.5 24 19 24C14.03 24 10 20.42 10 16C10 11.58 14.03 8 19 8Z" fill="#FDBA74" fill-opacity="0.4"/>
+  <!-- Primary Chat Bubble -->
+  <path d="M7 11C7 8.79 8.79 7 11 7H21C23.21 7 25 8.79 25 11V18C25 20.21 23.21 22 21 22H13L8 26V22C7.4 21.4 7 20.8 7 19.9V11Z" fill="url(#dsh_svg_btw_g)"/>
+  <!-- Three Dots Inside Bubble -->
+  <circle cx="12" cy="14.5" r="1.5" fill="#FFFFFF"/>
+  <circle cx="16" cy="14.5" r="1.5" fill="#FFFFFF"/>
+  <circle cx="20" cy="14.5" r="1.5" fill="#FFFFFF"/>
+  <!-- Sparkle of Thought -->
+  <path d="M29 5L29.8 7.2L32 8L29.8 8.8L29 11L28.2 8.8L26 8L28.2 7.2L29 5Z" fill="#F59E0B"/>
+</svg>
