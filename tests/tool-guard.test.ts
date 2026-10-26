@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { createAnswerOnlyGuard, identityOfFromContext } from '../src/server/tool-guard'
 
 const deprecated = () => { throw new Error('生产路径不应再读 snapshotEvents') }
@@ -102,4 +102,73 @@ it('从 sessionProjections.snapshot 读取 subagent 身份', () => {
   expect(identityOf?.({ id: 'michengai-btw:owned' })).toEqual({ label: 'michengai-btw:owned' })
   expect(identityOfFromContext({ get: () => { throw new Error('missing') } })).toBeUndefined()
   expect(identityOfFromContext({ get: () => ({ snapshot: () => { throw new Error('bad session') } }) })?.({})).toBeNull()
+})
+
+describe('主动回传：只放行发给父会话的 send_message', () => {
+  const guard = () => createAnswerOnlyGuard(new Set(['michengai-btw:owned']), () => null)
+  const owned = (parentSession?: string) => ({
+    session: { header: parentSession === undefined ? {} : { parentSession } },
+  })
+  const reply = { name: 'send_message', arguments: { agent_id: 'parent-1', message: '回答' } }
+
+  it('认领后的旁问代理可以把答案发回自己的父会话', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    protection.own(agent)
+    expect(protection({ agent, ...reply })).toBeUndefined()
+  })
+
+  // 1.0.9 之后生产上主要靠预登记 childId 认领（#21 的现场就是 agent 对象没被 own 到），
+  // verdict 必须贯穿这条路径，否则回传通道在实际运行时不生效。
+  it('只凭预登记 childId 认领时也放行回传，其余工具仍拒绝', () => {
+    const protection = guard()
+    const unregister = protection.ownId('child-9')
+    const agent = { id: 'child-9', session: { header: { id: 'child-9', parentSession: 'parent-1' } } }
+    expect(protection({ agent, ...reply })).toBeUndefined()
+    expect(protection({ agent, name: 'send_message', arguments: { agent_id: 'other', message: '回答' } })).toContain('禁止执行任何工具')
+    expect(protection({ agent, name: 'ops_bash', arguments: {} })).toContain('禁止执行任何工具')
+    unregister()
+  })
+
+  it('快照回退认领的旁问代理同样可以回传', () => {
+    const protection = createAnswerOnlyGuard(new Set(['michengai-btw:owned']))
+    const agent = {
+      session: {
+        header: { parentSession: 'parent-1' },
+        snapshotEvents: () => [{ type: 'subagent/descriptor', data: { label: 'michengai-btw:owned' } }],
+      },
+    }
+    expect(protection({ agent, ...reply })).toBeUndefined()
+    // 首次回传已认领该代理，之后同代理的其它工具一律拒绝
+    expect(protection({ agent, name: 'ops_bash', arguments: {} })).toContain('禁止执行任何工具')
+  })
+
+  it('发给其它 agent 仍然被拒', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    protection.own(agent)
+    expect(protection({ agent, name: 'send_message', arguments: { agent_id: 'other', message: '回答' } })).toContain('禁止执行任何工具')
+    expect(protection({ agent, name: 'send_message', arguments: {} })).toContain('禁止执行任何工具')
+  })
+
+  it('没有父会话时不存在回传通道', () => {
+    const protection = guard()
+    const agent = owned()
+    protection.own(agent)
+    expect(protection({ agent, ...reply })).toContain('禁止执行任何工具')
+  })
+
+  it('除 send_message 外的工具不被放行', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    protection.own(agent)
+    expect(protection({ agent, name: 'read_file', arguments: { agent_id: 'parent-1' } })).toContain('禁止执行任何工具')
+  })
+
+  it('非旁问代理不受影响', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    expect(protection({ agent, name: 'read_file', arguments: {} })).toBeUndefined()
+    expect(protection({ agent, name: 'send_message', arguments: { agent_id: 'other' } })).toBeUndefined()
+  })
 })

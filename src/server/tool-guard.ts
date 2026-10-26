@@ -23,13 +23,34 @@ export interface SubagentIdentityHint {
 export type IdentityOf = (session: object) => SubagentIdentityHint | null | undefined
 
 export interface AnswerOnlyGuard {
-  (execution: { agent?: AgentIdentity }): string | undefined
+  (execution: { agent?: AgentIdentity; name?: string; arguments?: unknown }): string | undefined
   own(agent: object): void
   ownId(id: string): () => void
   recognize(session: object, event: SessionEventLike): void
 }
 
 const DENY = 'BTW 仅允许文字回答，禁止执行任何工具。 / BTW allows text responses only; tool execution is strictly prohibited.'
+
+/**
+ * 唯一放行的继承工具，且只能发给自己的父会话。复用宿主的 `send_message`
+ * 而不是新注册工具，才能保持旁问请求的工具列表与主会话逐字节一致
+ * （`tests/cache-prefix.test.ts` 的 prompt cache 复用护栏）。
+ */
+export const REPLY_TOOL = 'send_message'
+
+/** 本次旁问所属父会话的 id；没有父会话时不存在回传通道。 */
+export function parentSessionOf(agent: AgentIdentity | undefined): string | undefined {
+  const parent = (agent?.session as { header?: { parentSession?: unknown } } | undefined)?.header?.parentSession
+  return typeof parent === 'string' ? parent : undefined
+}
+
+/** 仅当工具是 `send_message` 且目标严格等于父会话 id 时放行，其余一律拒绝。 */
+function isReplyToParent(name: string | undefined, args: unknown, agent: AgentIdentity | undefined): boolean {
+  if (name !== REPLY_TOOL) return false
+  const target = (args as { agent_id?: unknown } | undefined)?.agent_id
+  const parent = parentSessionOf(agent)
+  return parent !== undefined && typeof target === 'string' && target === parent
+}
 
 function descriptorLabel(data: unknown): string | undefined {
   if (typeof data !== 'object' || data === null || !('label' in data) || typeof data.label !== 'string') return undefined
@@ -89,14 +110,18 @@ export function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: 
     return false
   }
 
-  const guard: AnswerOnlyGuard = ({ agent }) => {
+  const guard: AnswerOnlyGuard = ({ agent, name, arguments: args }) => {
     if (!agent) return undefined
-    if (isOwnedId(agent)) return DENY
-    if (owned.has(agent) || (agent.session !== undefined && owned.has(agent.session))) return DENY
+    // 唯一放行：把答案发回自己的父会话。其余工具、以及发给其它 agent 的 send_message 一律拒绝。
+    // 三条认领路径（预登记 id / 已认领对象 / 投影或快照 label）都必须返回 verdict，
+    // 否则 isOwnedId 先短路会让回传通道在生产主路径上失效。
+    const verdict = isReplyToParent(name, args, agent) ? undefined : DENY
+    if (isOwnedId(agent)) return verdict
+    if (owned.has(agent) || (agent.session !== undefined && owned.has(agent.session))) return verdict
     const label = lastDescriptorLabel(agent.session, identityOf)
     if (!label || !labels.has(label)) return undefined
     claimAgent(agent)
-    return DENY
+    return verdict
   }
   guard.own = agent => { claimAgent(agent) }
   guard.ownId = id => {
