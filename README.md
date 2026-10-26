@@ -23,7 +23,8 @@
 - **Context-aware questions**: explain concepts, recap conclusions, or ask a quick question about the current conversation.
 - **Answers only**: no reading new files, browsing the web, running commands, or editing code.
 - **Independent answer bubbles**: render Markdown and formulas, copy answers, collapse, expand, and close individual bubbles. Multiple answers can stay visible.
-- **Keep the main task going**: side questions are answered separately and do not add answers to the main conversation.
+- **Keep the main task going**: side questions are answered separately and by default do not add answers to the main conversation.
+- **Return on request**: when you want the conclusion available to the main conversation, ask for it in the question ("send the answer back to the main conversation") and the side ask uses `send_message` to deliver a self-contained answer to the main session. It does not send anything when you did not ask.
 - **Cancel anytime**: close a bubble while it is answering to cancel that question.
 - **Themes and languages**: follow DSH light and dark themes and switch between Chinese and English UI.
 

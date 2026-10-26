@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { createAnswerOnlyGuard, identityOfFromContext } from '../src/server/tool-guard'
 
 const deprecated = () => { throw new Error('生产路径不应再读 snapshotEvents') }
@@ -75,4 +75,48 @@ it('从 sessionProjections.snapshot 读取 subagent 身份', () => {
   expect(identityOf?.({ id: 'michengai-btw:owned' })).toEqual({ label: 'michengai-btw:owned' })
   expect(identityOfFromContext({ get: () => { throw new Error('missing') } })).toBeUndefined()
   expect(identityOfFromContext({ get: () => ({ snapshot: () => { throw new Error('bad session') } }) })?.({})).toBeNull()
+})
+
+describe('主动回传：只放行发给父会话的 send_message', () => {
+  const guard = () => createAnswerOnlyGuard(new Set(['michengai-btw:owned']), () => null)
+  const owned = (parentSession?: string) => ({
+    session: { header: parentSession === undefined ? {} : { parentSession } },
+  })
+  const reply = { name: 'send_message', arguments: { agent_id: 'parent-1', message: '回答' } }
+
+  it('认领后的旁问代理可以把答案发回自己的父会话', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    protection.own(agent)
+    expect(protection({ agent, ...reply })).toBeUndefined()
+  })
+
+  it('发给其它 agent 仍然被拒', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    protection.own(agent)
+    expect(protection({ agent, name: 'send_message', arguments: { agent_id: 'other', message: '回答' } })).toContain('禁止执行任何工具')
+    expect(protection({ agent, name: 'send_message', arguments: {} })).toContain('禁止执行任何工具')
+  })
+
+  it('没有父会话时不存在回传通道', () => {
+    const protection = guard()
+    const agent = owned()
+    protection.own(agent)
+    expect(protection({ agent, ...reply })).toContain('禁止执行任何工具')
+  })
+
+  it('除 send_message 外的工具不被放行', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    protection.own(agent)
+    expect(protection({ agent, name: 'read_file', arguments: { agent_id: 'parent-1' } })).toContain('禁止执行任何工具')
+  })
+
+  it('非旁问代理不受影响', () => {
+    const protection = guard()
+    const agent = owned('parent-1')
+    expect(protection({ agent, name: 'read_file', arguments: {} })).toBeUndefined()
+    expect(protection({ agent, name: 'send_message', arguments: { agent_id: 'other' } })).toBeUndefined()
+  })
 })

@@ -67,7 +67,9 @@ export function apply(ctx: Context): void {
     }
     const label = t('agent.name')
     retainLabel(label)
-    const promptText = `${t('agent.promptPrefix')}\n\n${request.question}`
+    const parentId = (request.context as Agent | undefined)?.session?.header?.id
+    const replyHint = parentId === undefined ? '' : `\n\n${t('agent.replyHint', { parent: JSON.stringify(parentId) })}`
+    const promptText = `${t('agent.promptPrefix')}${replyHint}\n\n${request.question}`
     const subagents = ctx.subagents as unknown as {
       startActivation?: (spec: {
         provider: string

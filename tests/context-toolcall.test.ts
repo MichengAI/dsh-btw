@@ -129,8 +129,9 @@ describe('继承父会话包含工具调用时的旁问隔离与反污染约束'
       const userMessages = subagentRequest.messages.filter(m => m.role === 'user')
       const targetUserMsg = userMessages.find(m => JSON.stringify(m.content).includes('刚刚的 debug 是什么意思？'))
       const targetUserText = JSON.stringify(targetUserMsg?.content)
-      expect(targetUserText).toContain('严禁尝试发起工具调用或输出 <tool_call> 等调用标记')
-      expect(targetUserText).toContain('任何工具调用都会被拒绝')
+      expect(targetUserText).toContain('严禁尝试发起其它工具调用或输出 <tool_call> 等调用标记')
+      // 唯一的例外是发回父会话的 send_message，其余工具一律拒绝。
+      expect(targetUserText).toContain('除 send_message 之外任何工具调用都会被拒绝')
 
       console.log('【验证 1 成功】子代理在继承工具历史的同时，最新 Prompt 已注入最高权重的禁止工具约束！')
 

@@ -83,6 +83,21 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(JSON.stringify(blockedRun.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
     expect(body).not.toHaveBeenCalled()
 
+    // 唯一放行：发回自己父会话的 send_message（不是新注册的工具，保持 tool 列表不变）。
+    const sendBody = vi.fn(async () => 'sent')
+    ctx.tools.register({ name: 'send_message', description: '发消息给另一个 agent', parameters: { type: 'object', properties: { agent_id: { type: 'string' }, message: { type: 'string' } }, required: ['agent_id', 'message'] }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: sendBody })
+    const childReply = { session: { header: { id: 'btw-child', parentSession: 'parent-session' } } } as unknown as Agent
+    protection.own(childReply)
+    const reply = await ctx.tools.execute({ name: 'send_message', callId: 'test-reply' as never, arguments: { agent_id: 'parent-session', message: '回答' }, agent: childReply, signal: new AbortController().signal })
+    expect(reply.isError).not.toBe(true)
+    expect(sendBody).toHaveBeenCalledOnce()
+
+    // 同一个 send_message 发给别的 agent 仍然被拒。
+    const misrouted = await ctx.tools.execute({ name: 'send_message', callId: 'test-misroute' as never, arguments: { agent_id: 'someone-else', message: '回答' }, agent: childReply, signal: new AbortController().signal })
+    expect(misrouted.isError).toBe(true)
+    expect(JSON.stringify(misrouted.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
+    expect(sendBody).toHaveBeenCalledOnce()
+
     const result = await ctx.tools.execute({ name: 'normal', callId: 'main' as never, arguments: {}, signal: new AbortController().signal })
     expect(result.isError).not.toBe(true)
     expect(body).toHaveBeenCalledOnce()
