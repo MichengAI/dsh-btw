@@ -32,6 +32,8 @@ export function apply(ctx: Context): void {
   const releasePluginGuard = ctx.tools.guard(protection)
   const childGuards = new WeakMap<object, () => void | Promise<void>>()
   const arm = (agent: GuardedAgent) => {
+    // child 级 guard 只是纵深防御：确定性拦截已由 ownId 预登记承担（agent.id === childId），
+    // 因此 agent.ctx 尚未就绪时静默跳过不影响拦截能力；不要往这里加唯一的必要限制。
     protection.own(agent)
     if (!agent.ctx || childGuards.has(agent)) return
     childGuards.set(agent, agent.ctx.tools.guard(protection))
@@ -122,6 +124,9 @@ export function apply(ctx: Context): void {
         } finally {
           stopCreated()
         }
+        // 结果落地即释放预登记 id：dispose 可能因 cleanup 超时未被调用，
+        // 释放放在两处（此处与 dispose）保证 ownedIds 不会只增不减；重复释放无副作用。
+        void activation.result.then(() => releaseChildId(), () => releaseChildId())
         return {
           result: activation.result,
           dispose: async () => {

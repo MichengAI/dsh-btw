@@ -45,7 +45,10 @@ function lastDescriptorLabel(session: object | undefined, identityOf?: IdentityO
   }
   const events = (session as SessionIdentityHint).snapshotEvents
   if (typeof events !== 'function') return undefined
-  return descriptorLabel(events().findLast(item => item.type === 'subagent/descriptor')?.data)
+  // 回退路径对每个「投影为 null」的会话都会执行（含主会话每次工具调用）：
+  // 快照读取抛错时按既有 fail-open 语义放行，不让异常冒进工具执行链。
+  try { return descriptorLabel(events().findLast(item => item.type === 'subagent/descriptor')?.data) }
+  catch { return undefined }
 }
 
 /** 官方替换同步事件扫描：ctx.sessionProjections.snapshot(session, ['subagent']).values.subagent */

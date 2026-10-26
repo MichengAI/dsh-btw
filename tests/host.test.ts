@@ -8,6 +8,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { CommandDefinition } from '@deepseek-ai/dsh-commands'
 import { apply } from '../src/index'
 import { RUN_COMMAND } from '../src/shared'
+import { translate } from '../src/locales'
 import { SIDE_MAX_OUTPUT_TOKENS } from '../src/limits'
 import { createAnswerOnlyGuard } from '../src/server/tool-guard'
 
@@ -336,7 +337,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await ctx.fiber.dispose()
   })
 
-  it('Issue #21: startActivation 下即使错过 agent/created 且投影未返回 label，仍凭预登记 childId 和快照回落确定性拦截工具', async () => {
+  it('Issue #21: 错过 agent/created 时凭预登记 childId 与快照回退确定性拦截工具', async () => {
     const { Context, ToolRuntime } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
@@ -405,9 +406,36 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(JSON.stringify(blockedByHeader.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
     expect(body).not.toHaveBeenCalled()
 
+    // 3. 无 id 可依（既不是预登记 id，也读不到投影）时，仍凭子会话快照里的 descriptor 标签拦截
+    const blockedBySnapshot = await ctx.tools.execute({
+      name: 'ops_bash',
+      callId: 'call-3' as never,
+      arguments: {},
+      agent: {
+        session: {
+          snapshotEvents: () => [{ type: 'subagent/descriptor', data: { version: 3, mode: 'continuable', provider: 'fork', label: translate()('agent.name') } }],
+        },
+      } as never,
+      signal: new AbortController().signal,
+    })
+    expect(blockedBySnapshot.isError).toBe(true)
+    expect(JSON.stringify(blockedBySnapshot.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
+    expect(body).not.toHaveBeenCalled()
+
     // 结束旁问
     resolveRun({ stopReason: 'completed', output: [{ type: 'text', text: '完成回答' }] })
     await sideAsk
+
+    // 任务结束后预登记 id 必须释放，避免残留 id 长期拦截已结束的子会话
+    const released = await ctx.tools.execute({
+      name: 'ops_bash',
+      callId: 'call-4' as never,
+      arguments: {},
+      agent: { id: capturedChildId } as never,
+      signal: new AbortController().signal,
+    })
+    expect(released.isError).toBeFalsy()
+    expect(body).toHaveBeenCalledTimes(1)
 
     await plugin.dispose()
     await ctx.fiber.dispose()

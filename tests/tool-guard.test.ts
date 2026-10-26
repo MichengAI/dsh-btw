@@ -27,6 +27,13 @@ it('投影未解析到合法 label 时回退 snapshotEvents 拦截', () => {
   expect(guard({ agent: { session } })).toContain('禁止执行任何工具')
 })
 
+it('快照读取抛错时按 fail-open 放行，不把异常冒进工具执行链', () => {
+  const guard = createAnswerOnlyGuard(new Set(['michengai-btw:owned']), () => null)
+  const session = { snapshotEvents: () => { throw new Error('corrupt session log') } }
+  expect(() => guard({ agent: { session } })).not.toThrow()
+  expect(guard({ agent: { session } })).toBeUndefined()
+})
+
 it('ownId 凭会话或代理 ID 确定性拦截，脱钩生命周期时序与弱引用', () => {
   const guard = createAnswerOnlyGuard(new Set(['michengai-btw:owned']))
   const unregister = guard.ownId('child-123')
