@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2026-10-27
+
+- Add official plugin vector icon: Introduce `assets/icon.svg` (transparent vector icon designed with dual bubbles and thought sparkles) and declare `icon` in the plugin manifest for better visual representation in the host extension manager and marketplace.
+- Update release verification whitelist: Include plugin icon in npm package check and file integrity validation.
+
 ## [1.1.0] - 2026-10-26
 
 - Return an answer to the main conversation on request: a side ask may now call the host's inherited `send_message` — but only addressed at its own parent session (`agent_id` = `session.header.parentSession`) — so the conclusion can be delivered back when the user asks for it. Every other tool call, and any `send_message` aimed at another agent, stays rejected. Reusing one inherited tool instead of registering a new one keeps the side-ask request's tool list byte-identical, so parent prompt cache reuse is preserved.
