@@ -38,8 +38,13 @@ function SettingsForm({ t, scope }: { t: CardProps['t']; scope: BtwSettingsScope
   const snapshot = React.useSyncExternalStore(scope.subscribe, scope.getSnapshot, scope.getSnapshot)
   const savedTools = formatToolList(snapshot.value?.allowedTools)
   const savedPrompt = clampPrompt(snapshot.value?.promptPrefix)
+  // 内置提示词就是「未配置」时真正生效的那段文案。输入框以它为起点，用户才能直接在上面改，
+  // 而不是对着一张空白框去猜内置写了什么。
+  const builtInPrompt = t('agent.promptPrefix' as never)
+  // 已保存的值优先；没保存过就把内置文案摆出来。`savedPrompt` 本身仍保持空，用来判断「是否配置过」。
+  const editablePrompt = savedPrompt === '' ? builtInPrompt : savedPrompt
   const [toolsText, setToolsText] = React.useState(savedTools)
-  const [promptText, setPromptText] = React.useState(savedPrompt)
+  const [promptText, setPromptText] = React.useState(editablePrompt)
   const [state, setState] = React.useState<SaveState>('idle')
   const [error, setError] = React.useState<string | undefined>(undefined)
   // 只有宿主真的服务了本插件的命名空间，才算「读到了配置」。
@@ -48,20 +53,21 @@ function SettingsForm({ t, scope }: { t: CardProps['t']; scope: BtwSettingsScope
 
   // 镜像刷新（切页回来、别处改配置）时重置草稿：只在「已加载且值真的变了」时覆盖，
   // 否则会把用户正在输入的内容打回旧值。
-  const signature = `${savedTools}\u0000${savedPrompt}`
+  const signature = `${savedTools}\u0000${editablePrompt}`
   const lastSignature = React.useRef(signature)
   React.useEffect(() => {
     if (!loaded) return
     if (lastSignature.current === signature) return
     lastSignature.current = signature
     setToolsText(savedTools)
-    setPromptText(savedPrompt)
+    setPromptText(editablePrompt)
     setState('idle')
     setError(undefined)
-  }, [loaded, signature, savedTools, savedPrompt])
+  }, [loaded, signature, savedTools, editablePrompt])
 
   const writable = snapshot.writable === true && scope.bound()
-  const dirty = toolsText !== savedTools || promptText !== savedPrompt
+  // 与「当前起点的文案」比，不是与已保存值比：内置文案预填后原样不动，不该算改动。
+  const dirty = toolsText !== savedTools || promptText !== editablePrompt
 
   const save = async (): Promise<void> => {
     const tools = parseToolList(toolsText)
@@ -72,17 +78,21 @@ function SettingsForm({ t, scope }: { t: CardProps['t']; scope: BtwSettingsScope
     }
     setState('saving')
     setError(undefined)
+    const prompt = clampPrompt(promptText).slice(0, MAX_PROMPT_LENGTH)
+    // 与内置文案一致就存空串：这样它仍然算「未配置」，插件升级改了内置文案时能顺带跟上，
+    // 而不是把一份旧快照永久钉在用户配置里。
+    const stored = prompt.trim() === builtInPrompt.trim() ? '' : prompt
     try {
       const accepted = await scope.setMany([
         ['allowedTools', tools],
-        ['promptPrefix', clampPrompt(promptText).slice(0, MAX_PROMPT_LENGTH)],
+        ['promptPrefix', stored],
       ])
       if (accepted === false) {
         setState('error')
         setError(t('settings.unavailable' as never))
         return
       }
-      lastSignature.current = `${tools.join('\n')}\u0000${clampPrompt(promptText)}`
+      lastSignature.current = `${tools.join('\n')}\u0000${stored === '' ? builtInPrompt : stored}`
       setState('saved')
     } catch (cause) {
       setState('error')
@@ -92,7 +102,7 @@ function SettingsForm({ t, scope }: { t: CardProps['t']; scope: BtwSettingsScope
 
   const reset = (): void => {
     setToolsText('')
-    setPromptText('')
+    setPromptText(builtInPrompt)
     setState('idle')
     setError(undefined)
   }
@@ -122,9 +132,10 @@ function SettingsForm({ t, scope }: { t: CardProps['t']; scope: BtwSettingsScope
       <label className="btw-settings-field">
         <span className="btw-settings-label">{t('settings.promptLabel' as never)}</span>
         <textarea
-          className="btw-settings-textarea"
+          className="btw-settings-textarea btw-settings-prompt"
           value={promptText}
-          rows={6}
+          rows={10}
+          spellCheck={false}
           placeholder={t('settings.promptPlaceholder' as never)}
           disabled={!writable}
           onChange={event => { setPromptText(event.target.value); setState('idle'); setError(undefined) }}

@@ -170,6 +170,61 @@ it('宿主不可写时两个输入框都禁用，避免给出能改的错觉', a
   expect(container.querySelector('.btw-settings-warning')?.textContent).toBe(translate('zh')('settings.unavailable'))
 })
 
+// 用户要的是「打开就能改」，不是「先面对一张空白框去猜内置写了什么」。
+it('没配置过提示词时输入框预填内置文案，而不是空白', async () => {
+  const { forms } = fakeForms({ snapshot: { status: 'ready', writable: true, revision: 1, value: { allowedTools: [], promptPrefix: '' } } })
+  const scope = createSettingsScope(forms)
+  const t = translate('zh')
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: t as never, scope })))
+  const prompt = container.querySelector('.btw-settings-prompt') as HTMLTextAreaElement
+  expect(prompt.value).toBe(t('agent.promptPrefix'))
+  expect(prompt.value.length).toBeGreaterThan(100)
+  // 白名单没有「内置值」可预填，没配置过就还是空的。
+  expect((container.querySelectorAll('textarea')[0] as HTMLTextAreaElement).value).toBe('')
+})
+
+it('已配置过就回显用户自己的值，不被内置文案覆盖', async () => {
+  const { forms } = fakeForms({ snapshot: { status: 'ready', writable: true, revision: 1, value: { allowedTools: [], promptPrefix: '只给结论' } } })
+  const scope = createSettingsScope(forms)
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: translate('zh') as never, scope })))
+  expect((container.querySelector('.btw-settings-prompt') as HTMLTextAreaElement).value).toBe('只给结论')
+})
+
+it('预填的内置文案原样不动时不算改动，保存按钮保持禁用', async () => {
+  const { forms } = fakeForms({ snapshot: { status: 'ready', writable: true, revision: 1, value: { allowedTools: [], promptPrefix: '' } } })
+  const scope = createSettingsScope(forms)
+  const t = translate('zh')
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: t as never, scope })))
+  const save = [...container.querySelectorAll('button')].find(button => button.textContent === t('settings.save'))!
+  expect(save.disabled).toBe(true)
+})
+
+it('把提示词改回内置原文时存空串，恢复「未配置」语义', async () => {
+  const { forms, mutate } = fakeForms({ snapshot: { status: 'ready', writable: true, revision: 1, value: { allowedTools: [], promptPrefix: '只给结论' } } })
+  const scope = createSettingsScope(forms)
+  const t = translate('zh')
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: t as never, scope })))
+  const prompt = container.querySelector('.btw-settings-prompt') as HTMLTextAreaElement
+  await act(async () => { typeInto(prompt, t('agent.promptPrefix')) })
+  const save = [...container.querySelectorAll('button')].find(button => button.textContent === t('settings.save'))!
+  await act(async () => save.click())
+  expect(mutate.mock.calls[0]![0]).toEqual([
+    { op: 'set', path: ['allowedTools'], value: [] },
+    { op: 'set', path: ['promptPrefix'], value: '' },
+  ])
+})
+
+it('恢复默认按钮把提示词填回内置文案（不是清空），并把白名单清空', async () => {
+  const { forms } = fakeForms({ snapshot: { status: 'ready', writable: true, revision: 1, value: { allowedTools: ['pele_draw'], promptPrefix: '只给结论' } } })
+  const scope = createSettingsScope(forms)
+  const t = translate('zh')
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: t as never, scope })))
+  const reset = [...container.querySelectorAll('button')].find(button => button.textContent === t('settings.reset'))!
+  await act(async () => reset.click())
+  expect((container.querySelector('.btw-settings-prompt') as HTMLTextAreaElement).value).toBe(t('agent.promptPrefix'))
+  expect((container.querySelectorAll('textarea')[0] as HTMLTextAreaElement).value).toBe('')
+})
+
 it('非法工具名在客户端就拦下，不发请求', async () => {
   const { forms, mutate } = fakeForms()
   const scope = createSettingsScope(forms)
