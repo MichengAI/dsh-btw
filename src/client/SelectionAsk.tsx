@@ -6,7 +6,7 @@ import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
 import { QuoteDock } from './QuoteDock'
 import type { QuotedReference, QuoteStore } from './quotes'
 import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
-import { insertQuoteReference } from './trigger-source'
+import { insertQuoteReference, createQuoteReferenceInsert } from './trigger-source'
 import { formatAsBlockquote } from './official-quote'
 import { registerAskHandler, attachNativeAskButton } from './NativeBtwAsk'
 
@@ -16,6 +16,7 @@ interface DraftInput {
   focus?(): void
   notify?(level: 'info' | 'error', text: string): void
   insertReference?(ref: unknown, span: unknown): boolean
+  insertQuote?(text: string): boolean
 }
 
 interface SelectionDraft {
@@ -200,16 +201,42 @@ export function SelectionAsk({
   const add = () => {
     if (!draft) return
     try {
-      // 对齐官方规范：直接将引用以 Markdown blockquote 格式追加至输入框草稿
-      if (input) {
+      let inserted = false
+
+      // 1. 优先调用宿主原生的 insertQuote：在输入框呈现官方标准的带链接样式 QuoteNode 交互胶囊
+      if (input && typeof input.insertQuote === 'function') {
+        try {
+          inserted = Boolean(input.insertQuote(draft.reference))
+        } catch {}
+      }
+
+      // 2. 次选：老版本宿主若支持 insertReference，插入带链接高亮样式的 ReferenceChip 胶囊
+      if (!inserted && input && typeof input.insertReference === 'function') {
+        try {
+          const insertPayload = createQuoteReferenceInsert(
+            {
+              id: `quote-${Date.now().toString(36)}`,
+              role: draft.details?.role ?? 'assistant',
+              turnIndex: draft.details?.turnIndex,
+              text: draft.reference,
+            },
+            t
+          )
+          inserted = Boolean(input.insertReference(insertPayload.ref, undefined))
+        } catch {}
+      }
+
+      // 3. 最终兜底：纯文本模式下直接追加 Markdown blockquote
+      if (!inserted && input) {
         const quoteMarkdown = formatAsBlockquote(draft.reference)
         const currentDraft = input.state.getSnapshot().draft ?? ''
         const nextDraft = currentDraft.trim()
           ? `${currentDraft.trimEnd()}\n\n${quoteMarkdown}\n\n`
           : `${quoteMarkdown}\n\n`
         input.setDraft(nextDraft)
-        input.focus?.()
       }
+
+      input?.focus?.()
 
       // 同时维护 quoteStore 供老组件/旧测试兼容
       if (quoteStore && draft.details) {

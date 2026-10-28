@@ -236,3 +236,24 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
   expect(focus).toHaveBeenCalledTimes(2)
 })
 
+it('当宿主提供 insertQuote 时，点击「引用文本」优先调用原生接口以呈现链接样式 QuoteNode', async () => {
+  const insertQuote = vi.fn(() => true)
+  const focus = vi.fn()
+  const mockInput = {
+    state: { getSnapshot: () => ({ draft: '', phase: 'plain' }) },
+    setDraft: vi.fn(),
+    focus,
+    insertQuote,
+  }
+  await act(async () => root.render(React.createElement(React.Fragment, null,
+    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
+
+  await open()
+  await click('引用文本')
+
+  expect(insertQuote).toHaveBeenCalledWith('引用中的原始正文')
+  expect(mockInput.setDraft).not.toHaveBeenCalled()
+  expect(focus).toHaveBeenCalledTimes(1)
+})
+
