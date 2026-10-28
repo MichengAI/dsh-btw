@@ -2,7 +2,12 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NativeBtwAskAction, registerAskHandler, triggerAskModal } from '../src/client/NativeBtwAsk'
+import {
+  NativeBtwAskAction,
+  registerAskHandler,
+  triggerAskModal,
+  attachNativeAskButton,
+} from '../src/client/NativeBtwAsk'
 import { SelectionAsk } from '../src/client/SelectionAsk'
 import { BubbleStore } from '../src/client/bubbles'
 import { translate } from '../src/locales'
@@ -116,6 +121,51 @@ describe('NativeBtwAsk 适配官方选区交互规范与插槽', () => {
     expect(container.textContent).toContain('外部原生按钮传来的内容')
 
     root.unmount()
+    scope.remove()
+  })
+
+  it('attachNativeAskButton 向官方 [data-text-interaction-surface] 自动追加「旁问」按钮并支持点击提问', async () => {
+    const scope = document.createElement('div')
+    scope.setAttribute('data-conversation-scroll', '')
+    scope.innerHTML = '<div data-chat-flow-kind="assistant-step"><p>待旁问的片段</p></div>'
+    document.body.append(scope)
+
+    // 模拟官方选区浮层
+    const surface = document.createElement('div')
+    surface.setAttribute('data-text-interaction-surface', '')
+    const quoteBtn = document.createElement('button')
+    quoteBtn.className = 'official-quote-btn'
+    quoteBtn.textContent = '引用文本'
+    surface.append(quoteBtn)
+    document.body.append(surface)
+
+    const askTarget = vi.fn()
+    registerAskHandler('session-official', askTarget)
+
+    const detach = attachNativeAskButton(scope, 'session-official', translate('zh'))
+
+    // 选中文本
+    const p = scope.querySelector('p')!
+    const range = document.createRange()
+    range.selectNodeContents(p)
+    window.getSelection()!.removeAllRanges()
+    window.getSelection()!.addRange(range)
+
+    // 此时 surface 中应已自动融入 [旁问] 按钮
+    const btwBtn = surface.querySelector<HTMLButtonElement>('.btw-native-ask-button')
+    expect(btwBtn).not.toBeNull()
+    expect(btwBtn?.textContent).toBe('旁问')
+
+    // 点击该融入按钮
+    await act(async () => {
+      btwBtn?.click()
+    })
+
+    expect(askTarget).toHaveBeenCalledWith('待旁问的片段')
+    expect(surface.getAttribute('aria-hidden')).toBe('true')
+
+    detach()
+    surface.remove()
     scope.remove()
   })
 })

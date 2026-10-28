@@ -51,6 +51,63 @@ export function safeRegisterInteraction(
   }
 }
 
+/**
+ * 监听并向宿主官方选区浮层（[data-text-interaction-surface]）动态融入「旁问」按钮。
+ * 当宿主启用了官方 text-interaction 浮层时，并排呈现 [引用文本] [旁问]，绝不丢失旁问入口。
+ */
+export function attachNativeAskButton(
+  scope: HTMLElement,
+  sessionId: string,
+  t: BtwTranslate
+): () => void {
+  const doc = scope.ownerDocument
+  const sync = () => {
+    const surface = doc.querySelector<HTMLElement>('[data-text-interaction-surface]:not([aria-hidden="true"])')
+    if (!surface) return
+    if (surface.querySelector('.btw-native-ask-button')) return
+    const quoteBtn = surface.querySelector('button')
+    if (!quoteBtn) return
+
+    const btwBtn = doc.createElement('button')
+    btwBtn.type = 'button'
+    btwBtn.className = `${quoteBtn.className} btw-native-ask-button`
+    btwBtn.textContent = t('selection.btw')
+    btwBtn.setAttribute('aria-label', t('selection.btw'))
+    btwBtn.style.marginLeft = '4px'
+    btwBtn.onpointerdown = (e) => e.preventDefault()
+    btwBtn.onclick = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const text = doc.getSelection()?.toString().trim()
+      if (text) {
+        triggerAskModal(sessionId, text)
+      }
+      doc.getSelection()?.removeAllRanges()
+      surface.setAttribute('aria-hidden', 'true')
+    }
+    surface.appendChild(btwBtn)
+  }
+
+  const observer = typeof MutationObserver !== 'undefined'
+    ? new MutationObserver(sync)
+    : undefined
+  observer?.observe(doc.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['aria-hidden'],
+  })
+  doc.addEventListener('selectionchange', sync)
+  doc.addEventListener('mouseup', sync)
+  sync()
+
+  return () => {
+    observer?.disconnect()
+    doc.removeEventListener('selectionchange', sync)
+    doc.removeEventListener('mouseup', sync)
+  }
+}
+
 export interface NativeBtwAskActionProps {
   sessionId?: string
   dismiss: () => void

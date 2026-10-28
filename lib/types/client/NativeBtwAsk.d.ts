@@ -20,6 +20,11 @@ export declare function safeRegisterInteraction(interactions: {
     id: string;
     onInteraction: (request: any) => void;
 }): (() => void) | undefined;
+/**
+ * 监听并向宿主官方选区浮层（[data-text-interaction-surface]）动态融入「旁问」按钮。
+ * 当宿主启用了官方 text-interaction 浮层时，并排呈现 [引用文本] [旁问]，绝不丢失旁问入口。
+ */
+export declare function attachNativeAskButton(scope: HTMLElement, sessionId: string, t: BtwTranslate): () => void;
 export interface NativeBtwAskActionProps {
     sessionId?: string;
     dismiss: () => void;

@@ -8,7 +8,7 @@ import type { QuotedReference, QuoteStore } from './quotes'
 import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
 import { insertQuoteReference } from './trigger-source'
 import { formatAsBlockquote } from './official-quote'
-import { registerAskHandler } from './NativeBtwAsk'
+import { registerAskHandler, attachNativeAskButton } from './NativeBtwAsk'
 
 interface DraftInput {
   state: { getSnapshot(): { draft: string; draftRev?: number; phase: string; occurrences?: readonly { source: string; ref: string }[] } }
@@ -77,15 +77,25 @@ export function SelectionAsk({
 
   useEffect(() => {
     mounted.current = true
-    if (nativeSelection) return () => { mounted.current = false }
     const scope = anchor.current?.closest<HTMLElement>('[data-conversation-scroll]')
     // 不猜测第三方布局；没有正文所属容器时仅保留 /btw 入口。
     if (!scope) return () => { mounted.current = false }
+
+    // 动态融合：当宿主展示官方选区浮层时，并排融入「旁问」按钮
+    const detachNative = attachNativeAskButton(scope, sessionId, t)
+
     const open = (event: MouseEvent | KeyboardEvent) => {
       // 只响应选区按键，避免 Escape 的 keyup 撤销刚发生的关闭。
       if (event instanceof KeyboardEvent && (event.isComposing || !(event.key === 'Shift' || (event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))))) return
       if (draft?.form || (event instanceof MouseEvent && event.button !== 0)) return
       if (event.defaultPrevented || !(event.target instanceof Element)) return
+
+      // 若宿主已唤起原生选区浮层并融入了旁问按钮，自建浮层不重复弹出
+      const nativeSurface = scope.ownerDocument.querySelector<HTMLElement>('[data-text-interaction-surface]:not([aria-hidden="true"])')
+      if (nativeSurface && nativeSurface.querySelector('.btw-native-ask-button')) {
+        return
+      }
+
       const details = captureSelectionDetails(scope, event.target)
       if (!details) return
       const rect = document.getSelection()!.getRangeAt(0).getBoundingClientRect()
@@ -104,7 +114,12 @@ export function SelectionAsk({
     }
     scope.addEventListener('mouseup', open)
     scope.addEventListener('keyup', open)
-    return () => { mounted.current = false; scope.removeEventListener('mouseup', open); scope.removeEventListener('keyup', open) }
+    return () => {
+      mounted.current = false
+      detachNative()
+      scope.removeEventListener('mouseup', open)
+      scope.removeEventListener('keyup', open)
+    }
   }, [sessionId, draft?.form])
 
   useLayoutEffect(() => {
@@ -227,7 +242,7 @@ export function SelectionAsk({
     <>
       <span ref={anchor} hidden />
       {!nativeSelection && quoteStore && input && <QuoteDock store={quoteStore} sessionId={sessionId} t={t} input={input} />}
-      {!nativeSelection && draft && !draft.form && (
+      {draft && !draft.form && (
         <div
           ref={menu}
           className="btw-selection-menu"
