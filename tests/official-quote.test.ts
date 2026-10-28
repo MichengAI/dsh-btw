@@ -53,8 +53,9 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
     })
 
     expect(container.textContent).toContain('这是引用的正文')
-    const blockquote = container.querySelector('blockquote, .btw-quote-preview')
-    expect(blockquote).not.toBeNull()
+    const quoteNode = container.querySelector('[data-quote-preview]')
+    expect(quoteNode).not.toBeNull()
+    expect(quoteNode?.querySelector('[data-quote-preview-text]')?.textContent).toBe('这是引用的正文')
     root.unmount()
     container.remove()
   })

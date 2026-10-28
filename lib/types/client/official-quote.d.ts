@@ -33,7 +33,7 @@ export declare const officialQuoteRule: {
     match(text: string, from: number): QuoteNodeMatch | undefined;
 };
 /**
- * 引用文本渲染组件：优先复用宿主原语 QuotePreview；老版本缺少时降级渲染。
+ * 引用文本渲染组件：优先复用宿主原语 QuotePreview；老版本缺少时降级渲染为 1:1 官方链接样式。
  */
 export declare function OfficialQuotePreview({ text }: {
     text: string;

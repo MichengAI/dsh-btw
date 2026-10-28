@@ -71,5 +71,9 @@ export const CSS = `
 .btw-native-ask-action{corner-shape:round;background:var(--dsw-alias-button-floating-fill);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);cursor:pointer;border:none;border-radius:999px;padding:5px 10px;display:inline-flex;align-items:center}
 .btw-native-ask-action:focus-visible{background:var(--dsw-alias-button-floating-hover)}
 @media(hover:hover){.btw-native-ask-action:hover{background:var(--dsw-alias-button-floating-hover)}}
-.btw-official-quote-preview{margin:6px 0;padding:6px 12px;border-left:3px solid var(--dsw-alias-state-business-primary,#2563eb);background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,0.04));border-radius:4px;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.btw-official-quote-node{display:inline-flex;align-items:baseline;gap:4px;box-sizing:border-box;max-width:min(80%,300px);margin:0 4px;padding:0 2px;vertical-align:baseline;color:var(--dsw-alias-state-business-primary,#2563eb);font-size:var(--dsh-content-font-size,14px);line-height:calc(20px + var(--dsh-content-font-delta,0px));cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:transparent;transition:text-decoration-color 140ms ease,opacity 140ms ease}
+.btw-official-quote-node:hover{text-decoration-color:currentColor;opacity:.85}
+.btw-quote-marker{display:grid;place-items:center;align-self:center;flex:none;width:16px;height:16px;padding:0;color:inherit;user-select:none}
+.btw-quote-icon{width:14px;height:14px}
+.btw-quote-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 `
