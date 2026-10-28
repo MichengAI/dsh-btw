@@ -20,6 +20,7 @@ interface Registered {
   key?: string
   priority?: number
   locale?: string
+  inject?: () => object
   component: unknown
 }
 
@@ -78,12 +79,21 @@ function harness(options: { namespaces?: readonly string[]; withConfigForms?: bo
   return { ctx, registered, implementation: () => implementation }
 }
 
-it('configForms 到位时把设置卡片注册到行级配置槽，key 与宿主约定的 `<包名>#<行 id>` 一致', async () => {
+it('configForms 到位时把设置卡片同时注册到包级与行级两个配置槽', async () => {
   const { ctx, registered, implementation } = harness({})
   const plugin = ctx.plugin((scope: Context) => { (implementation() as typeof clientPlugin).apply(scope) })
   try {
     await plugin.await()
     await new Promise(resolve => setImmediate(resolve))
+
+    // 包级槽：插件详情页里那块显眼的配置区，key 必须是包名（宿主用 `pkg.name` 查表）。
+    const bundleCard = registered.find(entry => entry.name === 'plugins.bundle.config')
+    expect(bundleCard).toBeDefined()
+    expect(bundleCard?.key).toBe(BUNDLE_NAME)
+    expect(bundleCard?.priority).toBe(30)
+    expect(typeof bundleCard?.component).toBe('function')
+
+    // 行级槽：`<包名>#<patch 行 id>`，宿主用 rowConfigKey 拼同一个字符串。
     const card = registered.find(entry => entry.name === 'plugins.row.config')
     expect(card).toBeDefined()
     expect(card?.key).toBe(ROW_CONFIG_KEY)
@@ -91,6 +101,10 @@ it('configForms 到位时把设置卡片注册到行级配置槽，key 与宿主
     // 参考插件用 priority 30；同一槽里多个卡片按它排序，保持一致才不会打乱插件页的既有顺序。
     expect(card?.priority).toBe(30)
     expect(typeof card?.component).toBe('function')
+
+    // 两张卡片共用同一个转发 scope：否则同一个配置会被两条互不相干的镜像各读一遍，
+    // 一处保存、另一处显示旧值。
+    expect(bundleCard?.inject?.()).toBe(card?.inject?.())
   } finally {
     await plugin.dispose()
     await ctx.fiber.dispose()
@@ -104,6 +118,7 @@ it('宿主没有 configForms 时整个客户端插件照常激活，只是不出
     await plugin.await()
     await new Promise(resolve => setImmediate(resolve))
     expect(registered.some(entry => entry.name === 'plugins.row.config')).toBe(false)
+    expect(registered.some(entry => entry.name === 'plugins.bundle.config')).toBe(false)
     // 其余槽照常注册：缺设置服务不能把旁问本身也拖垮。
     expect(registered.some(entry => entry.name === 'conversation.input.dock')).toBe(true)
   } finally {

@@ -21,7 +21,7 @@ import { createQuoteTriggerSource } from './trigger-source'
 import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
 import { BtwSettingsCard, type BtwSettingsFace } from './SettingsCard'
-import { createSettingsScope, ROW_CONFIG_KEY, type BtwSettingsScope, type HostConfigForms } from './settings-scope'
+import { createSettingsScope, BUNDLE_NAME, ROW_CONFIG_KEY, type BtwSettingsScope, type HostConfigForms } from './settings-scope'
 
 export const inject = ['slots', 'remote', 'remote.commands', 'locale', 'conversation', 'sessions']
 
@@ -213,7 +213,7 @@ export function apply(ctx: Context): void {
     return () => off.forEach(dispose => dispose())
   })
 
-  // 设置卡片挂在 Plugins 页的行级配置槽里，位置与 dsh-subagent-default-model 相同。
+  // 设置卡片挂在宿主 Plugins 页的配置槽里，位置与 `dsh-subagent-default-model` 完全一致。
   // `configForms` 是宿主 0.1.7+ 的客户端设置面；用软注入，宿主没有它时卡片直接不出现，
   // 不能让整个客户端插件因为少了这个服务而激活失败。
   ctx.inject(['configForms'], scope => {
@@ -221,18 +221,28 @@ export function apply(ctx: Context): void {
     if (!forms) return
     const settingsScope: BtwSettingsScope = createSettingsScope(forms)
     const face: BtwSettingsFace = { scope: settingsScope }
-    // `plugins.row.config` 的 SlotMap 契约由宿主 plugin-manager 包声明，btw 不依赖它，
+    // 这两个槽的 SlotMap 契约由宿主 plugin-manager 包声明，btw 不依赖它，
     // 因此按结构化形状注册：宿主有该槽时才渲染，没有时 register 只是空转。
     const loose = slots as unknown as {
       inject(name: string, callback: () => () => void): () => void
       register(options: { name: string; key: string; priority: number; locale: string; inject?: () => object }, component: unknown): () => void
     }
-    scope.effect(() => loose.inject('plugins.row.config', () => loose.register({
-      name: 'plugins.row.config',
-      key: ROW_CONFIG_KEY,
-      priority: 30,
-      locale: NS,
-      inject: () => face,
-    }, (props: { t: BtwTranslate }) => <BtwSettingsCard t={props.t as never} scope={face.scope} />)))
+    // 两个槽都要注册，缺一个用户就找不到入口：
+    //   · `plugins.bundle.config` —— 插件详情页里那块显眼的配置区（key = 包名）。
+    //   · `plugins.row.config`    —— 「组成部分」列表里那一行的小箭头（key = `<包名>#<行 id>`）。
+    // 只注册行级槽时，详情页没有任何配置区，用户必须先展开列表才看得到一个箭头按钮。
+    const cards: { name: string; key: string }[] = [
+      { name: 'plugins.bundle.config', key: BUNDLE_NAME },
+      { name: 'plugins.row.config', key: ROW_CONFIG_KEY },
+    ]
+    for (const card of cards) {
+      scope.effect(() => loose.inject(card.name, () => loose.register({
+        name: card.name,
+        key: card.key,
+        priority: 30,
+        locale: NS,
+        inject: () => face,
+      }, (props: { t: BtwTranslate }) => <BtwSettingsCard t={props.t as never} scope={face.scope} />)))
+    }
   })
 }
