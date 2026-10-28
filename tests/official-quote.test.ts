@@ -8,6 +8,7 @@ import {
   officialQuoteRule,
   quoteTextOf,
   OfficialQuotePreview,
+  safeRegisterUserTextRule,
 } from '../src/client/official-quote'
 
 describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', () => {
@@ -56,5 +57,26 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
     expect(blockquote).not.toBeNull()
     root.unmount()
     container.remove()
+  })
+
+  it('safeRegisterUserTextRule 与 safeRegisterInteraction 在重复注册时安全返回 undefined 不抛出异常', () => {
+    const definitions = new Map<string, unknown>()
+    const register = (rule: any) => {
+      if (definitions.has(rule.id)) throw new Error(`duplicate: ${rule.id}`)
+      definitions.set(rule.id, rule)
+      return () => definitions.delete(rule.id)
+    }
+    const mockUserText = { definitions, register }
+
+    const off1 = safeRegisterUserTextRule(mockUserText, officialQuoteRule)
+    expect(off1).toBeDefined()
+    expect(definitions.has('quote')).toBe(true)
+
+    // 第二次注册同名规则：应安全返回 undefined，绝不抛出 duplicate 错误
+    const off2 = safeRegisterUserTextRule(mockUserText, officialQuoteRule)
+    expect(off2).toBeUndefined()
+
+    off1?.()
+    expect(definitions.has('quote')).toBe(false)
   })
 })

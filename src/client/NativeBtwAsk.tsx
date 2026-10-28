@@ -35,6 +35,22 @@ export function triggerAskModal(sessionId: string, text: string): boolean {
   return true
 }
 
+/**
+ * 安全向 uiConversation.interactions 注册交互项（避免重复注册已存在的 ID 抛错）。
+ */
+export function safeRegisterInteraction(
+  interactions: { definitions?: Map<string, unknown>; has?: (id: string) => boolean; register?: (item: unknown) => () => void } | undefined,
+  item: { id: string; onInteraction: (request: any) => void }
+): (() => void) | undefined {
+  if (!interactions || typeof interactions.register !== 'function') return undefined
+  if (interactions.definitions?.has(item.id) || interactions.has?.(item.id)) return undefined
+  try {
+    return interactions.register(item)
+  } catch {
+    return undefined
+  }
+}
+
 export interface NativeBtwAskActionProps {
   sessionId?: string
   dismiss: () => void

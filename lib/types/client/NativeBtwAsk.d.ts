@@ -9,6 +9,17 @@ export declare function registerAskHandler(sessionId: string, handler: OpenAskHa
  * 触发指定会话打开旁问弹窗。
  */
 export declare function triggerAskModal(sessionId: string, text: string): boolean;
+/**
+ * 安全向 uiConversation.interactions 注册交互项（避免重复注册已存在的 ID 抛错）。
+ */
+export declare function safeRegisterInteraction(interactions: {
+    definitions?: Map<string, unknown>;
+    has?: (id: string) => boolean;
+    register?: (item: unknown) => () => void;
+} | undefined, item: {
+    id: string;
+    onInteraction: (request: any) => void;
+}): (() => void) | undefined;
 export interface NativeBtwAskActionProps {
     sessionId?: string;
     dismiss: () => void;

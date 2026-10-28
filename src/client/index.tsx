@@ -19,8 +19,8 @@ import { SelectionAsk } from './SelectionAsk'
 import { CSS } from './styles'
 import { createQuoteTriggerSource } from './trigger-source'
 import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
-import { officialQuoteRule, OfficialQuotePreview } from './official-quote'
-import { NativeBtwAskAction } from './NativeBtwAsk'
+import { officialQuoteRule, OfficialQuotePreview, safeRegisterUserTextRule } from './official-quote'
+import { NativeBtwAskAction, safeRegisterInteraction } from './NativeBtwAsk'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
 
 export const inject = ['slots', 'remote', 'remote.commands', 'locale', 'conversation', 'sessions']
@@ -161,22 +161,24 @@ export function apply(ctx: Context): void {
   }
 
   const registerUserTextRule = (uiConversation: unknown) => {
-    const uc = uiConversation as { userText?: { register?: (rule: unknown) => () => void } } | undefined
-    if (uc?.userText && typeof uc.userText.register === 'function') {
-      const offOfficial = uc.userText.register(officialQuoteRule)
-      const offLegacy = uc.userText.register(quoteUserTextRule)
+    const uc = uiConversation as { userText?: { definitions?: Map<string, unknown>; has?: (id: string) => boolean; register?: (rule: unknown) => () => void } } | undefined
+    if (uc?.userText) {
+      const disposers: Array<() => void> = []
+      const offOfficial = safeRegisterUserTextRule(uc.userText, officialQuoteRule)
+      if (typeof offOfficial === 'function') disposers.push(offOfficial)
+      const offLegacy = safeRegisterUserTextRule(uc.userText, quoteUserTextRule)
+      if (typeof offLegacy === 'function') disposers.push(offLegacy)
       return () => {
-        offOfficial?.()
-        offLegacy?.()
+        disposers.forEach(d => d())
       }
     }
     return undefined
   }
 
   const registerInteractions = (uiConversation: unknown) => {
-    const uc = uiConversation as { interactions?: { register?: (item: unknown) => () => void } } | undefined
-    if (uc?.interactions && typeof uc.interactions.register === 'function') {
-      return uc.interactions.register({
+    const uc = uiConversation as { interactions?: { definitions?: Map<string, unknown>; has?: (id: string) => boolean; register?: (item: unknown) => () => void } } | undefined
+    if (uc?.interactions) {
+      return safeRegisterInteraction(uc.interactions, {
         id: 'michengai-btw',
         onInteraction(request: any) {
           if (request.trigger !== 'selection' || request.readText() === null) return
@@ -244,30 +246,43 @@ export function apply(ctx: Context): void {
     )
   }
   slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'michengai-btw', order: -50, locale: NS }, Dock))
-  slots.inject('conversation.chat.text-interaction', () => slots.register({
-    name: 'conversation.chat.text-interaction',
-    key: 'btw',
-    locale: NS,
-  }, NativeBtwAskAction as any))
+  try {
+    slots.inject('conversation.chat.text-interaction', () => {
+      try {
+        return slots.register({
+          name: 'conversation.chat.text-interaction',
+          key: 'btw',
+          locale: NS,
+        }, NativeBtwAskAction as any)
+      } catch {
+        return () => {}
+      }
+    })
+  } catch {}
+
   slots.inject('conversation.user.text.node', () => {
-    const offOfficial = slots.register({
-      name: 'conversation.user.text.node',
-      key: 'quote',
-      priority: 100,
-      locale: NS,
-    }, (({ node }: { node: { data: { text: string } } }) => <OfficialQuotePreview text={node.data.text} />) as any)
+    const disposers: Array<() => void> = []
+    try {
+      const offOfficial = slots.register({
+        name: 'conversation.user.text.node',
+        key: 'quote',
+        priority: 100,
+        locale: NS,
+      }, (({ node }: { node: { data: { text: string } } }) => <OfficialQuotePreview text={node.data.text} />) as any)
+      if (typeof offOfficial === 'function') disposers.push(offOfficial)
+    } catch {}
 
-    const offLegacy = slots.register({
-      name: 'conversation.user.text.node',
-      key: 'dsh-btw-quote',
-      priority: 90,
-      locale: NS,
-    }, QuoteUserTextNode as any)
+    try {
+      const offLegacy = slots.register({
+        name: 'conversation.user.text.node',
+        key: 'dsh-btw-quote',
+        priority: 90,
+        locale: NS,
+      }, QuoteUserTextNode as any)
+      if (typeof offLegacy === 'function') disposers.push(offLegacy)
+    } catch {}
 
-    return () => {
-      offOfficial()
-      offLegacy()
-    }
+    return () => disposers.forEach(d => d())
   })
   slots.inject('conversation.chat.commandview', () => {
     const off = [RUN_COMMAND, CLOSE_COMMAND].map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))

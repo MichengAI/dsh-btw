@@ -38,3 +38,15 @@ export declare const officialQuoteRule: {
 export declare function OfficialQuotePreview({ text }: {
     text: string;
 }): React.JSX.Element;
+/**
+ * 安全向 uiConversation.userText 注册规则（避免重复注册已存在的官方规则导致崩溃）。
+ */
+export declare function safeRegisterUserTextRule(userText: {
+    definitions?: Map<string, unknown>;
+    has?: (id: string) => boolean;
+    register?: (rule: unknown) => () => void;
+} | undefined, rule: {
+    id: string;
+    order: number;
+    match: (text: string, from: number) => unknown;
+}): (() => void) | undefined;
