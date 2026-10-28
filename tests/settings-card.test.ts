@@ -189,3 +189,28 @@ it('镜像未回答时卡片显示读取中，而不是空表单', async () => {
   expect(container.querySelector('[data-btw-settings="loading"]')).not.toBeNull()
   expect(container.querySelectorAll('textarea')).toHaveLength(0)
 })
+
+// 宿主对两个槽都会先要一次 `view: 'summary'`（列表里的一行），再要 `'page'`（表单）。
+// 卡片不看 view 就会把两张 textarea 塞进列表的一行，整页被撑爆——这是插件的真实渲染契约。
+it('view: summary 只渲染一行摘要，不渲染表单', async () => {
+  const scope = createSettingsScope(fakeForms().forms)
+  const t = translate('zh')
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: t as never, scope, view: 'summary' })))
+  expect(container.querySelector('.btw-settings-summary')?.textContent).toBe(t('settings.rowSummary'))
+  expect(container.querySelectorAll('textarea')).toHaveLength(0)
+  expect(container.querySelector('[data-btw-settings="card"]')).toBeNull()
+})
+
+it('view: page 渲染表单', async () => {
+  const scope = createSettingsScope(fakeForms().forms)
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: translate('zh') as never, scope, view: 'page' })))
+  expect(container.querySelector('[data-btw-settings="card"]')).not.toBeNull()
+  expect(container.querySelectorAll('textarea')).toHaveLength(2)
+  expect(container.querySelector('.btw-settings-summary')).toBeNull()
+})
+
+it('不给 view 时按表单渲染（宿主省略 view 的老契约）', async () => {
+  const scope = createSettingsScope(fakeForms().forms)
+  await act(async () => root.render(React.createElement(BtwSettingsCard, { t: translate('zh') as never, scope })))
+  expect(container.querySelector('[data-btw-settings="card"]')).not.toBeNull()
+})

@@ -126,3 +126,29 @@ it('宿主没有 configForms 时整个客户端插件照常激活，只是不出
     await ctx.fiber.dispose()
   }
 })
+
+// 这个 bug 在真机上是可见的：宿主对同一个槽先要 `view: 'summary'`（列表里的一行），
+// 再要 `'page'`（表单）。注册处若不把 `props.view` 透传下去，卡片永远走表单分支，
+// 「包含的组件」列表的每一行都会被两张 textarea 撑开。单测全绿也发现不了，
+// 除非真的把 view 喂给注册的那个组件并检查它渲染出什么。
+it('注册的组件把 props.view 原样透传给卡片：summary 出摘要，page 出表单', async () => {
+  const { ctx, registered, implementation } = harness({})
+  const plugin = ctx.plugin((scope: Context) => { (implementation() as typeof clientPlugin).apply(scope) })
+  try {
+    await plugin.await()
+    await new Promise(resolve => setImmediate(resolve))
+    const card = registered.find(entry => entry.name === 'plugins.row.config')!
+    const render = card.component as (props: unknown) => unknown
+    const face = card.inject?.() ?? {}
+    const t = (key: string) => key
+
+    const summary = render({ t, view: 'summary', ...face }) as { props?: Record<string, unknown> }
+    expect(summary?.props?.view).toBe('summary')
+
+    const page = render({ t, view: 'page', ...face }) as { props?: Record<string, unknown> }
+    expect(page?.props?.view).toBe('page')
+  } finally {
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  }
+})

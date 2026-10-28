@@ -242,7 +242,11 @@ export function apply(ctx: Context): void {
         priority: 30,
         locale: NS,
         inject: () => face,
-      }, (props: { t: BtwTranslate }) => <BtwSettingsCard t={props.t as never} scope={face.scope} />)))
+      }, (
+        // `view` 必须原样透传：宿主对同一个槽先用 `'summary'` 要列表里的一行，
+        // 再用 `'page'` 要表单。丢掉它，列表的每一行都会渲染成整张表单。
+        props: { t: BtwTranslate; view?: 'summary' | 'page' },
+      ) => <BtwSettingsCard t={props.t as never} scope={face.scope} view={props.view} />)))
     }
   })
 }

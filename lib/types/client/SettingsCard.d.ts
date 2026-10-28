@@ -4,14 +4,18 @@ import { type BtwSettingsScope } from './settings-scope';
 export interface BtwSettingsFace {
     scope: BtwSettingsScope;
 }
-/**
- * 旁问设置卡片，挂在 Plugins 页的 `plugins.row.config` 槽里（与
- * `dsh-subagent-default-model` 同一个位置）。
- *
- * 两件事都靠 `scope` 转发读写：宿主镜像回答得比 `apply()` 晚，卡片自己绑死控制器
- * 会出现「控件可用但保存全被拒」，所以绑定状态也由 scope 每帧重新给出。
- */
-export declare function BtwSettingsCard({ t, scope }: {
+/** 槽给卡片的渲染请求；`view: 'summary'` 是列表里的一行，`'page'` 才是表单。 */
+interface CardProps {
     t: (key: never, params?: Record<string, string | number>) => string;
+    view?: 'summary' | 'page';
     scope: BtwSettingsScope;
-}): React.JSX.Element;
+}
+/**
+ * 旁问设置卡片，同时挂在 `plugins.bundle.config`（插件页配置区）与
+ * `plugins.row.config`（「包含的组件」里那一行）两个槽。
+ *
+ * 两个槽都会用 `view: 'summary'` 请求一行摘要、用 `'page'` 请求表单，所以这里必须先按
+ * `view` 分叉：把整张表单塞进列表的一行会让整个列表被两张 textarea 撑爆。
+ */
+export declare function BtwSettingsCard(props: CardProps): React.JSX.Element;
+export {};

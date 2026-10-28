@@ -79,6 +79,7 @@ export declare const zh: {
     'command.internalRun': string;
     'command.internalClose': string;
     'settings.title': string;
+    'settings.rowSummary': string;
     'settings.description': string;
     'settings.allowedToolsLabel': string;
     'settings.allowedToolsHint': string;
