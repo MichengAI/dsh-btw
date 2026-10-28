@@ -61,6 +61,9 @@ it('行级配置 key 与参考插件同形：包名 + patch 行 id', () => {
 it('只在宿主确认服务的命名空间里挑，猜不到就返回 undefined', () => {
   expect(pickNamespace(undefined)).toBeUndefined()
   expect(pickNamespace(fakeForms({ namespaces: ['subagent'] }).forms)).toBeUndefined()
+  // 生产形状：真实 SettingsForms.describe() 报的就是包名本身（实测 2026-10-28）。
+  // 这条是「卡片读不到配置」最容易回归的那一个，单列出来。
+  expect(pickNamespace(fakeForms({ namespaces: ['@michengai/dsh-btw'] }).forms)).toBe('@michengai/dsh-btw')
   expect(pickNamespace(fakeForms({ namespaces: ['other', 'michengai-btw'] }).forms)).toBe('michengai-btw')
   expect(pickNamespace(fakeForms({ namespaces: ['include:michengai-btw'] }).forms)).toBe('include:michengai-btw')
   expect(pickNamespace(fakeForms({ namespaces: ['x/michengai-btw'] }).forms)).toBe('x/michengai-btw')
