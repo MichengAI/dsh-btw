@@ -18,6 +18,9 @@ export interface QuoteNodeData {
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
     interface UserTextDataMap {
         'dsh-btw-quote': QuoteNodeData;
+        'quote': {
+            text: string;
+        };
     }
 }
 export declare function parseQuotePromptBlock(text: string, from?: number): {

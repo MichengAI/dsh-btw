@@ -225,6 +225,7 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
   await open()
   await click('添加到对话')
   expect(quoteStore.getQuotes('session-a')).toHaveLength(1)
+  expect(mockInput.setDraft).toHaveBeenCalledWith('> 引用中的原始正文\n\n')
   expect(focus).toHaveBeenCalledTimes(1)
 
   // 连续引用第二条同样保持聚焦输入框

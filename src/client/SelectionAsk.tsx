@@ -7,6 +7,8 @@ import { QuoteDock } from './QuoteDock'
 import type { QuotedReference, QuoteStore } from './quotes'
 import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
 import { insertQuoteReference } from './trigger-source'
+import { formatAsBlockquote } from './official-quote'
+import { registerAskHandler } from './NativeBtwAsk'
 
 interface DraftInput {
   state: { getSnapshot(): { draft: string; draftRev?: number; phase: string; occurrences?: readonly { source: string; ref: string }[] } }
@@ -33,12 +35,14 @@ export function SelectionAsk({
   sessionId,
   t,
   input,
+  nativeSelection,
 }: {
   store: BubbleStore
   quoteStore?: QuoteStore
   sessionId: string
   t: BtwTranslate
   input?: DraftInput
+  nativeSelection?: boolean
 }): React.JSX.Element {
   const anchor = useRef<HTMLSpanElement>(null)
   const menu = useRef<HTMLDivElement | null>(null)
@@ -55,8 +59,25 @@ export function SelectionAsk({
     previousFocus.current?.focus({ preventScroll: true })
   }
 
+  // 支持外部原生选区交互主动唤起旁问弹窗
+  useEffect(() => {
+    return registerAskHandler(sessionId, reference => {
+      setQuestion('')
+      setError('')
+      setDraft({
+        reference,
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        bottom: window.innerHeight / 2,
+        keyboard: false,
+        form: true,
+      })
+    })
+  }, [sessionId])
+
   useEffect(() => {
     mounted.current = true
+    if (nativeSelection) return () => { mounted.current = false }
     const scope = anchor.current?.closest<HTMLElement>('[data-conversation-scroll]')
     // 不猜测第三方布局；没有正文所属容器时仅保留 /btw 入口。
     if (!scope) return () => { mounted.current = false }
@@ -164,6 +185,18 @@ export function SelectionAsk({
   const add = () => {
     if (!draft) return
     try {
+      // 对齐官方规范：直接将引用以 Markdown blockquote 格式追加至输入框草稿
+      if (input) {
+        const quoteMarkdown = formatAsBlockquote(draft.reference)
+        const currentDraft = input.state.getSnapshot().draft ?? ''
+        const nextDraft = currentDraft.trim()
+          ? `${currentDraft.trimEnd()}\n\n${quoteMarkdown}\n\n`
+          : `${quoteMarkdown}\n\n`
+        input.setDraft(nextDraft)
+        input.focus?.()
+      }
+
+      // 同时维护 quoteStore 供老组件/旧测试兼容
       if (quoteStore && draft.details) {
         quoteStore.addQuote(sessionId, {
           text: draft.details.text,
@@ -180,7 +213,6 @@ export function SelectionAsk({
       }
 
       setDraft(undefined)
-      input?.focus?.()
     } catch (issue) {
       const msg = issue instanceof Error ? issue.message : String(issue)
       if (input?.notify) {
@@ -194,8 +226,8 @@ export function SelectionAsk({
   return (
     <>
       <span ref={anchor} hidden />
-      {quoteStore && input && <QuoteDock store={quoteStore} sessionId={sessionId} t={t} input={input} />}
-      {draft && !draft.form && (
+      {!nativeSelection && quoteStore && input && <QuoteDock store={quoteStore} sessionId={sessionId} t={t} input={input} />}
+      {!nativeSelection && draft && !draft.form && (
         <div
           ref={menu}
           className="btw-selection-menu"

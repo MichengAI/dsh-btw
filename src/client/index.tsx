@@ -19,6 +19,8 @@ import { SelectionAsk } from './SelectionAsk'
 import { CSS } from './styles'
 import { createQuoteTriggerSource } from './trigger-source'
 import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
+import { officialQuoteRule, OfficialQuotePreview } from './official-quote'
+import { NativeBtwAskAction } from './NativeBtwAsk'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
 
 export const inject = ['slots', 'remote', 'remote.commands', 'locale', 'conversation', 'sessions']
@@ -161,7 +163,27 @@ export function apply(ctx: Context): void {
   const registerUserTextRule = (uiConversation: unknown) => {
     const uc = uiConversation as { userText?: { register?: (rule: unknown) => () => void } } | undefined
     if (uc?.userText && typeof uc.userText.register === 'function') {
-      return uc.userText.register(quoteUserTextRule)
+      const offOfficial = uc.userText.register(officialQuoteRule)
+      const offLegacy = uc.userText.register(quoteUserTextRule)
+      return () => {
+        offOfficial?.()
+        offLegacy?.()
+      }
+    }
+    return undefined
+  }
+
+  const registerInteractions = (uiConversation: unknown) => {
+    const uc = uiConversation as { interactions?: { register?: (item: unknown) => () => void } } | undefined
+    if (uc?.interactions && typeof uc.interactions.register === 'function') {
+      return uc.interactions.register({
+        id: 'michengai-btw',
+        onInteraction(request: any) {
+          if (request.trigger !== 'selection' || request.readText() === null) return
+          if (isSubagent(request.sessionId)) return
+          request.open()
+        },
+      })
     }
     return undefined
   }
@@ -173,8 +195,10 @@ export function apply(ctx: Context): void {
       if (typeof off === 'function') scope.effect(() => off)
     })
     ctx.inject(['uiConversation'], scope => {
-      const off = registerUserTextRule(scope.get('uiConversation'))
-      if (typeof off === 'function') scope.effect(() => off)
+      const offRule = registerUserTextRule(scope.get('uiConversation'))
+      const offInteractions = registerInteractions(scope.get('uiConversation'))
+      if (typeof offRule === 'function') scope.effect(() => offRule)
+      if (typeof offInteractions === 'function') scope.effect(() => offInteractions)
     })
   } else {
     ctx.effect(() => attachOfficialBtw(ctx.get('commandUi'), sessionId => claim(sessionId as SessionId), t, isSubagent))
@@ -182,6 +206,8 @@ export function apply(ctx: Context): void {
     if (typeof offTrigger === 'function') ctx.effect(() => offTrigger)
     const offRule = registerUserTextRule(ctx.get('uiConversation'))
     if (typeof offRule === 'function') ctx.effect(() => offRule)
+    const offInteractions = registerInteractions(ctx.get('uiConversation'))
+    if (typeof offInteractions === 'function') ctx.effect(() => offInteractions)
   }
 
   ctx.effect(() => {
@@ -197,15 +223,52 @@ export function apply(ctx: Context): void {
 
   function Dock(props: PropsRuntime<'conversation.input.dock'> & { t: BtwTranslate }): React.JSX.Element {
     const session = (ctx.get('sessions') as unknown as ISessions).scope(props.session.sessionId)
-    return <>{!props.session.subagent && !isSubagent(props.session.sessionId) && <SelectionAsk key={props.session.sessionId} store={store} quoteStore={quoteStore} sessionId={props.session.sessionId} t={props.t} input={session ? ctx.conversation.input.for(session) : undefined} />}<BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} /></>
+    const uc = ctx.get('uiConversation') as { interactions?: { register?: unknown } } | undefined
+    const hasNativeSelection = typeof uc?.interactions?.register === 'function'
+
+    return (
+      <>
+        {!props.session.subagent && !isSubagent(props.session.sessionId) && (
+          <SelectionAsk
+            key={props.session.sessionId}
+            store={store}
+            quoteStore={quoteStore}
+            sessionId={props.session.sessionId}
+            t={props.t}
+            input={session ? ctx.conversation.input.for(session) : undefined}
+            nativeSelection={hasNativeSelection}
+          />
+        )}
+        <BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} />
+      </>
+    )
   }
   slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'michengai-btw', order: -50, locale: NS }, Dock))
-  slots.inject('conversation.user.text.node', () => slots.register({
-    name: 'conversation.user.text.node',
-    key: 'dsh-btw-quote',
-    priority: 100,
+  slots.inject('conversation.chat.text-interaction', () => slots.register({
+    name: 'conversation.chat.text-interaction',
+    key: 'btw',
     locale: NS,
-  }, QuoteUserTextNode as any))
+  }, NativeBtwAskAction as any))
+  slots.inject('conversation.user.text.node', () => {
+    const offOfficial = slots.register({
+      name: 'conversation.user.text.node',
+      key: 'quote',
+      priority: 100,
+      locale: NS,
+    }, (({ node }: { node: { data: { text: string } } }) => <OfficialQuotePreview text={node.data.text} />) as any)
+
+    const offLegacy = slots.register({
+      name: 'conversation.user.text.node',
+      key: 'dsh-btw-quote',
+      priority: 90,
+      locale: NS,
+    }, QuoteUserTextNode as any)
+
+    return () => {
+      offOfficial()
+      offLegacy()
+    }
+  })
   slots.inject('conversation.chat.commandview', () => {
     const off = [RUN_COMMAND, CLOSE_COMMAND].map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))
     return () => off.forEach(dispose => dispose())

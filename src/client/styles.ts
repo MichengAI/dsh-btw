@@ -70,4 +70,8 @@ export const CSS = `
 @keyframes btw-pulse{0%{background-color:var(--dsw-alias-interactive-bg-hover-accent,rgba(59,130,246,0.2))}100%{background-color:transparent}}
 @media(max-width:480px){.btw-dock{max-height:330px}.btw-header{padding:6px 8px 6px 12px;gap:6px}.btw-answer{padding:0 12px 12px;max-height:230px}.btw-status,.btw-error{padding-left:12px}.btw-actions{gap:0}.btw-actions button{width:36px;height:36px}}
 @media(prefers-reduced-motion:reduce){.btw-spinner{animation:none}.btw-actions button{transition:none}}
+.btw-native-ask-action{corner-shape:round;background:var(--dsw-alias-button-floating-fill);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);cursor:pointer;border:none;border-radius:999px;padding:5px 10px;display:inline-flex;align-items:center}
+.btw-native-ask-action:focus-visible{background:var(--dsw-alias-button-floating-hover)}
+@media(hover:hover){.btw-native-ask-action:hover{background:var(--dsw-alias-button-floating-hover)}}
+.btw-official-quote-preview{margin:6px 0;padding:6px 12px;border-left:3px solid var(--dsw-alias-state-business-primary,#2563eb);background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,0.04));border-radius:4px;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 `

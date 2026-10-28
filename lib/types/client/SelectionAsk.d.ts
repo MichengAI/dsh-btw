@@ -20,11 +20,12 @@ interface DraftInput {
     insertReference?(ref: unknown, span: unknown): boolean;
 }
 /** 只接管会话正文选区；非模态 popover 不抢选区，顶层避免滚动裁切。 */
-export declare function SelectionAsk({ store, quoteStore, sessionId, t, input, }: {
+export declare function SelectionAsk({ store, quoteStore, sessionId, t, input, nativeSelection, }: {
     store: BubbleStore;
     quoteStore?: QuoteStore;
     sessionId: string;
     t: BtwTranslate;
     input?: DraftInput;
+    nativeSelection?: boolean;
 }): React.JSX.Element;
 export {};
