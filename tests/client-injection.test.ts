@@ -182,7 +182,7 @@ it('DSH 0.2.0-rc.2 claimStyles 不会误认领或因其他插件卸载而摘除 
   expect(btwStyle).toBeDefined()
   expect(btwStyle.dataset.plugin).toBe('@michengai/dsh-btw')
   expect(btwStyle.dataset.pluginCss).toBe('@michengai/dsh-btw/client.css')
-  expect(btwStyle.textContent).toContain('.btw-selection-dialog,.btw-selection-menu{position:fixed;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2)')
+  expect(btwStyle.textContent).toContain('.btw-selection-dialog{position:fixed;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2)')
   expect(btwStyle.textContent).toContain('.btw-bubble{background:var(--dsw-alias-bg-layer-2)')
 
   // 模拟宿主加载另一个插件

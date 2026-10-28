@@ -1,13 +1,11 @@
 // 跟随宿主主题令牌，避免系统深色偏好覆盖 DSH 手动选择的外观。
 export const CSS = `
 .btw-reference-preview{display:block;margin-top:6px;max-height:3.2em;overflow:hidden;overflow-wrap:anywhere;line-height:1.6;color:var(--dsw-alias-label-primary)}
-.btw-selection-dialog,.btw-selection-menu{position:fixed;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
-.btw-selection-menu{margin:0;width:max-content;max-width:calc(100vw - 16px);padding:0;inset:auto;border-radius:var(--dsw-radius-md,8px);overflow:hidden;border:1px solid var(--dsw-alias-border-l1);font-family:inherit;font-size:12px;font-weight:500;line-height:16px;box-shadow:var(--dsw-shadow-lv1,0 2px 8px rgba(0,0,0,0.12))}
-.btw-selection-menu [role="toolbar"]{display:flex;align-items:center}
-.btw-selection-menu button{display:inline-flex;align-items:center;height:28px;min-height:28px;padding:0 8px;border:0;border-radius:0;text-align:left;white-space:nowrap;background:transparent;color:inherit;font:inherit;cursor:pointer}
-.btw-selection-menu button+button{border-left:1px solid var(--dsw-alias-border-l1)}
-.btw-selection-menu button:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.btw-selection-menu :focus-visible{outline:1px solid var(--dsw-alias-state-business-primary,var(--dsw-alias-label-primary));outline-offset:-2px}
+.btw-selection-dialog{position:fixed;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
+.btw-selection-menu{position:fixed;display:inline-flex;align-items:center;gap:6px;margin:0;width:max-content;max-width:calc(100vw - 16px);padding:0;inset:auto;border:none;background:transparent;box-shadow:none;pointer-events:auto;z-index:1000}
+.btw-selection-menu button{display:inline-flex;align-items:center;justify-content:center;corner-shape:round;background:var(--dsw-alias-button-floating-fill);border:1px solid var(--dsw-alias-border-l3,rgba(0,0,0,0.1));box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);cursor:pointer;border-radius:999px;padding:5px 12px;min-height:28px;white-space:nowrap;user-select:none;transition:background-color 120ms ease}
+.btw-selection-menu button:hover{background:var(--dsw-alias-button-floating-hover)}
+.btw-selection-menu button:focus-visible{background:var(--dsw-alias-button-floating-hover);outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}
 .btw-selection-modal{max-width:min(520px,calc(100vw - 32px))!important}
 .btw-selection-label{display:flex;flex-direction:column;gap:8px;margin-top:12px;font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary)}
 .btw-selection-modal textarea{box-sizing:border-box;width:100%;min-height:96px;resize:vertical;font:inherit;font-size:13px;line-height:1.5;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md,8px);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}

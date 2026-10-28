@@ -6,6 +6,7 @@ export declare const zh: {
     'selection.ask': string;
     'selection.add': string;
     'selection.btw': string;
+    'quote.add': string;
     'selection.reference': string;
     'selection.question': string;
     'selection.questionPlaceholder': string;

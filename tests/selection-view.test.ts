@@ -147,7 +147,7 @@ it('正文滚动、窗口失焦和隐藏会话关闭菜单，已打开的提问�
 
 it('添加引用不发送，右键保持原生，侧边栏选区不触发正文工具条', async () => {
   await open()
-  await click('添加到对话')
+  await click('引用文本')
   expect(quoteStore.getQuotes('session-a')).toHaveLength(1)
   expect(quoteStore.getQuotes('session-a')[0]?.text).toBe('引用中的原始正文')
   expect(run).not.toHaveBeenCalled()
@@ -179,7 +179,7 @@ it('Escape 完整按键不重开，普通按键不触发，键盘选区释放 Sh
   await act(async () => { p.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true })) })
   expect(mount.querySelector('.btw-selection-menu')).toBeNull()
   await act(async () => { p.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true })) })
-  expect(document.activeElement?.textContent).toBe('添加到对话')
+  expect(document.activeElement?.textContent).toBe('引用文本')
 })
 
 it('没有 Popover API 时降级为普通浮层，仍能打开旁问', async () => {
@@ -223,7 +223,7 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
     React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
 
   await open()
-  await click('添加到对话')
+  await click('引用文本')
   expect(quoteStore.getQuotes('session-a')).toHaveLength(1)
   expect(mockInput.setDraft).toHaveBeenCalledWith('> 引用中的原始正文\n\n')
   expect(focus).toHaveBeenCalledTimes(1)
@@ -231,7 +231,7 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
   // 连续引用第二条同样保持聚焦输入框
   scope.querySelector('p')!.textContent = '第二段不同的引用文本'
   await open()
-  await click('添加到对话')
+  await click('引用文本')
   expect(quoteStore.getQuotes('session-a')).toHaveLength(2)
   expect(focus).toHaveBeenCalledTimes(2)
 })
