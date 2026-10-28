@@ -174,9 +174,16 @@ Notes:
 
 ### Example: let a side question draw diagrams
 
-[`dsh-pele`](https://github.com/hesheng01/dsh-pele) ([npm](https://www.npmjs.com/package/dsh-pele)) provides the `pele_draw` tool, which renders Mermaid source into an SVG card inside the conversation. Add `pele_draw` to **Allowed tools** and a side question can draw too.
+[`dsh-pele`](https://github.com/hesheng01/dsh-pele) provides the `pele_draw` tool, which renders Mermaid source into an SVG card inside the conversation. Add `pele_draw` to **Allowed tools** and a side question can draw too.
 
-> Note: `dsh-pele` is a recent plugin and is not in the plugin marketplace yet, so install it from its GitHub or npm page rather than searching the marketplace for it.
+> Note: `dsh-pele` is a recent plugin that is not published to npm and not in the plugin marketplace yet, so it cannot be installed by searching the marketplace. Clone the repository and install its `plugin` directory into your profile:
+>
+> ```bash
+> git clone https://github.com/hesheng01/dsh-pele.git
+> dsh plugin --profile <profile> add <absolute-path>/dsh-pele/plugin
+> ```
+>
+> The first install needs a Host restart.
 
 ## Uninstallation
 

@@ -174,9 +174,16 @@ BTW 只接受文字。输入框中附带图片或普通文件时会拒绝旁问�
 
 ### 示例：让旁问画图
 
-[`dsh-pele`](https://github.com/hesheng01/dsh-pele)（[npm](https://www.npmjs.com/package/dsh-pele)）提供 `pele_draw` 工具，把 Mermaid 源码渲染成会话里的 SVG 图表卡片。把 `pele_draw` 填进 **放行工具**，旁问也能画图。
+[`dsh-pele`](https://github.com/hesheng01/dsh-pele) 提供 `pele_draw` 工具，把 Mermaid 源码渲染成会话里的 SVG 图表卡片。把 `pele_draw` 填进 **放行工具**，旁问也能画图。
 
-> 注意：`dsh-pele` 是最近新出的插件，暂时还没上架插件市场，请从上面的 GitHub 或 npm 页面安装，不要在插件市场里搜。
+> 注意：`dsh-pele` 是最近新出的插件，还没有发布到 npm，也暂时没上架插件市场，因此在插件市场里搜不到。安装方式是从 GitHub 克隆仓库，把其中的 `plugin` 目录装进 profile：
+>
+> ```bash
+> git clone https://github.com/hesheng01/dsh-pele.git
+> dsh plugin --profile <profile> add <绝对路径>/dsh-pele/plugin
+> ```
+>
+> 首次接入需要重启 Host。
 
 ## 卸载
 
