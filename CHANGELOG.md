@@ -5,6 +5,7 @@
 - Configurable tool whitelist: add a settings page on the plugin's row in **Plugins** (the same place as `dsh-subagent-default-model`'s configuration) where a comma-free, one-per-line list of tool names widens what a side question may call. The execution-time guard reads the whitelist on every call, so changes apply to the next side question without reloading the plugin. Empty keeps the previous text-only behaviour.
 - Configurable prompt: the same page can replace the built-in side-question prompt. The tool-permission sentence and the reply-channel sentence are always appended, so a custom prompt cannot talk the model past the guard, and `send_message` stays outside the whitelist so returning an answer is still bound to the parent session.
 - Keep the parent prompt cache intact: the whitelist and the custom prompt only change the trailing user message; the tool list and system prompt stay byte-identical to the main conversation.
+- Pre-fill the prompt box with the built-in text: opening the settings shows the actual prompt to edit in place instead of a blank box. Saving it unchanged restores the default rather than pinning a stale snapshot into the user's config.
 
 ## [1.1.1] - 2026-10-27
 

@@ -48,6 +48,18 @@ Each answer has its own copy, collapse or expand, and close controls in the uppe
 
 ![Multiple answer bubbles with copy, collapse, and close controls](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-bubbles.png)
 
+### Side-question settings
+
+Open **Plugins**, pick `@michengai/dsh-btw`, and the settings form sits directly on the detail page — the whitelist and the prompt box, pre-filled with the built-in prompt so you can edit it in place.
+
+![The side-question settings form on the plugin detail page](assets/screenshots/btw-settings-panel.png)
+
+### Drawing from a side question
+
+With `pele_draw` on the whitelist, a side question can render a diagram. It shows up inside the side-question panel, and the main conversation is untouched.
+
+![A side question rendering a flowchart with pele_draw](assets/screenshots/btw-pele-draw.png)
+
 ## DSH product ecosystem
 
 For a desktop workbench, download [DSH Codex Desktop](https://github.com/MichengAI/dsh-codex-desktop/releases). Existing [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) installations can add plugins as needed by following each project's README. Below are 11 first-party plugins; consult the corresponding desktop release notes and bundled catalog for what that version includes.
@@ -150,7 +162,7 @@ Open **Plugins**, find `@michengai/dsh-btw`, and open **Configure** on its row. 
 | Field | Effect |
 | --- | --- |
 | **Allowed tools** | Tool names the side question may call in addition to `send_message`, one per line (for example `pele_draw`). Empty allows text answers only, which is the default. |
-| **Custom prompt** | Instruction text that replaces the built-in side-question prompt. Empty keeps the built-in prompt. |
+| **Custom prompt** | Instruction text that replaces the built-in side-question prompt. The box is pre-filled with the built-in prompt so you can edit it in place; saving it unchanged restores the default. |
 
 Notes:
 
@@ -159,6 +171,12 @@ Notes:
 - The custom prompt replaces the instruction prefix only. The tool-permission sentence and the reply-channel sentence are always appended, so the model never believes it can call everything.
 - Changes apply to the next side question without reloading the plugin.
 - The permission sentence names the allowed tools, so widening the whitelist changes the side-question prompt. That prompt is a trailing user message; the tool list and system prompt stay byte-identical to the main conversation, so parent prompt cache reuse is unaffected.
+
+### Example: let a side question draw diagrams
+
+[`dsh-pele`](https://github.com/hesheng01/dsh-pele) ([npm](https://www.npmjs.com/package/dsh-pele)) provides the `pele_draw` tool, which renders Mermaid source into an SVG card inside the conversation. Add `pele_draw` to **Allowed tools** and a side question can draw too.
+
+> Note: `dsh-pele` is a recent plugin and is not in the plugin marketplace yet, so install it from its GitHub or npm page rather than searching the marketplace for it.
 
 ## Uninstallation
 
