@@ -20,6 +20,8 @@ import { CSS } from './styles'
 import { createQuoteTriggerSource } from './trigger-source'
 import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
+import { BtwSettingsCard, type BtwSettingsFace } from './SettingsCard'
+import { createSettingsScope, ROW_CONFIG_KEY, type BtwSettingsScope, type HostConfigForms } from './settings-scope'
 
 export const inject = ['slots', 'remote', 'remote.commands', 'locale', 'conversation', 'sessions']
 
@@ -209,5 +211,28 @@ export function apply(ctx: Context): void {
   slots.inject('conversation.chat.commandview', () => {
     const off = [RUN_COMMAND, CLOSE_COMMAND].map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))
     return () => off.forEach(dispose => dispose())
+  })
+
+  // 设置卡片挂在 Plugins 页的行级配置槽里，位置与 dsh-subagent-default-model 相同。
+  // `configForms` 是宿主 0.1.7+ 的客户端设置面；用软注入，宿主没有它时卡片直接不出现，
+  // 不能让整个客户端插件因为少了这个服务而激活失败。
+  ctx.inject(['configForms'], scope => {
+    const forms = scope.get('configForms') as HostConfigForms | undefined
+    if (!forms) return
+    const settingsScope: BtwSettingsScope = createSettingsScope(forms)
+    const face: BtwSettingsFace = { scope: settingsScope }
+    // `plugins.row.config` 的 SlotMap 契约由宿主 plugin-manager 包声明，btw 不依赖它，
+    // 因此按结构化形状注册：宿主有该槽时才渲染，没有时 register 只是空转。
+    const loose = slots as unknown as {
+      inject(name: string, callback: () => () => void): () => void
+      register(options: { name: string; key: string; priority: number; locale: string; inject?: () => object }, component: unknown): () => void
+    }
+    scope.effect(() => loose.inject('plugins.row.config', () => loose.register({
+      name: 'plugins.row.config',
+      key: ROW_CONFIG_KEY,
+      priority: 30,
+      locale: NS,
+      inject: () => face,
+    }, (props: { t: BtwTranslate }) => <BtwSettingsCard t={props.t as never} scope={face.scope} />)))
   })
 }

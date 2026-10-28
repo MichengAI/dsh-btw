@@ -8,11 +8,13 @@ import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference
 import { SIDE_MAX_OUTPUT_TOKENS } from './limits'
 import { DEFAULT_TIMEOUT_MS, SideJobs } from './server/jobs'
 import { createAnswerOnlyGuard, identityOfFromContext } from './server/tool-guard'
+import { readSettings } from './server/settings'
 import { translate } from './locales'
 import { hideInternalCommands } from './server/command-visibility'
 
 export const name = 'michengai-btw'
 export const inject = ['commands', 'subagents', 'tools']
+export { Config } from './server/settings'
 
 interface GuardedAgent {
   ctx?: {
@@ -23,12 +25,14 @@ interface GuardedAgent {
 }
 
 /** 宿主命令只负责接入与身份绑定，不创建 HTTP 或持久侧聊接口。 */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config?: unknown): void {
   ctx.effect(() => hideInternalCommands(ctx.commands))
   const labels = new Set<string>()
+  // 配置每读一次都重新解包：设置面板改完立即对下一次旁问生效，不需要重载插件。
+  const settingsNow = () => readSettings(config)
   // 保护挂在子代理自己的上下文上，随子代理释放，不借用宿主根 fiber。
   // dsh-tui 会拒绝插件激活期间的 root.effect / root.events。
-  const protection = createAnswerOnlyGuard(labels, identityOfFromContext(ctx))
+  const protection = createAnswerOnlyGuard(labels, identityOfFromContext(ctx), () => settingsNow().allowedTools)
   const releasePluginGuard = ctx.tools.guard(protection)
   const childGuards = new WeakMap<object, () => void | Promise<void>>()
   const arm = (agent: GuardedAgent) => {
@@ -70,8 +74,12 @@ export function apply(ctx: Context): void {
     const label = t('agent.name')
     retainLabel(label)
     const parentId = (request.context as Agent | undefined)?.session?.header?.id
+    const settings = settingsNow()
     const replyHint = parentId === undefined ? '' : `\n\n${t('agent.replyHint', { parent: JSON.stringify(parentId) })}`
-    const promptText = `${t('agent.promptPrefix')}${replyHint}\n\n${request.question}`
+    // 自定义提示词替换内置前缀；工具权限句始终追加，配置不能让模型误以为「什么都能调」。
+    const permissions = settings.allowedTools.length === 0 ? '' : `\n\n${t('agent.toolsAllowed', { tools: settings.allowedTools.join(', ') })}`
+    const prefix = settings.promptPrefix === '' ? t('agent.promptPrefix') : settings.promptPrefix
+    const promptText = `${prefix}${permissions}${replyHint}\n\n${request.question}`
     const subagents = ctx.subagents as unknown as {
       startActivation?: (spec: {
         provider: string

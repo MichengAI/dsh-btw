@@ -141,6 +141,25 @@ BTW accepts text only. Side questions with images or files are rejected without 
 - Each question is independent and uses completed content from the main conversation at the time you ask. It does not include an answer still being generated or previous side questions.
 - Bubbles are not restored after refreshing the page. Copy any answers you want to keep first.
 
+## Settings
+
+Both entries are optional. Leaving them empty keeps the built-in behaviour: text answers only, with the shipped prompt.
+
+Open **Plugins**, find `@michengai/dsh-btw`, and open **Configure** on its row. The page sits in the same place as the configuration page of `dsh-subagent-default-model`.
+
+| Field | Effect |
+| --- | --- |
+| **Allowed tools** | Tool names the side question may call in addition to `send_message`, one per line (for example `pele_draw`). Empty allows text answers only, which is the default. |
+| **Custom prompt** | Instruction text that replaces the built-in side-question prompt. Empty keeps the built-in prompt. |
+
+Notes:
+
+- The whitelist widens what the side question may call; the main conversation is never restricted by it. A name that does not exist simply allows nothing.
+- `send_message` is not a whitelist entry. Delivering an answer back to the main conversation stays bound to the rule that it may only target the side question's own parent session, so a whitelist entry cannot turn it into "send to any agent".
+- The custom prompt replaces the instruction prefix only. The tool-permission sentence and the reply-channel sentence are always appended, so the model never believes it can call everything.
+- Changes apply to the next side question without reloading the plugin.
+- The permission sentence names the allowed tools, so widening the whitelist changes the side-question prompt. That prompt is a trailing user message; the tool list and system prompt stay byte-identical to the main conversation, so parent prompt cache reuse is unaffected.
+
 ## Uninstallation
 
 ```powershell

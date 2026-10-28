@@ -47,7 +47,8 @@
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-api-remotes",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-input-trigger"
+        "@deepseek-ai/dsh-client-ui-input-trigger",
+        "@deepseek-ai/dsh-client-ui-settings"
       ]
     }
   },
@@ -65,10 +66,14 @@
     "dsh": ">=0.2.0-rc.1 <0.3.0-0"
   },
   "license": "Apache-2.0",
+  "dependencies": {
+    "@deepseek-ai/schemastery": ">=3.18.1 <4.0.0"
+  },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
     "@deepseek-ai/dsh-client-ui-input-trigger": ">=0.2.0-rc.1 <0.3.0-0",
     "@deepseek-ai/dsh-client-ui-primitives": ">=0.2.0-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.2.0-rc.1 <0.3.0-0",
     "@deepseek-ai/dsh-commands": ">=0.2.0-rc.1 <0.3.0-0",
     "@deepseek-ai/dsh-session": ">=0.2.0-rc.1 <0.3.0-0",
     "@deepseek-ai/dsh-subagent": ">=0.2.0-rc.1 <0.3.0-0",
