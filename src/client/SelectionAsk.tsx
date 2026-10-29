@@ -6,6 +6,7 @@ import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
 import type { QuotedReference, QuoteStore } from './quotes'
 import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
 import { formatAsBlockquote } from './official-quote'
+import { insertQuoteReference } from './trigger-source'
 import { registerAskHandler, attachNativeAskButton } from './NativeBtwAsk'
 
 interface DraftInput {
@@ -13,6 +14,7 @@ interface DraftInput {
   setDraft(text: string): void
   focus?(): void
   notify?(level: 'info' | 'error', text: string): void
+  insertReference?(ref: unknown, span: unknown): boolean
   insertQuote?(text: string): boolean
 }
 
@@ -207,7 +209,23 @@ export function SelectionAsk({
         } catch {}
       }
 
-      // 2. 老宿主：100% 对齐官方正统规范，以 Markdown blockquote 格式追加带入草稿，用户可自由编辑、删减
+      // 2. 老宿主：调用成熟的原子引用机制，在输入框插入带有链接样式的引用节点（正文展示、链接色高亮）
+      if (!inserted && input && typeof input.insertReference === 'function') {
+        try {
+          inserted = insertQuoteReference(
+            input as any,
+            {
+              id: `quote-${Date.now().toString(36)}`,
+              role: draft.details?.role ?? 'assistant',
+              turnIndex: draft.details?.turnIndex,
+              text: draft.reference,
+            },
+            t
+          )
+        } catch {}
+      }
+
+      // 3. 最终兜底：纯文本模式下直接追加 Markdown blockquote
       if (!inserted && input) {
         const quoteMarkdown = formatAsBlockquote(draft.reference)
         const currentDraft = input.state.getSnapshot().draft ?? ''

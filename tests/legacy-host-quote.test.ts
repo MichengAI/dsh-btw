@@ -71,7 +71,9 @@ describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验�
     expect(textSpan?.textContent).toBe('老宿主气泡中的引文')
   })
 
-  it('老版本宿主输入框：无 insertQuote 时，点击「引用文本」100% 对齐官方规范以 Markdown blockquote 带入输入框草稿', async () => {
+  it('老版本宿主输入框：无 insertQuote 但支持 insertReference 时，点击「引用文本」插入原子正文链接节点', async () => {
+    let capturedRef: any = null
+    let capturedSpan: any = null
     const focus = vi.fn()
     const mockLegacyInput = {
       state: {
@@ -83,6 +85,11 @@ describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验�
       },
       setDraft: vi.fn(),
       focus,
+      insertReference: vi.fn((ref, span) => {
+        capturedRef = ref
+        capturedSpan = span
+        return true
+      }),
     }
 
     await act(async () => {
@@ -119,8 +126,16 @@ describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验�
       quoteBtn!.click()
     })
 
-    // 核心断言：以规范 Markdown blockquote 格式追加带入草稿，且输入框重新聚焦
-    expect(mockLegacyInput.setDraft).toHaveBeenCalledWith('用户当前正在编写的问题草稿\n\n> 老版本宿主气泡里\n\n')
+    // 核心断言：
+    // 1. 调用了 insertReference，正文作为 label 拥有链接卡片视觉
+    expect(mockLegacyInput.insertReference).toHaveBeenCalled()
+    expect(capturedRef.source).toBe('dsh-btw-quote')
+    expect(capturedRef.label).toBe('老版本宿主气泡里')
+    // 2. 插入位置在现有草稿末尾
+    expect(capturedSpan.start).toBe('用户当前正在编写的问题草稿'.length)
+    // 3. 绝不能调用 setDraft 拍平为纯文本 Markdown！
+    expect(mockLegacyInput.setDraft).not.toHaveBeenCalled()
+    // 4. 输入框重新聚焦
     expect(focus).toHaveBeenCalledTimes(1)
   })
 

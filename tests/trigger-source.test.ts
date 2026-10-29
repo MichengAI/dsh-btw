@@ -113,7 +113,7 @@ describe('trigger-source 结构化引用通道 (Issue #12)', () => {
     expect(ok).toBe(true)
     expect(mockInput.insertReference).toHaveBeenCalled()
     expect(insertedRef.source).toBe(QUOTE_TRIGGER_SOURCE)
-    expect(insertedRef.label).toBe('引用 · 助手 · 第 3 轮')
+    expect(insertedRef.label).toBe('局部引文')
     expect(insertedRef.appearance).toBe('file')
     expect(insertedSpan.start).toBe('用户打的字'.length)
     expect(insertedSpan.draftRev).toBe(3)

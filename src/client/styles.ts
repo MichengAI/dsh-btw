@@ -81,4 +81,6 @@ export const CSS = `
 [data-text-interaction-surface] button.btw-native-ask-button{order:2!important;margin:0!important}
 .btw-selection-menu button:first-child{order:1!important}
 .btw-selection-menu button:last-child{order:2!important}
+[data-lexical-editor] span[class*="reference"]{color:var(--dsw-alias-state-business-primary,#2563eb)!important;font-weight:500!important;cursor:pointer!important;text-decoration:underline!important;text-underline-offset:3px!important;text-decoration-color:transparent!important;transition:text-decoration-color 140ms ease,opacity 140ms ease!important}
+[data-lexical-editor] span[class*="reference"]:hover{text-decoration-color:currentColor!important;opacity:.85!important}
 `

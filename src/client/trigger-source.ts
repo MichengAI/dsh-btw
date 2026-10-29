@@ -58,9 +58,9 @@ export function createQuoteReferenceInsert(
   },
   t: BtwTranslate
 ): ReferenceInsert {
-  const roleName = quote.role === 'user' ? t('quote.role.user') : t('quote.role.assistant')
-  const turnStr = quote.turnIndex ? t('quote.turn', { turn: quote.turnIndex }) : ''
-  const label = `${t('quote.panelTitle')} · ${roleName}${turnStr}`
+  // 对齐官方 QuoteNode 展现：以引用文本正文作为输入框展示标签（单行超出省略）
+  const preview = quote.text.trim().replace(/\s+/g, ' ')
+  const label = preview.length > 36 ? `${preview.slice(0, 36)}…` : preview
   const fakeRef: QuotedReference = {
     id: quote.id,
     sessionId: '',
@@ -76,7 +76,7 @@ export function createQuoteReferenceInsert(
     ref: serializeQuoteRef(quote),
     label,
     appearance: 'file',
-    clipboardText: formatQuotesWithDraft('', [fakeRef], t).trim(),
+    clipboardText: `> ${quote.text.trim()}\n\n`,
   }
 }
 
