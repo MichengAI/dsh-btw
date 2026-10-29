@@ -6,7 +6,6 @@ import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
 import { QuoteDock } from './QuoteDock'
 import type { QuotedReference, QuoteStore } from './quotes'
 import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
-import { insertQuoteReference, createQuoteReferenceInsert } from './trigger-source'
 import { formatAsBlockquote } from './official-quote'
 import { registerAskHandler, attachNativeAskButton } from './NativeBtwAsk'
 
@@ -15,7 +14,6 @@ interface DraftInput {
   setDraft(text: string): void
   focus?(): void
   notify?(level: 'info' | 'error', text: string): void
-  insertReference?(ref: unknown, span: unknown): boolean
   insertQuote?(text: string): boolean
 }
 
@@ -203,30 +201,14 @@ export function SelectionAsk({
     try {
       let inserted = false
 
-      // 1. 优先调用宿主原生的 insertQuote：在输入框呈现官方标准的带链接样式 QuoteNode 交互胶囊
+      // 1. 新宿主：优先调用原生 insertQuote，呈现官方交互式链接 QuoteNode
       if (input && typeof input.insertQuote === 'function') {
         try {
           inserted = Boolean(input.insertQuote(draft.reference))
         } catch {}
       }
 
-      // 2. 次选：老版本宿主若支持 insertReference，使用原子引用机制插入带有链接样式的 ReferenceChip 胶囊
-      if (!inserted && input && typeof input.insertReference === 'function') {
-        try {
-          inserted = insertQuoteReference(
-            input as any,
-            {
-              id: `quote-${Date.now().toString(36)}`,
-              role: draft.details?.role ?? 'assistant',
-              turnIndex: draft.details?.turnIndex,
-              text: draft.reference,
-            },
-            t
-          )
-        } catch {}
-      }
-
-      // 3. 最终兜底：纯文本模式下直接追加 Markdown blockquote
+      // 2. 老宿主：100% 对齐官方正统规范，以 Markdown blockquote 格式追加带入草稿，用户可自由编辑、删减
       if (!inserted && input) {
         const quoteMarkdown = formatAsBlockquote(draft.reference)
         const currentDraft = input.state.getSnapshot().draft ?? ''
