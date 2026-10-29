@@ -257,3 +257,32 @@ it('当宿主提供 insertQuote 时，点击「引用文本」优先调用原生
   expect(focus).toHaveBeenCalledTimes(1)
 })
 
+it('在老版本宿主（无 insertQuote 但提供 insertReference）时，点击「引用文本」调用 insertQuoteReference 插入原子链接胶囊，不拍平正文', async () => {
+  let insertedRef: any = null
+  let insertedSpan: any = null
+  const focus = vi.fn()
+  const mockInput = {
+    state: { getSnapshot: () => ({ draft: '既有用户草稿', draftRev: 1, phase: 'plain' }) },
+    setDraft: vi.fn(),
+    focus,
+    insertReference: vi.fn((ref, span) => {
+      insertedRef = ref
+      insertedSpan = span
+      return true
+    }),
+  }
+  await act(async () => root.render(React.createElement(React.Fragment, null,
+    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
+
+  await open()
+  await click('引用文本')
+
+  expect(mockInput.insertReference).toHaveBeenCalled()
+  expect(insertedRef.source).toBe('dsh-btw-quote')
+  expect(insertedRef.label).toContain('引用')
+  expect(insertedSpan.start).toBe('既有用户草稿'.length)
+  expect(mockInput.setDraft).not.toHaveBeenCalled()
+  expect(focus).toHaveBeenCalledTimes(1)
+})
+

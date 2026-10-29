@@ -210,10 +210,11 @@ export function SelectionAsk({
         } catch {}
       }
 
-      // 2. 次选：老版本宿主若支持 insertReference，插入带链接高亮样式的 ReferenceChip 胶囊
+      // 2. 次选：老版本宿主若支持 insertReference，使用原子引用机制插入带有链接样式的 ReferenceChip 胶囊
       if (!inserted && input && typeof input.insertReference === 'function') {
         try {
-          const insertPayload = createQuoteReferenceInsert(
+          inserted = insertQuoteReference(
+            input as any,
             {
               id: `quote-${Date.now().toString(36)}`,
               role: draft.details?.role ?? 'assistant',
@@ -222,7 +223,6 @@ export function SelectionAsk({
             },
             t
           )
-          inserted = Boolean(input.insertReference(insertPayload.ref, undefined))
         } catch {}
       }
 
