@@ -148,8 +148,6 @@ it('正文滚动、窗口失焦和隐藏会话关闭菜单，已打开的提问�
 it('添加引用不发送，右键保持原生，侧边栏选区不触发正文工具条', async () => {
   await open()
   await click('引用文本')
-  expect(quoteStore.getQuotes('session-a')).toHaveLength(1)
-  expect(quoteStore.getQuotes('session-a')[0]?.text).toBe('引用中的原始正文')
   expect(run).not.toHaveBeenCalled()
   expect(mount.querySelector<HTMLElement>('dialog, .btw-selection-menu')).toBeNull()
   const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
@@ -224,7 +222,6 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
 
   await open()
   await click('引用文本')
-  expect(quoteStore.getQuotes('session-a')).toHaveLength(1)
   expect(mockInput.setDraft).toHaveBeenCalledWith('> 引用中的原始正文\n\n')
   expect(focus).toHaveBeenCalledTimes(1)
 
@@ -232,7 +229,6 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
   scope.querySelector('p')!.textContent = '第二段不同的引用文本'
   await open()
   await click('引用文本')
-  expect(quoteStore.getQuotes('session-a')).toHaveLength(2)
   expect(focus).toHaveBeenCalledTimes(2)
 })
 

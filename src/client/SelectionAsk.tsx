@@ -3,7 +3,6 @@ import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
-import { QuoteDock } from './QuoteDock'
 import type { QuotedReference, QuoteStore } from './quotes'
 import { captureSelection, captureSelectionDetails, type CapturedSelectionDetails } from './selection'
 import { formatAsBlockquote } from './official-quote'
@@ -219,23 +218,6 @@ export function SelectionAsk({
       }
 
       input?.focus?.()
-
-      // 同时维护 quoteStore 供老组件/旧测试兼容
-      if (quoteStore && draft.details) {
-        quoteStore.addQuote(sessionId, {
-          text: draft.details.text,
-          role: draft.details.role,
-          turnIndex: draft.details.turnIndex,
-          anchorElement: draft.details.element,
-          t,
-        })
-      } else if (quoteStore) {
-        quoteStore.addQuote(sessionId, {
-          text: draft.reference,
-          t,
-        })
-      }
-
       setDraft(undefined)
     } catch (issue) {
       const msg = issue instanceof Error ? issue.message : String(issue)
@@ -250,7 +232,6 @@ export function SelectionAsk({
   return (
     <>
       <span ref={anchor} hidden />
-      {!nativeSelection && quoteStore && input && <QuoteDock store={quoteStore} sessionId={sessionId} t={t} input={input} />}
       {draft && !draft.form && (
         <div
           ref={menu}
