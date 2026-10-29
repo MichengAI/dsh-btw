@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ReferenceChip } from '@deepseek-ai/dsh-client-ui-primitives'
 import { jumpToQuote } from './quotes'
 import { translate, type BtwTranslate } from '../locales'
+import { OfficialQuotePreview } from './official-quote'
 
 export interface ParsedQuoteItem {
   readonly label: string
@@ -157,160 +158,25 @@ export function QuoteUserTextNode(props: {
   readonly t?: BtwTranslate
 }): React.JSX.Element {
   const { node } = props
-  const [open, setOpen] = useState(false)
-  const chipWrapperRef = useRef<HTMLSpanElement>(null)
-  const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
-  const t = props.t ?? translate(node.data.isEn ? 'en' : 'zh')
-
-  const updatePosition = () => {
-    if (!chipWrapperRef.current) return
-    const rect = chipWrapperRef.current.getBoundingClientRect()
-    const cardWidth = Math.min(420, window.innerWidth - 24)
-    // 优先在下方展示；若下方空间不足（少于 220px）且上方空间充裕，则在上方展示
-    let top = rect.bottom + 6 + window.scrollY
-    if (rect.bottom + 260 > window.innerHeight && rect.top > 260) {
-      top = rect.top - 6 - 240 + window.scrollY
-    }
-    let left = rect.left + window.scrollX
-    if (left + cardWidth > window.innerWidth - 12) {
-      left = window.innerWidth - cardWidth - 12 + window.scrollX
-    }
-    if (left < 12) left = 12
-    setPos({ top, left })
-  }
-
-  const handleActivate = () => {
-    if (!open) {
-      updatePosition()
-    }
-    setOpen(prev => !prev)
-  }
-
-  const handleJump = (item: ParsedQuoteItem) => {
-    if (item.role && item.turnIndex !== undefined) {
-      jumpToQuote({
-        id: '',
-        sessionId: '',
-        createdAt: 0,
-        text: item.text,
-        role: item.role,
-        turnIndex: item.turnIndex,
-      })
-    }
-    setOpen(false)
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const onClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node | null
-      if (
-        chipWrapperRef.current &&
-        !chipWrapperRef.current.contains(target) &&
-        !document.querySelector('.btw-user-bubble-popover')?.contains(target)
-      ) {
-        setOpen(false)
-      }
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    const onScrollOrResize = () => {
-      updatePosition()
-    }
-
-    document.addEventListener('mousedown', onClickOutside, true)
-    document.addEventListener('keydown', onKeyDown)
-    window.addEventListener('resize', onScrollOrResize)
-    window.addEventListener('scroll', onScrollOrResize, true)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside, true)
-      document.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('resize', onScrollOrResize)
-      window.removeEventListener('scroll', onScrollOrResize, true)
-    }
-  }, [open])
-
-  const popover = open && typeof document !== 'undefined'
-    ? createPortal(
-        <div
-          className="btw-codex-popover btw-user-bubble-popover"
-          style={{
-            position: 'absolute',
-            top: `${pos.top}px`,
-            left: `${pos.left}px`,
-            bottom: 'auto',
-            zIndex: 10000,
-            width: 'min(420px, calc(100vw - 24px))',
-            boxSizing: 'border-box',
-          }}
-          role="dialog"
-          aria-label={t('quote.panelTitle')}
-        >
-          <div className="btw-codex-popover-header">
-            <div className="btw-codex-popover-title-group">
-              <span className="btw-codex-popover-icon" aria-hidden="true">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M2.5 4.75a.75.75 0 0 1 .75-.75h9.5a.75.75 0 0 1 0 1.5h-9.5a.75.75 0 0 1-.75-.75zm0 5a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75z" />
-                </svg>
-              </span>
-              <span className="btw-codex-popover-title-text">{t('quote.detailTitle')}</span>
-              <span className="btw-codex-count-badge">{node.data.items.length}</span>
-            </div>
-            <div className="btw-codex-popover-actions">
-              <button
-                type="button"
-                className="btw-codex-pill-remove"
-                onClick={() => setOpen(false)}
-                aria-label={t('quote.close')}
-                title={t('quote.close')}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-          <div className="btw-codex-popover-list">
-            {node.data.items.map((item, idx) => (
-              <div key={idx} className="btw-codex-comment-card">
-                <div className="btw-codex-card-header">
-                  <span className="btw-codex-tag-badge">{item.label}</span>
-                  {item.turnIndex !== undefined && (
-                    <button
-                      type="button"
-                      className="btw-codex-action-btn"
-                      onClick={() => handleJump(item)}
-                      title={t('quote.jump')}
-                    >
-                      {t('quote.jump')}
-                    </button>
-                  )}
-                </div>
-                <div className="btw-codex-card-body">
-                  <blockquote>{item.text}</blockquote>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>,
-        document.body
-      )
-    : null
-
-  const titlePreview = node.data.items.map(it => `${it.label}: ${it.text}`).join('\n') || node.data.label
+  const items = node.data.items && node.data.items.length > 0
+    ? node.data.items
+    : [{ text: node.data.raw || node.data.label }]
 
   return (
     <span
-      ref={chipWrapperRef}
-      className="btw-user-quote-chip-wrapper"
-      style={{ display: 'inline-flex', alignItems: 'center', margin: '2px 4px 2px 0' }}
+      className="btw-official-quote-group"
+      style={{
+        display: 'inline-flex',
+        flexDirection: 'column',
+        gap: '4px',
+        margin: '2px 0',
+        verticalAlign: 'middle',
+        maxWidth: '100%',
+      }}
     >
-      <ReferenceChip
-        appearance="file"
-        label={node.data.label}
-        title={titlePreview}
-        onActivate={handleActivate}
-      />
-      {popover}
+      {items.map((item, idx) => (
+        <OfficialQuotePreview key={idx} text={item.text} />
+      ))}
     </span>
   )
 }

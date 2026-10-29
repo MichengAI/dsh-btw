@@ -83,4 +83,6 @@ export const CSS = `
 .btw-selection-menu button:last-child{order:2!important}
 [data-lexical-editor] span[class*="reference"]{color:var(--dsw-alias-state-business-primary,#2563eb)!important;font-weight:500!important;cursor:pointer!important;text-decoration:underline!important;text-underline-offset:3px!important;text-decoration-color:transparent!important;transition:text-decoration-color 140ms ease,opacity 140ms ease!important}
 [data-lexical-editor] span[class*="reference"]:hover{text-decoration-color:currentColor!important;opacity:.85!important}
+.btw-quote-popover-text{display:block;padding:8px 10px;color:var(--dsw-alias-label-primary);font-size:14px;line-height:20px;overflow-wrap:anywhere;white-space:pre-wrap;max-width:min(520px,calc(100vw - 32px))}
+.btw-official-quote-group{display:inline-flex;flex-direction:column;gap:4px;margin:2px 0;vertical-align:middle;max-width:100%}
 `

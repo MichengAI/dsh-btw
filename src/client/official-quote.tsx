@@ -94,7 +94,7 @@ function OfficialQuoteIcon({ className }: { className?: string }): React.JSX.Ele
 }
 
 /**
- * 引用文本渲染组件：优先复用宿主原语 QuotePreview；老版本缺少时降级渲染为 1:1 官方链接样式。
+ * 引用文本渲染组件：优先复用宿主原语 QuotePreview；老版本缺少时降级渲染为 1:1 官方链接样式并支持 HoverCard 预览全文。
  */
 export function OfficialQuotePreview({ text }: { text: string }): React.JSX.Element {
   const HostQuotePreview = (primitives as Record<string, unknown>).QuotePreview as React.ComponentType<{ text: string }> | undefined
@@ -102,16 +102,62 @@ export function OfficialQuotePreview({ text }: { text: string }): React.JSX.Elem
     return <HostQuotePreview text={text} />
   }
 
-  return (
+  const textRef = React.useRef<HTMLSpanElement>(null)
+  const [isTruncated, setIsTruncated] = React.useState(false)
+
+  React.useLayoutEffect(() => {
+    const el = textRef.current
+    if (!el) return
+    const check = () => {
+      setIsTruncated(el.scrollWidth > el.clientWidth)
+    }
+    check()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(check)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [text])
+
+  const anchor = (
     <span className="btw-official-quote-node" data-quote-preview="" title={text}>
       <span className="btw-quote-marker" aria-hidden="true">
         <OfficialQuoteIcon className="btw-quote-icon" />
       </span>
-      <span className="btw-quote-text" data-quote-preview-text="">
+      <span ref={textRef} className="btw-quote-text" data-quote-preview-text="">
         {text}
       </span>
     </span>
   )
+
+  const HostHoverCard = (primitives as Record<string, unknown>).HoverCard as React.ComponentType<{
+    inline?: boolean
+    grouped?: boolean
+    fitContent?: boolean
+    openDelayMs?: number
+    disabled?: boolean
+    anchor: React.ReactNode
+    content: React.ReactNode
+  }> | undefined
+
+  if (typeof HostHoverCard === 'function') {
+    return (
+      <HostHoverCard
+        inline
+        grouped
+        fitContent
+        openDelayMs={0}
+        disabled={!isTruncated}
+        anchor={anchor}
+        content={
+          <span className="btw-quote-popover-text" data-quote-popover="" aria-hidden="true">
+            {text}
+          </span>
+        }
+      />
+    )
+  }
+
+  return anchor
 }
 
 /**
