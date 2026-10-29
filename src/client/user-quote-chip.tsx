@@ -1,8 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { ReferenceChip } from '@deepseek-ai/dsh-client-ui-primitives'
-import { jumpToQuote } from './quotes'
-import { translate, type BtwTranslate } from '../locales'
+import React from 'react'
+import type { BtwTranslate } from '../locales'
 import { OfficialQuotePreview } from './official-quote'
 
 export interface ParsedQuoteItem {

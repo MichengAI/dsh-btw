@@ -1,5 +1,5 @@
 import React from 'react';
-import { type BtwTranslate } from '../locales';
+import type { BtwTranslate } from '../locales';
 export interface ParsedQuoteItem {
     readonly label: string;
     readonly text: string;
