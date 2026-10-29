@@ -71,18 +71,15 @@ export const CSS = `
 .btw-native-ask-action{corner-shape:round;background:var(--dsw-alias-button-floating-fill);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);cursor:pointer;border:none;border-radius:999px;padding:5px 10px;display:inline-flex;align-items:center}
 .btw-native-ask-action:focus-visible{background:var(--dsw-alias-button-floating-hover)}
 @media(hover:hover){.btw-native-ask-action:hover{background:var(--dsw-alias-button-floating-hover)}}
-.btw-official-quote-node{display:inline-flex;align-items:baseline;gap:4px;box-sizing:border-box;max-width:min(80%,300px);margin:0 4px;padding:0 2px;vertical-align:baseline;color:var(--dsw-alias-state-business-primary,#2563eb);font-size:var(--dsh-content-font-size,14px);line-height:calc(20px + var(--dsh-content-font-delta,0px));cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:transparent;transition:text-decoration-color 140ms ease,opacity 140ms ease}
-.btw-official-quote-node:hover{text-decoration-color:currentColor;opacity:.85}
-.btw-quote-marker{display:grid;place-items:center;align-self:center;flex:none;width:16px;height:16px;padding:0;color:inherit;user-select:none}
-.btw-quote-icon{width:14px;height:14px}
-.btw-quote-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.btw-official-quote-node{display:inline-flex;align-items:baseline;gap:4px;box-sizing:border-box;max-width:min(80%,300px);margin:0;padding:0;vertical-align:baseline;color:var(--dsw-alias-state-business-primary);font-size:var(--dsh-content-font-size,14px);line-height:calc(20px + var(--dsh-content-font-delta,0px));cursor:pointer;text-decoration:none}
+.btw-quote-marker{display:grid;place-items:center;align-self:center;flex:none;width:16px;height:16px;padding:0;color:inherit;user-select:none;pointer-events:none}
+.btw-quote-icon{width:16px;height:16px}
+.btw-quote-text{min-width:0;padding:0;border:none;outline:none;background:none;color:inherit;font:inherit;line-height:inherit;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btw-quote-popover-text{display:block;padding:8px 10px;color:var(--dsw-alias-label-primary);font-size:14px;line-height:20px;overflow-wrap:anywhere;white-space:pre-wrap;max-width:min(520px,calc(100vw - 32px))}
+.btw-official-quote-group{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0 0 6px 0;padding:0;max-width:100%}
 [data-text-interaction-surface]{display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:6px!important}
 [data-text-interaction-surface] button:not(.btw-native-ask-button){order:1!important;margin:0!important}
 [data-text-interaction-surface] button.btw-native-ask-button{order:2!important;margin:0!important}
 .btw-selection-menu button:first-child{order:1!important}
 .btw-selection-menu button:last-child{order:2!important}
-[data-lexical-editor] span[class*="reference"]{color:var(--dsw-alias-state-business-primary,#2563eb)!important;font-weight:500!important;cursor:pointer!important;text-decoration:underline!important;text-underline-offset:3px!important;text-decoration-color:transparent!important;transition:text-decoration-color 140ms ease,opacity 140ms ease!important}
-[data-lexical-editor] span[class*="reference"]:hover{text-decoration-color:currentColor!important;opacity:.85!important}
-.btw-quote-popover-text{display:block;padding:8px 10px;color:var(--dsw-alias-label-primary);font-size:14px;line-height:20px;overflow-wrap:anywhere;white-space:pre-wrap;max-width:min(520px,calc(100vw - 32px))}
-.btw-official-quote-group{display:inline-flex;flex-direction:column;gap:4px;margin:2px 0;vertical-align:middle;max-width:100%}
 `
