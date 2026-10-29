@@ -48,6 +48,18 @@ Each answer has its own copy, collapse or expand, and close controls in the uppe
 
 ![Multiple answer bubbles with copy, collapse, and close controls](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-bubbles.png)
 
+### Side-question settings
+
+Open **Plugins**, pick `@michengai/dsh-btw`, and the settings form sits directly on the detail page — the whitelist and the prompt box, pre-filled with the built-in prompt so you can edit it in place.
+
+![The side-question settings form on the plugin detail page](assets/screenshots/btw-settings-panel.png)
+
+### Drawing from a side question
+
+With `pele_draw` on the whitelist, a side question can render a diagram. It shows up inside the side-question panel, and the main conversation is untouched.
+
+![A side question rendering a flowchart with pele_draw](assets/screenshots/btw-pele-draw.png)
+
 ## DSH product ecosystem
 
 For a desktop workbench, download [DSH Codex Desktop](https://github.com/MichengAI/dsh-codex-desktop/releases). Existing [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) installations can add plugins as needed by following each project's README. Below are 11 first-party plugins; consult the corresponding desktop release notes and bundled catalog for what that version includes.
@@ -140,6 +152,38 @@ BTW accepts text only. Side questions with images or files are rejected without 
 
 - Each question is independent and uses completed content from the main conversation at the time you ask. It does not include an answer still being generated or previous side questions.
 - Bubbles are not restored after refreshing the page. Copy any answers you want to keep first.
+
+## Settings
+
+Both entries are optional. Leaving them empty keeps the built-in behaviour: text answers only, with the shipped prompt.
+
+Open **Plugins**, find `@michengai/dsh-btw`, and open **Configure** on its row. The page sits in the same place as the configuration page of `dsh-subagent-default-model`.
+
+| Field | Effect |
+| --- | --- |
+| **Allowed tools** | Tool names the side question may call in addition to `send_message`, one per line (for example `pele_draw`). Empty allows text answers only, which is the default. |
+| **Custom prompt** | Instruction text that replaces the built-in side-question prompt. The box is pre-filled with the built-in prompt so you can edit it in place; saving it unchanged restores the default. |
+
+Notes:
+
+- The whitelist widens what the side question may call; the main conversation is never restricted by it. A name that does not exist simply allows nothing.
+- `send_message` is not a whitelist entry. Delivering an answer back to the main conversation stays bound to the rule that it may only target the side question's own parent session, so a whitelist entry cannot turn it into "send to any agent".
+- The custom prompt replaces the instruction prefix only. The tool-permission sentence and the reply-channel sentence are always appended, so the model never believes it can call everything.
+- Changes apply to the next side question without reloading the plugin.
+- The permission sentence names the allowed tools, so widening the whitelist changes the side-question prompt. That prompt is a trailing user message; the tool list and system prompt stay byte-identical to the main conversation, so parent prompt cache reuse is unaffected.
+
+### Example: let a side question draw diagrams
+
+[`dsh-pele`](https://github.com/hesheng01/dsh-pele) provides the `pele_draw` tool, which renders Mermaid source into an SVG card inside the conversation. Add `pele_draw` to **Allowed tools** and a side question can draw too.
+
+> Note: `dsh-pele` is a recent plugin that is not published to npm and not in the plugin marketplace yet, so it cannot be installed by searching the marketplace. Clone the repository and install its `plugin` directory into your profile:
+>
+> ```bash
+> git clone https://github.com/hesheng01/dsh-pele.git
+> dsh plugin --profile <profile> add <absolute-path>/dsh-pele/plugin
+> ```
+>
+> The first install needs a Host restart.
 
 ## Uninstallation
 

@@ -30,6 +30,13 @@ export interface AnswerOnlyGuard {
     recognize(session: object, event: SessionEventLike): void;
 }
 /**
+ * 工具白名单的读取函数。
+ *
+ * 用 getter 而不是快照：配置项在设置面板里是可写的，用户在面板里改完就应在下一次
+ * 旁问里生效，不需要重载插件。返回空数组表示「只放行 send_message」。
+ */
+export type AllowedToolsOf = () => readonly string[];
+/**
  * 唯一放行的继承工具，且只能发给自己的父会话。复用宿主的 `send_message`
  * 而不是新注册工具，才能保持旁问请求的工具列表与主会话逐字节一致
  * （`tests/cache-prefix.test.ts` 的 prompt cache 复用护栏）。
@@ -42,4 +49,4 @@ export declare function identityOfFromContext(ctx: {
     get(name: string): unknown;
 }): IdentityOf | undefined;
 /** 空白名单过滤继承工具；本保护额外拒绝 PTC 及子作用域自注册工具。 */
-export declare function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: IdentityOf): AnswerOnlyGuard;
+export declare function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: IdentityOf, allowedTools?: AllowedToolsOf): AnswerOnlyGuard;

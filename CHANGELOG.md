@@ -1,12 +1,19 @@
 # Changelog
 
+## [1.3.0] - 2026-10-29
+
+- Configurable tool whitelist: add a settings page on the plugin's row in **Plugins** (the same place as `dsh-subagent-default-model`'s configuration) where a comma-free, one-per-line list of tool names widens what a side question may call. The execution-time guard reads the whitelist on every call, so changes apply to the next side question without reloading the plugin. Empty keeps the previous text-only behaviour (#22).
+- Configurable prompt: the same page can replace the built-in side-question prompt. The tool-permission sentence and the reply-channel sentence are always appended, so a custom prompt cannot talk the model past the guard, and `send_message` stays outside the whitelist so returning an answer is still bound to the parent session (#22).
+- Keep parent prompt cache intact: the whitelist and custom prompt only change the trailing user message; tool definitions and system prompt stay byte-identical to the main conversation (#22).
+- Pre-fill prompt box with built-in text: opening settings shows the actual prompt to edit in place instead of a blank box. Saving it unchanged restores the default rather than pinning a stale snapshot into configuration (#22).
+
 ## [1.2.0] - 2026-10-29
 
 - Align with official message quotes specification: Pixel-perfect adoption of `@deepseek-ai/dsh-message-quotes` text selection interactions. Seamlessly integrate into the native `conversation.chat.text-interaction` slot on newer hosts while providing an exact floating fallback on older hosts.
 - Deterministic selection toolbar ordering: Lock toolbar layout with "Quote text" on the left and "Ask BTW" on the right with a 6px gap, completely eliminating race-condition button jumping and capsule squeezing.
 - Clean composer with rich-text quote link: Render quotes as inline rich-text link cards inside the input composer and completely eliminate obsolete floating pill bars above the composer.
 - Bubble quote cards and HoverCard full-text preview: Elevate user bubble quotes to inline quote cards with native double-quote SVG markers and ellipsis overflow, accompanied by full-text HoverCard popovers on mouse hover.
-- Compatibility matrix expansion: Broaden multi-host compatibility test suites to encompass the latest Release Candidate (`0.2.1-rc.4`) and latest Alpha release (`0.2.2-alpha.2`), ensuring 100% parity from `0.2.0-rc.1` through cutting-edge hosts.
+- Compatibility matrix expansion: Broaden multi-host compatibility test suites to encompass the latest Release Candidate (`0.2.0-rc.2`) and latest Alpha release (`0.3.0-alpha.0`), ensuring 100% parity from `0.2.0-rc.1` through cutting-edge hosts.
 
 ## [1.1.1] - 2026-10-27
 

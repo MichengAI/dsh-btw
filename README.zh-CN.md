@@ -48,6 +48,18 @@
 
 ![多条旁问气泡及复制、折叠和关闭操作](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-bubbles.png)
 
+### 旁问配置
+
+打开 **插件**，选中 `@michengai/dsh-btw`，配置表单就在详情页上——放行工具与提示词两个输入框，提示词框已预填内置文案，可以直接在上面改。
+
+![插件详情页上的旁问配置表单](assets/screenshots/btw-settings-panel.png)
+
+### 在旁问里画图
+
+把 `pele_draw` 加进白名单后，旁问也能画图。图显示在旁问面板里，主对话不受影响。
+
+![旁问调用 pele_draw 渲染流程图](assets/screenshots/btw-pele-draw.png)
+
 ## DSH 产品生态
 
 想使用桌面工作台，可下载 [DSH Codex Desktop](https://github.com/MichengAI/dsh-codex-desktop/releases)；已有 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 环境，可按各项目 README 按需安装。以下列出 11 个自研插件；桌面端实际随附范围以对应版本的发行说明和内置清单为准。
@@ -140,6 +152,38 @@ BTW 只接受文字。输入框中附带图片或普通文件时会拒绝旁问�
 
 - 每次旁问相互独立，参考的是提问时主会话已完成的内容，不包含正在生成的回答或之前的旁问。
 - 刷新页面后气泡不会保留，需要保存的答案请先复制。
+
+## 配置
+
+下面两项都是可选的。两项都留空时保持出厂行为：只允许纯文字回答，使用内置提示词。
+
+打开 **插件**，找到 `@michengai/dsh-btw`，点击该行的 **配置**。配置页位置与 `dsh-subagent-default-model` 的配置页相同。
+
+| 配置项 | 作用 |
+| --- | --- |
+| **放行工具** | 除 `send_message` 之外，旁问还允许调用的工具名，每行一个（例如 `pele_draw`）。留空表示只允许纯文字回答，这也是默认值。 |
+| **自定义提示词** | 替换内置的旁问提示词。输入框已预填内置文案，可直接在上面修改；原样保存即恢复默认。 |
+
+说明：
+
+- 白名单只放宽旁问能调用的范围，从不限制主对话；写了不存在的工具名，等于什么都没放行。
+- `send_message` 不能写进白名单。把答案回传主对话仍然只允许发给旁问自己的父会话，白名单无法把它变成「发给任意 agent」。
+- 自定义提示词只替换指令前缀；工具权限说明与回传通道说明始终追加在末尾，避免模型误以为可以随意调用工具。
+- 改完对下一次旁问生效，不需要重新加载插件。
+- 权限说明里会点名放行的工具，因此放宽白名单会改变旁问提示词。它属于末尾的用户消息，工具定义与系统提示词仍与主会话逐字节一致，不影响主会话的 prompt cache 复用。
+
+### 示例：让旁问画图
+
+[`dsh-pele`](https://github.com/hesheng01/dsh-pele) 提供 `pele_draw` 工具，把 Mermaid 源码渲染成会话里的 SVG 图表卡片。把 `pele_draw` 填进 **放行工具**，旁问也能画图。
+
+> 注意：`dsh-pele` 是最近新出的插件，还没有发布到 npm，也暂时没上架插件市场，因此在插件市场里搜不到。安装方式是从 GitHub 克隆仓库，把其中的 `plugin` 目录装进 profile：
+>
+> ```bash
+> git clone https://github.com/hesheng01/dsh-pele.git
+> dsh plugin --profile <profile> add <绝对路径>/dsh-pele/plugin
+> ```
+>
+> 首次接入需要重启 Host。
 
 ## 卸载
 

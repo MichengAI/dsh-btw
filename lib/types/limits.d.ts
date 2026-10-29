@@ -17,3 +17,10 @@ export declare const MAX_TOTAL_QUOTES_LENGTH = 16000;
  * 既够写长答案，也给历史留出余量；确需更大预算时可在此调整。
  */
 export declare const SIDE_MAX_OUTPUT_TOKENS = 32000;
+/**
+ * 设置项输入上限，Host 解析与客户端卡片共用，避免两侧各写一份而漂移：
+ * - MAX_TOOL_NAME_LENGTH: 单个放行工具名的字符上限
+ * - MAX_PROMPT_LENGTH: 自定义提示词的 UTF-16 长度上限（与提问文本同量级）
+ */
+export declare const MAX_TOOL_NAME_LENGTH = 120;
+export declare const MAX_PROMPT_LENGTH = 8000;

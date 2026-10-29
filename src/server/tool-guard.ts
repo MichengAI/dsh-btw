@@ -32,6 +32,26 @@ export interface AnswerOnlyGuard {
 const DENY = 'BTW 仅允许文字回答，禁止执行任何工具。 / BTW allows text responses only; tool execution is strictly prohibited.'
 
 /**
+ * 白名单非空时的拒绝文案。
+ *
+ * 默认（白名单为空）保持 `DENY` 原文不变，既让既有提示语与测试断言逐字节稳定，
+ * 也避免在什么都没配置时给出一段「允许了某些工具」的误导说明。
+ */
+function denyFor(allowed: readonly string[]): string {
+  if (allowed.length === 0) return DENY
+  const list = allowed.join(', ')
+  return `BTW 仅允许文字回答与白名单工具（${list}），其余工具一律禁止。 / BTW allows text responses plus the whitelisted tools (${list}); every other tool call is rejected.`
+}
+
+/**
+ * 工具白名单的读取函数。
+ *
+ * 用 getter 而不是快照：配置项在设置面板里是可写的，用户在面板里改完就应在下一次
+ * 旁问里生效，不需要重载插件。返回空数组表示「只放行 send_message」。
+ */
+export type AllowedToolsOf = () => readonly string[]
+
+/**
  * 唯一放行的继承工具，且只能发给自己的父会话。复用宿主的 `send_message`
  * 而不是新注册工具，才能保持旁问请求的工具列表与主会话逐字节一致
  * （`tests/cache-prefix.test.ts` 的 prompt cache 复用护栏）。
@@ -86,7 +106,15 @@ export function identityOfFromContext(ctx: { get(name: string): unknown }): Iden
 }
 
 /** 空白名单过滤继承工具；本保护额外拒绝 PTC 及子作用域自注册工具。 */
-export function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: IdentityOf): AnswerOnlyGuard {
+export function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: IdentityOf, allowedTools: AllowedToolsOf = () => []): AnswerOnlyGuard {
+  const allowedNow = (): string[] => {
+    const names = allowedTools()
+    if (!Array.isArray(names)) return []
+    // 回传工具由 `isReplyToParent` 单独把关（含父会话归属校验），不进白名单：
+    // 否则用户把 send_message 写进白名单就能让旁问把答案发给任意 agent。
+    return names.filter(name => typeof name === 'string' && name.length > 0 && name !== REPLY_TOOL)
+  }
+
   const owned = new WeakSet<object>()
   const ownedIds = new Set<string>()
   const claim = (value: object | undefined) => {
@@ -112,10 +140,16 @@ export function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: 
 
   const guard: AnswerOnlyGuard = ({ agent, name, arguments: args }) => {
     if (!agent) return undefined
-    // 唯一放行：把答案发回自己的父会话。其余工具、以及发给其它 agent 的 send_message 一律拒绝。
+    // 放行集合：把答案发回自己的父会话，加上用户配置的白名单工具。
+    // 其余工具、以及发给其它 agent 的 send_message 一律拒绝。
     // 三条认领路径（预登记 id / 已认领对象 / 投影或快照 label）都必须返回 verdict，
     // 否则 isOwnedId 先短路会让回传通道在生产主路径上失效。
-    const verdict = isReplyToParent(name, args, agent) ? undefined : DENY
+    const allowed = allowedNow()
+    // 白名单只覆盖普通工具；回传工具的父会话归属校验由 `isReplyToParent` 独占，
+    // 配置无法把「只能交回自己的主会话」放宽成「发给任意 agent」。
+    const permitted = isReplyToParent(name, args, agent)
+      || (name !== undefined && allowed.includes(name))
+    const verdict = permitted ? undefined : denyFor(allowed)
     if (isOwnedId(agent)) return verdict
     if (owned.has(agent) || (agent.session !== undefined && owned.has(agent.session))) return verdict
     const label = lastDescriptorLabel(agent.session, identityOf)

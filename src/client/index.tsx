@@ -22,6 +22,8 @@ import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
 import { officialQuoteRule, OfficialQuotePreview, safeRegisterUserTextRule } from './official-quote'
 import { NativeBtwAskAction, safeRegisterInteraction } from './NativeBtwAsk'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
+import { BtwSettingsCard, type BtwSettingsFace } from './SettingsCard'
+import { createSettingsScope, BUNDLE_NAME, ROW_CONFIG_KEY, type BtwSettingsScope, type HostConfigForms } from './settings-scope'
 
 export const inject = ['slots', 'remote', 'remote.commands', 'locale', 'conversation', 'sessions']
 
@@ -288,5 +290,42 @@ export function apply(ctx: Context): void {
   slots.inject('conversation.chat.commandview', () => {
     const off = [RUN_COMMAND, CLOSE_COMMAND].map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))
     return () => off.forEach(dispose => dispose())
+  })
+
+  // 设置卡片挂在宿主 Plugins 页的配置槽里，位置与 `dsh-subagent-default-model` 完全一致。
+  // `configForms` 是宿主 0.1.7+ 的客户端设置面；用软注入，宿主没有它时卡片直接不出现，
+  // 不能让整个客户端插件因为少了这个服务而激活失败。
+  ctx.inject(['configForms'], scope => {
+    const forms = scope.get('configForms') as HostConfigForms | undefined
+    if (!forms) return
+    const settingsScope: BtwSettingsScope = createSettingsScope(forms)
+    const face: BtwSettingsFace = { scope: settingsScope }
+    // 这两个槽的 SlotMap 契约由宿主 plugin-manager 包声明，btw 不依赖它，
+    // 因此按结构化形状注册：宿主有该槽时才渲染，没有时 register 只是空转。
+    const loose = slots as unknown as {
+      inject(name: string, callback: () => () => void): () => void
+      register(options: { name: string; key: string; priority: number; locale: string; inject?: () => object }, component: unknown): () => void
+    }
+    // 两个槽都要注册，缺一个用户就找不到入口：
+    //   · `plugins.bundle.config` —— 插件详情页里那块显眼的配置区（key = 包名）。
+    //   · `plugins.row.config`    —— 「组成部分」列表里那一行的小箭头（key = `<包名>#<行 id>`）。
+    // 只注册行级槽时，详情页没有任何配置区，用户必须先展开列表才看得到一个箭头按钮。
+    const cards: { name: string; key: string }[] = [
+      { name: 'plugins.bundle.config', key: BUNDLE_NAME },
+      { name: 'plugins.row.config', key: ROW_CONFIG_KEY },
+    ]
+    for (const card of cards) {
+      scope.effect(() => loose.inject(card.name, () => loose.register({
+        name: card.name,
+        key: card.key,
+        priority: 30,
+        locale: NS,
+        inject: () => face,
+      }, (
+        // `view` 必须原样透传：宿主对同一个槽先用 `'summary'` 要列表里的一行，
+        // 再用 `'page'` 要表单。丢掉它，列表的每一行都会渲染成整张表单。
+        props: { t: BtwTranslate; view?: 'summary' | 'page' },
+      ) => <BtwSettingsCard t={props.t as never} scope={face.scope} view={props.view} />)))
+    }
   })
 }
