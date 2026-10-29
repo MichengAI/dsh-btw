@@ -249,10 +249,11 @@ export function apply(ctx: Context): void {
   try {
     slots.inject('conversation.chat.text-interaction', () => {
       try {
-        return slots.register({
+        return (slots.register as any)({
           name: 'conversation.chat.text-interaction',
           key: 'btw',
           locale: NS,
+          order: 10,
         }, NativeBtwAskAction as any)
       } catch {
         return () => {}

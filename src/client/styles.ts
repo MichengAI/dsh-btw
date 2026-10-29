@@ -76,4 +76,9 @@ export const CSS = `
 .btw-quote-marker{display:grid;place-items:center;align-self:center;flex:none;width:16px;height:16px;padding:0;color:inherit;user-select:none}
 .btw-quote-icon{width:14px;height:14px}
 .btw-quote-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+[data-text-interaction-surface]{display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:6px!important}
+[data-text-interaction-surface] button:not(.btw-native-ask-button){order:1!important;margin:0!important}
+[data-text-interaction-surface] button.btw-native-ask-button{order:2!important;margin:0!important}
+.btw-selection-menu button:first-child{order:1!important}
+.btw-selection-menu button:last-child{order:2!important}
 `

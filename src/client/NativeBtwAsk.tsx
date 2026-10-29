@@ -64,28 +64,40 @@ export function attachNativeAskButton(
   const sync = () => {
     const surface = doc.querySelector<HTMLElement>('[data-text-interaction-surface]:not([aria-hidden="true"])')
     if (!surface) return
-    if (surface.querySelector('.btw-native-ask-button')) return
-    const quoteBtn = surface.querySelector('button')
+    const quoteBtn = surface.querySelector<HTMLButtonElement>('button:not(.btw-native-ask-button)')
     if (!quoteBtn) return
 
-    const btwBtn = doc.createElement('button')
-    btwBtn.type = 'button'
-    btwBtn.className = `${quoteBtn.className} btw-native-ask-button`
-    btwBtn.textContent = t('selection.btw')
-    btwBtn.setAttribute('aria-label', t('selection.btw'))
-    btwBtn.style.marginLeft = '4px'
-    btwBtn.onpointerdown = (e) => e.preventDefault()
-    btwBtn.onclick = (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const text = doc.getSelection()?.toString().trim()
-      if (text) {
-        triggerAskModal(sessionId, text)
+    let btwBtn = surface.querySelector<HTMLButtonElement>('.btw-native-ask-button')
+    if (!btwBtn) {
+      btwBtn = doc.createElement('button')
+      btwBtn.type = 'button'
+      btwBtn.className = `${quoteBtn.className} btw-native-ask-button`
+      btwBtn.textContent = t('selection.btw')
+      btwBtn.setAttribute('aria-label', t('selection.btw'))
+      btwBtn.onpointerdown = (e) => e.preventDefault()
+      btwBtn.onclick = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const text = doc.getSelection()?.toString().trim()
+        if (text) {
+          triggerAskModal(sessionId, text)
+        }
+        doc.getSelection()?.removeAllRanges()
+        surface.setAttribute('aria-hidden', 'true')
       }
-      doc.getSelection()?.removeAllRanges()
-      surface.setAttribute('aria-hidden', 'true')
     }
-    surface.appendChild(btwBtn)
+
+    // 核心保证：
+    // 1. 物理位置：确保 btwBtn 始终插入在 quoteBtn 后面
+    if (quoteBtn.nextSibling !== btwBtn) {
+      quoteBtn.after(btwBtn)
+    }
+
+    // 2. 视觉层级与外边距清空：由 flex gap 统一控制等距间距
+    quoteBtn.style.order = '1'
+    quoteBtn.style.margin = '0'
+    btwBtn.style.order = '2'
+    btwBtn.style.margin = '0'
   }
 
   const observer = typeof MutationObserver !== 'undefined'

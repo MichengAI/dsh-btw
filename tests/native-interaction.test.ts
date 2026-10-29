@@ -151,10 +151,22 @@ describe('NativeBtwAsk 适配官方选区交互规范与插槽', () => {
     window.getSelection()!.removeAllRanges()
     window.getSelection()!.addRange(range)
 
-    // 此时 surface 中应已自动融入 [旁问] 按钮
+    // 此时 surface 中应已自动融入 [旁问] 按钮，且稳定排在 [引用文本] 后面
     const btwBtn = surface.querySelector<HTMLButtonElement>('.btw-native-ask-button')
     expect(btwBtn).not.toBeNull()
     expect(btwBtn?.textContent).toBe('旁问')
+    expect(quoteBtn.style.order).toBe('1')
+    expect(btwBtn?.style.order).toBe('2')
+    expect(quoteBtn.nextSibling).toBe(btwBtn)
+
+    // 模拟时序抖动（React 重建/重排按钮，将 quoteBtn 插到了后面）
+    surface.prepend(btwBtn!) // 故意搞乱顺序让 btwBtn 在前
+    expect(surface.firstElementChild).toBe(btwBtn)
+    // 触发 DOM 变更或 selectionchange
+    document.dispatchEvent(new Event('selectionchange'))
+    // 验证立即自动纠正顺序：quoteBtn 重新在前，btwBtn 紧随其后
+    expect(surface.firstElementChild).toBe(quoteBtn)
+    expect(quoteBtn.nextSibling).toBe(btwBtn)
 
     // 点击该融入按钮
     await act(async () => {
