@@ -50,6 +50,17 @@ it('真实 fork 继承已完成上下文、独立回答并可取消，主任务�
   try {
     new MemoryWorkingDirectory(ctx)
     for (const service of [LlmRuntime, SessionStore, SessionProjectionRegistry, SystemPrompt, ToolRuntime, AgentRegistry, CommandRuntime]) await ctx.plugin(service).await()
+    if (typeof (ctx as any).tools?.setExecutor === 'function') {
+      const pipelinePath = new URL('../node_modules/@deepseek-ai/dsh-tools/lib/pipeline.js', import.meta.url).href
+      const toolsPath = new URL('../node_modules/@deepseek-ai/dsh-tools/lib/index.js', import.meta.url).href
+      const { ToolExecutionPipeline, executeToolBatch } = await import(/* @vite-ignore */ pipelinePath)
+      const { projectToolSchema } = await import(/* @vite-ignore */ toolsPath) as { projectToolSchema: (d: any, f: boolean) => any }
+      const pipeline = new ToolExecutionPipeline(ctx)
+      ;(ctx as any).tools.setExecutor({
+        describe: (tools: any[]) => ({ schemas: tools.map(t => projectToolSchema(t, false)) }),
+        execute: (input: any) => executeToolBatch(input, pipeline, () => 10),
+      })
+    }
     await ctx.plugin(AgentLoop, { agents: [] }).await()
     await ctx.plugin(SubagentRuntime).await()
     await ctx.plugin(Fork, { providerName: 'fork' }).await()

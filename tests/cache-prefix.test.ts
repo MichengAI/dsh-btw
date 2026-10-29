@@ -21,6 +21,20 @@ class MemoryWorkingDirectory extends Service {
   async set(_agent: unknown, path: string) { return path }
 }
 
+async function ensureExecutor(ctx: any) {
+  if (typeof ctx.tools?.setExecutor === 'function') {
+    const pipelinePath = new URL('../node_modules/@deepseek-ai/dsh-tools/lib/pipeline.js', import.meta.url).href
+    const toolsPath = new URL('../node_modules/@deepseek-ai/dsh-tools/lib/index.js', import.meta.url).href
+    const { ToolExecutionPipeline, executeToolBatch } = await import(/* @vite-ignore */ pipelinePath)
+    const { projectToolSchema } = await import(/* @vite-ignore */ toolsPath) as { projectToolSchema: (d: any, f: boolean) => any }
+    const pipeline = new ToolExecutionPipeline(ctx)
+    ctx.tools.setExecutor({
+      describe: (tools: any[]) => ({ schemas: tools.map(t => projectToolSchema(t, false)) }),
+      execute: (input: any) => executeToolBatch(input, pipeline, () => 10),
+    })
+  }
+}
+
 /**
  * Provider prompt caches reuse only a byte-identical request PREFIX, laid out
  * as tools → system → messages. Report how much of the side question's first
@@ -44,6 +58,7 @@ it('旁问首个请求复用主会话最近一次请求的完整前缀（工具�
   try {
     new MemoryWorkingDirectory(ctx)
     for (const s of [LlmRuntime, SessionStore, SessionProjectionRegistry, SystemPrompt, ToolRuntime, AgentRegistry, CommandRuntime]) await ctx.plugin(s).await()
+    await ensureExecutor(ctx)
     await ctx.plugin(AgentLoop, { agents: [] }).await()
     await ctx.plugin(SubagentRuntime).await()
     await ctx.plugin(Fork, { providerName: 'fork' }).await()

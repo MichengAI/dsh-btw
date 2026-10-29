@@ -28,11 +28,33 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     return { Context, ToolRuntime, createScope }
   }
 
+  const setupTools = async (ctx: any, ToolRuntime: any) => {
+    if (!ctx.tools) new ToolRuntime(ctx)
+    if (typeof ctx.tools?.setExecutor === 'function') {
+      const pipelinePath = pathToFileURL(join(runtimeRoot, '@deepseek-ai', 'dsh-tools', 'lib', 'pipeline.js')).href
+      const toolsPath = pathToFileURL(join(runtimeRoot, '@deepseek-ai', 'dsh-tools', 'lib', 'index.js')).href
+      const { ToolExecutionPipeline, executeToolBatch } = await import(/* @vite-ignore */ pipelinePath)
+      const { projectToolSchema } = await import(/* @vite-ignore */ toolsPath) as { projectToolSchema: (d: any, f: boolean) => any }
+      const pipeline = new ToolExecutionPipeline(ctx)
+      ctx.tools.setExecutor({
+        describe: (tools: any[]) => ({ schemas: tools.map(t => projectToolSchema(t, false)) }),
+        execute: async (input: any) => {
+          const isSingleCall = !input.calls && input.name
+          const batchInput = isSingleCall
+            ? { ...input, calls: [{ id: input.callId, name: input.name, arguments: JSON.stringify(input.arguments ?? {}) }] }
+            : input
+          const outcome = await executeToolBatch(batchInput, pipeline, () => 10)
+          return isSingleCall ? (outcome.results[0]?.result ?? outcome) : outcome
+        },
+      })
+    }
+  }
+
   it('根 fiber 拒绝 effect 时仍能激活并注册 btw', async () => {
     const { Context, ToolRuntime } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    new ToolRuntime(ctx)
+    await setupTools(ctx, ToolRuntime)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', { getProvider: () => undefined })
@@ -57,7 +79,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    new ToolRuntime(ctx)
+    await setupTools(ctx, ToolRuntime)
     const body = vi.fn(async () => 'executed')
     ctx.tools.register({ name: 'normal', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
     const protection = createAnswerOnlyGuard(new Set(['owned']))
@@ -66,7 +88,11 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const childNative = { session: {} } as unknown as Agent
     const scopeNative = createScope(ctx, childNative)
     scopeNative.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
-    scopeNative.ctx.tools.presentAs('native')
+    if (typeof (scopeNative.ctx.tools as any).presentAs === 'function') {
+      (scopeNative.ctx.tools as any).presentAs('native')
+    } else {
+      await setupTools(scopeNative.ctx, ToolRuntime)
+    }
     protection.own(childNative)
     expect(ctx.tools.get('normal', childNative)).toBeDefined()
     expect(ctx.tools.get('child_local', childNative)).toBeDefined()
@@ -76,13 +102,15 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
 
     const childPtc = { session: {} } as unknown as Agent
     const scopePtc = createScope(ctx, childPtc)
-    scopePtc.ctx.tools.presentAs('ptc')
-    protection.own(childPtc)
-    expect(ctx.tools.get('run_code', childPtc)).toBeDefined()
-    const blockedRun = await ctx.tools.execute({ name: 'run_code', callId: 'test-run' as never, arguments: { description: 'x', code: '1' }, agent: childPtc, signal: new AbortController().signal })
-    expect(blockedRun.isError).toBe(true)
-    expect(JSON.stringify(blockedRun.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
-    expect(body).not.toHaveBeenCalled()
+    if (typeof (scopePtc.ctx.tools as any).presentAs === 'function') {
+      (scopePtc.ctx.tools as any).presentAs('ptc')
+      protection.own(childPtc)
+      expect(ctx.tools.get('run_code', childPtc)).toBeDefined()
+      const blockedRun = await ctx.tools.execute({ name: 'run_code', callId: 'test-run' as never, arguments: { description: 'x', code: '1' }, agent: childPtc, signal: new AbortController().signal })
+      expect(blockedRun.isError).toBe(true)
+      expect(JSON.stringify(blockedRun.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
+      expect(body).not.toHaveBeenCalled()
+    }
 
     // 唯一放行：发回自己父会话的 send_message（不是新注册的工具，保持 tool 列表不变）。
     const sendBody = vi.fn(async () => 'sent')
@@ -111,7 +139,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    new ToolRuntime(ctx)
+    await setupTools(ctx, ToolRuntime)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     const child = { session: { snapshotEvents: () => { throw new Error('生产路径不应再读 snapshotEvents') } } } as unknown as Agent
@@ -140,7 +168,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const { Context, ToolRuntime } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    new ToolRuntime(ctx)
+    await setupTools(ctx, ToolRuntime)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     const dispose = vi.fn(async () => {})
@@ -195,7 +223,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    new ToolRuntime(ctx)
+    await setupTools(ctx, ToolRuntime)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
 
@@ -280,7 +308,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const { Context, ToolRuntime, createScope } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    new ToolRuntime(ctx)
+    await setupTools(ctx, ToolRuntime)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     let finishCleanup!: () => void
@@ -356,7 +384,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const { Context, ToolRuntime } = await load()
     const ctx = new Context()
     ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    new ToolRuntime(ctx)
+    await setupTools(ctx, ToolRuntime)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
 

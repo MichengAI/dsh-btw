@@ -41,6 +41,7 @@ describe('DSH 宿主准入范围契约 (engines.dsh)', () => {
     // 0.2.x 代际内未来的补丁、RC 与频繁的 alpha 版本均自动放行，无需发版
     expect(check('0.2.1-rc.4')).toBe(true)
     expect(check('0.2.2-alpha.1')).toBe(true)
+    expect(check('0.2.2-alpha.2')).toBe(true)
     expect(check('0.2.2-rc.1')).toBe(true)
     expect(check('0.2.9')).toBe(true)
 

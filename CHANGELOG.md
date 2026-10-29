@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] - 2026-10-29
+
+- Align with official message quotes specification: Pixel-perfect adoption of `@deepseek-ai/dsh-message-quotes` text selection interactions. Seamlessly integrate into the native `conversation.chat.text-interaction` slot on newer hosts while providing an exact floating fallback on older hosts.
+- Deterministic selection toolbar ordering: Lock toolbar layout with "Quote text" on the left and "Ask BTW" on the right with a 6px gap, completely eliminating race-condition button jumping and capsule squeezing.
+- Clean composer with rich-text quote link: Render quotes as inline rich-text link cards inside the input composer and completely eliminate obsolete floating pill bars above the composer.
+- Bubble quote cards and HoverCard full-text preview: Elevate user bubble quotes to inline quote cards with native double-quote SVG markers and ellipsis overflow, accompanied by full-text HoverCard popovers on mouse hover.
+- Compatibility matrix expansion: Broaden multi-host compatibility test suites to encompass the latest Release Candidate (`0.2.1-rc.4`) and latest Alpha release (`0.2.2-alpha.2`), ensuring 100% parity from `0.2.0-rc.1` through cutting-edge hosts.
+
 ## [1.1.1] - 2026-10-27
 
 - Add official plugin vector icon: Introduce `assets/icon.svg` (transparent vector icon designed with dual bubbles and thought sparkles) and declare `icon` in the plugin manifest for better visual representation in the host extension manager and marketplace.

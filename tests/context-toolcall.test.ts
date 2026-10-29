@@ -21,6 +21,20 @@ class MemoryWorkingDirectory extends Service {
   async set(_agent: unknown, path: string) { return path }
 }
 
+async function ensureExecutor(ctx: any) {
+  if (typeof ctx.tools?.setExecutor === 'function') {
+    const pipelinePath = new URL('../node_modules/@deepseek-ai/dsh-tools/lib/pipeline.js', import.meta.url).href
+    const toolsPath = new URL('../node_modules/@deepseek-ai/dsh-tools/lib/index.js', import.meta.url).href
+    const { ToolExecutionPipeline, executeToolBatch } = await import(/* @vite-ignore */ pipelinePath)
+    const { projectToolSchema } = await import(/* @vite-ignore */ toolsPath) as { projectToolSchema: (d: any, f: boolean) => any }
+    const pipeline = new ToolExecutionPipeline(ctx)
+    ctx.tools.setExecutor({
+      describe: (tools: any[]) => ({ schemas: tools.map(t => projectToolSchema(t, false)) }),
+      execute: (input: any) => executeToolBatch(input, pipeline, () => 10),
+    })
+  }
+}
+
 describe('继承父会话包含工具调用时的旁问隔离与反污染约束', () => {
   it('验证 1：子代理继承的 messages 包含父会话的 tool-call 与 tool/result，工具定义与主会话一致（复用 prompt cache）且末尾注入强反工具约束', async () => {
     const ctx = new Context()
@@ -29,6 +43,7 @@ describe('继承父会话包含工具调用时的旁问隔离与反污染约束'
       for (const s of [LlmRuntime, SessionStore, SessionProjectionRegistry, SystemPrompt, ToolRuntime, AgentRegistry, CommandRuntime]) {
         await ctx.plugin(s).await()
       }
+      await ensureExecutor(ctx)
       await ctx.plugin(AgentLoop, { agents: [] }).await()
       await ctx.plugin(SubagentRuntime).await()
       await ctx.plugin(Fork, { providerName: 'fork' }).await()
@@ -148,6 +163,7 @@ describe('继承父会话包含工具调用时的旁问隔离与反污染约束'
       for (const s of [LlmRuntime, SessionStore, SessionProjectionRegistry, SystemPrompt, ToolRuntime, AgentRegistry, CommandRuntime]) {
         await ctx.plugin(s).await()
       }
+      await ensureExecutor(ctx)
       await ctx.plugin(AgentLoop, { agents: [] }).await()
       await ctx.plugin(SubagentRuntime).await()
       await ctx.plugin(Fork, { providerName: 'fork' }).await()
@@ -241,6 +257,7 @@ describe('继承父会话包含工具调用时的旁问隔离与反污染约束'
       for (const s of [LlmRuntime, SessionStore, SessionProjectionRegistry, SystemPrompt, ToolRuntime, AgentRegistry, CommandRuntime]) {
         await ctx.plugin(s).await()
       }
+      await ensureExecutor(ctx)
       await ctx.plugin(AgentLoop, { agents: [] }).await()
       await ctx.plugin(SubagentRuntime).await()
       await ctx.plugin(Fork, { providerName: 'fork' }).await()

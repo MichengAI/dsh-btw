@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
-const defaultTestedHosts = ['0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-rc.1', '0.2.1-rc.2', '0.2.1-rc.3']
+const defaultTestedHosts = ['0.2.0-rc.1', '0.2.0-rc.2', '0.2.1-rc.1', '0.2.1-rc.2', '0.2.1-rc.3', '0.2.1-rc.4', '0.2.2-alpha.2']
 const versions = process.argv.slice(2)
 if (!versions.length) versions.push(...defaultTestedHosts)
 if (!process.env.npm_execpath) throw new Error('请通过 npm run test:compat 执行')
