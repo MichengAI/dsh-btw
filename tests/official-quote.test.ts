@@ -86,6 +86,62 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
     expect(btwRule.match(message, 0)).toBeUndefined()
   })
 
+  it('Issue #24: 响应式同步注销——当官方 quote 规则动态注入时，BTW blockquote 规则能物理注销以失效宿主 matcher 缓存', () => {
+    const definitions = new Map<string, any>()
+    const listeners = new Set<() => void>()
+    const notify = () => { listeners.forEach(l => l()) }
+
+    const register = (rule: any) => {
+      if (definitions.has(rule.id)) throw new Error(`duplicate: ${rule.id}`)
+      definitions.set(rule.id, rule)
+      notify()
+      return () => {
+        definitions.delete(rule.id)
+        notify()
+      }
+    }
+    const subscribe = (l: () => void) => {
+      listeners.add(l)
+      return () => { listeners.delete(l) }
+    }
+    const mockUserText = { definitions, register, subscribe }
+
+    let offShim: (() => void) | undefined
+    let syncing = false
+    const sync = () => {
+      if (syncing) return
+      syncing = true
+      try {
+        const hasOfficial = definitions.has('quote')
+        if (hasOfficial && offShim) {
+          offShim()
+          offShim = undefined
+        } else if (!hasOfficial && !offShim) {
+          offShim = safeRegisterUserTextRule(mockUserText, createOfficialQuoteRule(() => definitions.has('quote')))
+        }
+      } finally {
+        syncing = false
+      }
+    }
+    mockUserText.subscribe(sync)
+    sync()
+
+    // 阶段 1：官方未加载时，BTW 规则存在
+    expect(definitions.has('dsh-btw-blockquote')).toBe(true)
+
+    // 阶段 2：官方插件加载，注册 quote 规则
+    const offOfficial = register({ id: 'quote', order: -10, match: () => undefined })
+    // 预期：BTW 规则被响应式物理注销，从 definitions 中移除，彻底失效宿主 Evaluator 缓存
+    expect(definitions.has('quote')).toBe(true)
+    expect(definitions.has('dsh-btw-blockquote')).toBe(false)
+
+    // 阶段 3：官方插件被动态停用/卸载
+    offOfficial()
+    // 预期：BTW 规则被重新响应式挂载顶上
+    expect(definitions.has('quote')).toBe(false)
+    expect(definitions.has('dsh-btw-blockquote')).toBe(true)
+  })
+
   it('OfficialQuotePreview 组件能在老版本缺少宿主 primitives 时优雅渲染引文卡片', async () => {
     const container = document.createElement('div')
     document.body.append(container)

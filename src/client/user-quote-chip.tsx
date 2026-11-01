@@ -48,21 +48,36 @@ export function parseQuotePromptBlock(text: string, from = 0): {
   const prefix = text.slice(from, start)
   if (prefix.trim().length > 0) return undefined
 
-  const sep = isEn ? '--- \n## User Request:\n\n' : '--- \n## 用户需求与指示：\n\n'
-  const altSep = isEn ? '## User Request:\n\n' : '## 用户需求与指示：\n\n'
-  let sepIdx = text.indexOf(sep, start)
-  let end = sepIdx >= 0 ? sepIdx + sep.length : -1
-  if (end < 0) {
-    sepIdx = text.indexOf(altSep, start)
-    end = sepIdx >= 0 ? sepIdx + altSep.length : -1
+  const subAfterStart = text.slice(start)
+  const sepRegex = isEn
+    ? /(?:^|\r?\n)(?:---\s*\r?\n)?##\s*User Request:\s*/
+    : /(?:^|\r?\n)(?:---\s*\r?\n)?##\s*用户需求与指示：\s*/
+
+  const sepMatch = sepRegex.exec(subAfterStart)
+  let end = -1
+
+  if (sepMatch) {
+    const matchEndInSub = sepMatch.index + sepMatch[0].length
+    const afterSep = subAfterStart.slice(matchEndInSub)
+
+    if (!afterSep.trim()) {
+      // 分隔符后无实质用户正文（如纯引用发送并在 EOF 处被宿主 trim 掉换行）：
+      // 将 end 吞至末尾，绝不向外暴露裸露的分隔符标题
+      end = text.length
+    } else {
+      // 分隔符后有实质用户正文：消费掉紧随分隔符的空行，使 end 停在正文前
+      const trailingNl = afterSep.match(/^\r?\n(?:\r?\n)?/)
+      const nlLen = trailingNl ? trailingNl[0].length : 0
+      end = start + matchEndInSub + nlLen
+    }
   }
+
   if (end < 0) {
     // 找不到显式分隔符时（如结构化引用序列化未携带正文或旧版本格式）：
     // 严格收敛 end 到最后一个以 `>` 开头的有效引用行末尾，绝不向后多吞用户正文。
-    const sub = text.slice(start)
     let lastQuoteEndInSub = 0
     let currentIdx = 0
-    const lines = sub.split(/\r?\n/)
+    const lines = subAfterStart.split(/\r?\n/)
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!
       const lineLen = line.length
@@ -76,7 +91,7 @@ export function parseQuotePromptBlock(text: string, from = 0): {
         // 遇到非引用非标题的实质文字行（即用户的正文提问），截断遍历
         break
       }
-      const matchNewline = sub.slice(currentIdx + lineLen).match(/^\r?\n/)
+      const matchNewline = subAfterStart.slice(currentIdx + lineLen).match(/^\r?\n/)
       currentIdx += lineLen + (matchNewline ? matchNewline[0].length : 0)
     }
 

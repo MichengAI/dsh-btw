@@ -163,13 +163,54 @@ export function apply(ctx: Context): void {
   }
 
   const registerUserTextRule = (uiConversation: unknown) => {
-    const uc = uiConversation as { userText?: { definitions?: Map<string, unknown>; has?: (id: string) => boolean; register?: (rule: unknown) => () => void } } | undefined
+    const uc = uiConversation as {
+      userText?: {
+        definitions?: Map<string, unknown>
+        has?: (id: string) => boolean
+        register?: (rule: unknown) => () => void
+        subscribe?: (listener: () => void) => () => void
+      }
+    } | undefined
     if (uc?.userText) {
       const disposers: Array<() => void> = []
-      const isOfficialQuotePresent = () => Boolean(uc.userText?.definitions?.has('quote') || uc.userText?.has?.('quote'))
-      const offOfficial = safeRegisterUserTextRule(uc.userText, createOfficialQuoteRule(isOfficialQuotePresent))
-      if (typeof offOfficial === 'function') disposers.push(offOfficial)
-      const offLegacy = safeRegisterUserTextRule(uc.userText, quoteUserTextRule)
+      const ut = uc.userText
+
+      let offOfficialShim: (() => void) | undefined
+      let syncing = false
+      const isOfficialQuotePresent = () => Boolean(ut.definitions?.has('quote') || ut.has?.('quote'))
+
+      // 响应式动态注销/登记：与官方插件注册表事件联动
+      // 官方规则存在时，不仅在 match() 中让位，更直接从注册表中物理注销，彻底失效宿主 Evaluator matcher 缓存
+      const syncShim = () => {
+        if (syncing) return
+        syncing = true
+        try {
+          const hasOfficial = isOfficialQuotePresent()
+          if (hasOfficial && offOfficialShim) {
+            offOfficialShim()
+            offOfficialShim = undefined
+          } else if (!hasOfficial && !offOfficialShim) {
+            offOfficialShim = safeRegisterUserTextRule(ut, createOfficialQuoteRule(isOfficialQuotePresent))
+          }
+        } finally {
+          syncing = false
+        }
+      }
+
+      syncShim()
+      if (typeof ut.subscribe === 'function') {
+        const unsub = ut.subscribe(syncShim)
+        disposers.push(unsub)
+      }
+
+      disposers.push(() => {
+        if (offOfficialShim) {
+          offOfficialShim()
+          offOfficialShim = undefined
+        }
+      })
+
+      const offLegacy = safeRegisterUserTextRule(ut, quoteUserTextRule)
       if (typeof offLegacy === 'function') disposers.push(offLegacy)
       return () => {
         disposers.forEach(d => d())
