@@ -163,3 +163,17 @@ it('复制失败显示可恢复错误，重试成功清除提示', async () => {
   await click('Copy answer')
   expect(container.querySelector('[role="alert"]')).toBeNull()
 })
+
+it('DOM 隔离：头部采用 div.btw-header 并使用 data-btw-phase，避免被宿主或主题宏规则 header 误伤', async () => {
+  await render()
+  // 关键断言 1：根节点不再使用易与宿主会话冲突的 data-phase，改用独立私有属性 data-btw-phase
+  const bubble = container.querySelector('.btw-bubble')
+  expect(bubble?.getAttribute('data-phase')).toBeNull()
+  expect(bubble?.getAttribute('data-btw-phase')).toBe('done')
+
+  // 关键断言 2：头部必须是普通 div 容器，严禁使用原生 header 语义标签（防止被 Codex UI [data-phase] header 宏规则误伤为独立云母胶囊）
+  const header = container.querySelector('.btw-header')
+  expect(header).not.toBeNull()
+  expect(header?.tagName.toLowerCase()).toBe('div')
+  expect(container.querySelector('header')).toBeNull()
+})

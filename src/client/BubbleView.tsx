@@ -28,8 +28,8 @@ export function BubbleView({ item, close, t, collapsed, onToggleCollapse }: {
   const stopOrCloseTitle = item.closeFailed
     ? t('action.retryClose')
     : t(item.phase === 'answering' ? 'action.stop' : 'action.close')
-  return <article className="btw-bubble" data-phase={item.phase} aria-label={t('bubble.label')}>
-    <header className="btw-header">
+  return <article className="btw-bubble" data-btw-phase={item.phase} aria-label={t('bubble.label')}>
+    <div className="btw-header">
       <span className="btw-symbol"><MessageCircle size={16} /></span>
       <span className="btw-question">{item.question}</span>
       <div className="btw-actions">
@@ -46,7 +46,7 @@ export function BubbleView({ item, close, t, collapsed, onToggleCollapse }: {
           {item.phase === 'answering' ? <Square size={14} /> : <X size={16} />}
         </button>
       </div>
-    </header>
+    </div>
     {!collapsed && item.reference && <details className="btw-reference"><summary>{t('selection.reference')}</summary><blockquote>{item.reference}</blockquote></details>}
     {busy && <div className="btw-status" role="status"><LoaderCircle size={14} className="btw-spinner" />{t(item.phase === 'closing' ? 'status.closing' : 'status.answering')}</div>}
     {!collapsed && item.answer && <div className="btw-answer"><AnswerMarkdown text={item.answer} labels={labels} imageLabel={t('bubble.image')} /></div>}
