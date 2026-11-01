@@ -49,9 +49,11 @@ export function parseQuotePromptBlock(text: string, from = 0): {
   if (prefix.trim().length > 0) return undefined
 
   const subAfterStart = text.slice(start)
+  // 分隔符必须严格独占一行：冒号后在同一行只允许水平空白 [ \t]*，必须以换行符或 EOF 截断，
+  // 严禁使用多行 \s* 跨行吃缩进，严禁在冒号后带非空白文字（防止误吃用户正文里的自定义小节标题）
   const sepRegex = isEn
-    ? /(?:^|\r?\n)(?:---\s*\r?\n)?##\s*User Request:\s*/
-    : /(?:^|\r?\n)(?:---\s*\r?\n)?##\s*用户需求与指示：\s*/
+    ? /(?:^|\r?\n)(?:---\s*[\r\n]+)?##[ \t]*User Request:[ \t]*(?:\r?\n|$)/
+    : /(?:^|\r?\n)(?:---\s*[\r\n]+)?##[ \t]*用户需求与指示：[ \t]*(?:\r?\n|$)/
 
   const sepMatch = sepRegex.exec(subAfterStart)
   let end = -1
@@ -65,10 +67,10 @@ export function parseQuotePromptBlock(text: string, from = 0): {
       // 将 end 吞至末尾，绝不向外暴露裸露的分隔符标题
       end = text.length
     } else {
-      // 分隔符后有实质用户正文：消费掉紧随分隔符的空行，使 end 停在正文前
-      const trailingNl = afterSep.match(/^\r?\n(?:\r?\n)?/)
-      const nlLen = trailingNl ? trailingNl[0].length : 0
-      end = start + matchEndInSub + nlLen
+      // 分隔符后有实质用户正文：仅消费紧随分隔符的空行纯换行符（\r?\n，绝不匹配空格或制表符，100% 保留代码首行缩进）
+      const blankLinesMatch = afterSep.match(/^(?:\r?\n)+/)
+      const blankLen = blankLinesMatch ? blankLinesMatch[0].length : 0
+      end = start + matchEndInSub + blankLen
     }
   }
 
