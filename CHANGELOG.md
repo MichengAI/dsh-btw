@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1] - 2026-11-01
+
+- Isolate quote rule ID to prevent host crash: migrate blockquote matching rule ID and slot key to dedicated `dsh-btw-blockquote` namespace instead of borrowing the official `quote` identifier, and yield dynamically at render time and on registry change when `@deepseek-ai/dsh-message-quotes` is present. Fixes fatal `Failed to load plugins` crashes on newer hosts shipping the official quote package while preserving seamless blockquote styling on older hosts (#24).
+- Prevent user prompt text swallowing in quote prompt parsing: refine quote prompt block delimiter boundary so that text following an excerpt is never swallowed into the quote chip even when submitted without an explicit heading separator (#23).
+- Preserve leading code indentation and support EOF quote submission: constrain separator heading to a standalone line, preserve 4-space and Tab code block indentations on the subsequent user text line, and cleanly consume delimiter headings when sending quotes with an empty draft (#23).
+- Isolate bubble DOM structure: replace semantic `<header>` with a dedicated `div` and use a plugin-private `data-btw-phase` attribute to prevent theme macro rules (such as Codex UI mica floating headers) from accidentally styling the side-ask header as a detached floating card.
+
 ## [1.3.0] - 2026-10-29
 
 - Configurable tool whitelist: add a settings page on the plugin's row in **Plugins** (the same place as `dsh-subagent-default-model`'s configuration) where a comma-free, one-per-line list of tool names widens what a side question may call. The execution-time guard reads the whitelist on every call, so changes apply to the next side question without reloading the plugin. Empty keeps the previous text-only behaviour (#22).
