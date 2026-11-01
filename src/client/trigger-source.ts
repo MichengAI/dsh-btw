@@ -114,8 +114,9 @@ export function createQuoteTriggerSource({
         createdAt: Date.now(),
         comment: payload.comment,
       }
-      // 进大模型上下文，采用规范格式化
-      return formatQuotesWithDraft('', [fakeRef], t)
+      // 进大模型上下文，采用规范格式化；显式附带分隔引导词，保证宿主拼接后续正文后格式规范对齐
+      const formatted = formatQuotesWithDraft('', [fakeRef], t)
+      return `${formatted.trimEnd()}\n\n${t('quote.userRequestHeading')}\n\n`
     },
   }
 

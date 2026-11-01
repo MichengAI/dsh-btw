@@ -38,7 +38,7 @@ export function messageQuoteRanges(text: string): { start: number; end: number }
 }
 
 export interface QuoteNodeMatch {
-  id: 'quote' | 'text'
+  id: 'dsh-btw-blockquote' | 'quote' | 'text'
   start: number
   end: number
   data: {
@@ -48,39 +48,53 @@ export interface QuoteNodeMatch {
 }
 
 /**
- * 对齐官方 @deepseek-ai/dsh-message-quotes 的 UserText 切分规则。
+ * 构造用于降级承接 Markdown blockquote 的 UserText 切分规则。
+ * 拥有自有命名空间 `dsh-btw-blockquote`，彻底避免抢占官方 `quote` 规则 ID。
+ * 并在渲染期动态让位：若宿主已加载官方 `quote` 规则，则返回 undefined 放弃匹配，由官方规则渲染。
  */
-export const officialQuoteRule = {
-  id: 'quote',
-  order: -10,
-  match(text: string, from: number): QuoteNodeMatch | undefined {
-    for (const range of messageQuoteRanges(text)) {
-      for (const start of [range.start - 2, range.start, range.end]) {
-        if (start < from) continue
-        if (start === range.start) {
-          return {
-            id: 'quote',
-            start,
-            end: range.end,
-            data: { text: quoteTextOf(text.slice(start, range.end)) },
+export function createOfficialQuoteRule(isOfficialPresent?: () => boolean) {
+  return {
+    id: 'dsh-btw-blockquote' as const,
+    order: -10,
+    match(text: string, from: number): QuoteNodeMatch | undefined {
+      // 渲染期让位守护：只要官方 quote 规则已注册，直接让位，时序完全解耦
+      if (isOfficialPresent?.()) {
+        return undefined
+      }
+
+      for (const range of messageQuoteRanges(text)) {
+        for (const start of [range.start - 2, range.start, range.end]) {
+          if (start < from) continue
+          if (start === range.start) {
+            return {
+              id: 'dsh-btw-blockquote',
+              start,
+              end: range.end,
+              data: { text: quoteTextOf(text.slice(start, range.end)) },
+            }
           }
-        }
-        if (text.slice(start, start + 2) === '\n\n') {
-          return {
-            id: 'text',
-            start,
-            end: start + 2,
-            data: {
-              text: '\n\n',
-              display: ' ',
-            },
+          if (text.slice(start, start + 2) === '\n\n') {
+            return {
+              id: 'text',
+              start,
+              end: start + 2,
+              data: {
+                text: '\n\n',
+                display: ' ',
+              },
+            }
           }
         }
       }
-    }
-    return undefined
-  },
+      return undefined
+    },
+  }
 }
+
+/**
+ * 默认 blockquote 切分规则实例（老宿主无官方插件时降级承接）。
+ */
+export const officialQuoteRule = createOfficialQuoteRule()
 
 function OfficialQuoteIcon({ className }: { className?: string }): React.JSX.Element {
   return (

@@ -6,6 +6,7 @@ import {
   formatAsBlockquote,
   messageQuoteRanges,
   officialQuoteRule,
+  createOfficialQuoteRule,
   quoteTextOf,
   OfficialQuotePreview,
   safeRegisterUserTextRule,
@@ -35,13 +36,54 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
     expect(quoteTextOf(message.slice(range.start, range.end))).toBe('引用第一行\n引用第二行')
   })
 
-  it('officialQuoteRule 正确进行词法切分，并提取 quote 节点', () => {
+  it('officialQuoteRule 拥有独立命名空间 dsh-btw-blockquote 并正确进行词法切分', () => {
     const message = '> 引用的上下文\n\n请帮我解释这段话'
     const match = officialQuoteRule.match(message, 0)
     expect(match).toBeDefined()
-    expect(match?.id).toBe('quote')
+    expect(match?.id).toBe('dsh-btw-blockquote')
     expect(match?.start).toBe(0)
     expect(match?.data.text).toBe('引用的上下文')
+  })
+
+  it('Issue #24: createOfficialQuoteRule 在官方 quote 规则已注册时于渲染期让位，返回 undefined', () => {
+    let officialPresent = false
+    const rule = createOfficialQuoteRule(() => officialPresent)
+
+    const message = '> 引用的上下文\n\n请帮我解释这段话'
+    // 官方不存在时（老宿主）：正常切分出 dsh-btw-blockquote
+    const match1 = rule.match(message, 0)
+    expect(match1).toBeDefined()
+    expect(match1?.id).toBe('dsh-btw-blockquote')
+
+    // 官方规则已加载时（新宿主）：主动让位，绝不抢占匹配
+    officialPresent = true
+    const match2 = rule.match(message, 0)
+    expect(match2).toBeUndefined()
+  })
+
+  it('Issue #24: 双向时序兼容——官方规则先注册或 BTW 先注册，均无 duplicate id 异常', () => {
+    const definitions = new Map<string, unknown>()
+    const register = (rule: any) => {
+      if (definitions.has(rule.id)) throw new Error(`duplicate: ${rule.id}`)
+      definitions.set(rule.id, rule)
+      return () => definitions.delete(rule.id)
+    }
+    const mockUserText = { definitions, register }
+
+    // 场景 A：BTW 先注册，官方后注册（Issue #24 触发场景）
+    // BTW 注册自有 id 规则
+    const btwRule = createOfficialQuoteRule(() => definitions.has('quote'))
+    expect(() => safeRegisterUserTextRule(mockUserText, btwRule)).not.toThrow()
+    expect(definitions.has('dsh-btw-blockquote')).toBe(true)
+
+    // 官方插件随后无守卫注册其原生 id: 'quote'
+    const officialHostRule = { id: 'quote', order: -10, match: () => undefined }
+    expect(() => register(officialHostRule)).not.toThrow()
+    expect(definitions.has('quote')).toBe(true)
+
+    // 场景 B：渲染期切分，BTW 规则检测到 officialHostRule 存在，主动让位
+    const message = '> 测试引文\n\n问题'
+    expect(btwRule.match(message, 0)).toBeUndefined()
   })
 
   it('OfficialQuotePreview 组件能在老版本缺少宿主 primitives 时优雅渲染引文卡片', async () => {
@@ -71,13 +113,13 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
 
     const off1 = safeRegisterUserTextRule(mockUserText, officialQuoteRule)
     expect(off1).toBeDefined()
-    expect(definitions.has('quote')).toBe(true)
+    expect(definitions.has('dsh-btw-blockquote')).toBe(true)
 
     // 第二次注册同名规则：应安全返回 undefined，绝不抛出 duplicate 错误
     const off2 = safeRegisterUserTextRule(mockUserText, officialQuoteRule)
     expect(off2).toBeUndefined()
 
     off1?.()
-    expect(definitions.has('quote')).toBe(false)
+    expect(definitions.has('dsh-btw-blockquote')).toBe(false)
   })
 })

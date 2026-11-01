@@ -22,6 +22,7 @@ export interface QuoteNodeData {
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   interface UserTextDataMap {
     'dsh-btw-quote': QuoteNodeData
+    'dsh-btw-blockquote': { text: string }
     'quote': { text: string }
   }
 }
@@ -56,7 +57,39 @@ export function parseQuotePromptBlock(text: string, from = 0): {
     end = sepIdx >= 0 ? sepIdx + altSep.length : -1
   }
   if (end < 0) {
-    end = text.length
+    // 找不到显式分隔符时（如结构化引用序列化未携带正文或旧版本格式）：
+    // 严格收敛 end 到最后一个以 `>` 开头的有效引用行末尾，绝不向后多吞用户正文。
+    const sub = text.slice(start)
+    let lastQuoteEndInSub = 0
+    let currentIdx = 0
+    const lines = sub.split(/\r?\n/)
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]!
+      const lineLen = line.length
+      const trimmed = line.trim()
+      const isQuoteLine = trimmed.startsWith('>')
+      const isHeaderLine = trimmed.startsWith('#') || trimmed.startsWith('注意：') || trimmed.startsWith('Note:')
+
+      if (isQuoteLine) {
+        lastQuoteEndInSub = currentIdx + lineLen
+      } else if (!isHeaderLine && trimmed.length > 0) {
+        // 遇到非引用非标题的实质文字行（即用户的正文提问），截断遍历
+        break
+      }
+      const matchNewline = sub.slice(currentIdx + lineLen).match(/^\r?\n/)
+      currentIdx += lineLen + (matchNewline ? matchNewline[0].length : 0)
+    }
+
+    if (lastQuoteEndInSub > 0) {
+      end = start + lastQuoteEndInSub
+      // 消费引用块末尾紧随的空行换行（最多匹配两处换行，使尾部正文与有 sep 时保持一致）
+      const trailingWhitespace = text.slice(end).match(/^\r?\n(?:\r?\n)?/)
+      if (trailingWhitespace) {
+        end += trailingWhitespace[0].length
+      }
+    } else {
+      end = text.length
+    }
   }
 
   const block = text.slice(start, end)

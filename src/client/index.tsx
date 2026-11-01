@@ -19,7 +19,7 @@ import { SelectionAsk } from './SelectionAsk'
 import { CSS } from './styles'
 import { createQuoteTriggerSource } from './trigger-source'
 import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
-import { officialQuoteRule, OfficialQuotePreview, safeRegisterUserTextRule } from './official-quote'
+import { createOfficialQuoteRule, OfficialQuotePreview, safeRegisterUserTextRule } from './official-quote'
 import { NativeBtwAskAction, safeRegisterInteraction } from './NativeBtwAsk'
 import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
 import { BtwSettingsCard, type BtwSettingsFace } from './SettingsCard'
@@ -166,7 +166,8 @@ export function apply(ctx: Context): void {
     const uc = uiConversation as { userText?: { definitions?: Map<string, unknown>; has?: (id: string) => boolean; register?: (rule: unknown) => () => void } } | undefined
     if (uc?.userText) {
       const disposers: Array<() => void> = []
-      const offOfficial = safeRegisterUserTextRule(uc.userText, officialQuoteRule)
+      const isOfficialQuotePresent = () => Boolean(uc.userText?.definitions?.has('quote') || uc.userText?.has?.('quote'))
+      const offOfficial = safeRegisterUserTextRule(uc.userText, createOfficialQuoteRule(isOfficialQuotePresent))
       if (typeof offOfficial === 'function') disposers.push(offOfficial)
       const offLegacy = safeRegisterUserTextRule(uc.userText, quoteUserTextRule)
       if (typeof offLegacy === 'function') disposers.push(offLegacy)
@@ -268,7 +269,7 @@ export function apply(ctx: Context): void {
     try {
       const offOfficial = slots.register({
         name: 'conversation.user.text.node',
-        key: 'quote',
+        key: 'dsh-btw-blockquote',
         priority: 100,
         locale: NS,
       }, (({ node }: { node: { data: { text: string } } }) => <OfficialQuotePreview text={node.data.text} />) as any)

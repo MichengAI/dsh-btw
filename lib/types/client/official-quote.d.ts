@@ -16,7 +16,7 @@ export declare function messageQuoteRanges(text: string): {
     end: number;
 }[];
 export interface QuoteNodeMatch {
-    id: 'quote' | 'text';
+    id: 'dsh-btw-blockquote' | 'quote' | 'text';
     start: number;
     end: number;
     data: {
@@ -25,10 +25,20 @@ export interface QuoteNodeMatch {
     };
 }
 /**
- * 对齐官方 @deepseek-ai/dsh-message-quotes 的 UserText 切分规则。
+ * 构造用于降级承接 Markdown blockquote 的 UserText 切分规则。
+ * 拥有自有命名空间 `dsh-btw-blockquote`，彻底避免抢占官方 `quote` 规则 ID。
+ * 并在渲染期动态让位：若宿主已加载官方 `quote` 规则，则返回 undefined 放弃匹配，由官方规则渲染。
+ */
+export declare function createOfficialQuoteRule(isOfficialPresent?: () => boolean): {
+    id: "dsh-btw-blockquote";
+    order: number;
+    match(text: string, from: number): QuoteNodeMatch | undefined;
+};
+/**
+ * 默认 blockquote 切分规则实例（老宿主无官方插件时降级承接）。
  */
 export declare const officialQuoteRule: {
-    id: string;
+    id: "dsh-btw-blockquote";
     order: number;
     match(text: string, from: number): QuoteNodeMatch | undefined;
 };
