@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.2] - 2026-11-03
+
+- Extend host compatibility support: verified compatibility across DSH latest prerelease `0.2.2-alpha.3` and all RCs up to `0.2.1-rc.5`, ensuring seamless side-ask interaction on newer hosts.
+
 ## [1.3.1] - 2026-11-01
 
 - Isolate quote rule ID to prevent host crash: migrate blockquote matching rule ID and slot key to dedicated `dsh-btw-blockquote` namespace instead of borrowing the official `quote` identifier, and yield dynamically at render time and on registry change when `@deepseek-ai/dsh-message-quotes` is present. Fixes fatal `Failed to load plugins` crashes on newer hosts shipping the official quote package while preserving seamless blockquote styling on older hosts (#24).
