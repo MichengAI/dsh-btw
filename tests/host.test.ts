@@ -96,7 +96,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     protection.own(childNative)
     expect(ctx.tools.get('normal', childNative)).toBeDefined()
     expect(ctx.tools.get('child_local', childNative)).toBeDefined()
-    const blockedLocal = await ctx.tools.execute({ name: 'child_local', callId: 'test-local' as never, arguments: {}, agent: childNative, signal: new AbortController().signal })
+    const blockedLocal = await (ctx.tools as any).execute({ name: 'child_local', callId: 'test-local' as never, arguments: {}, agent: childNative, signal: new AbortController().signal })
     expect(blockedLocal.isError).toBe(true)
     expect(JSON.stringify(blockedLocal.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
 
@@ -106,7 +106,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
       (scopePtc.ctx.tools as any).presentAs('ptc')
       protection.own(childPtc)
       expect(ctx.tools.get('run_code', childPtc)).toBeDefined()
-      const blockedRun = await ctx.tools.execute({ name: 'run_code', callId: 'test-run' as never, arguments: { description: 'x', code: '1' }, agent: childPtc, signal: new AbortController().signal })
+      const blockedRun = await (ctx.tools as any).execute({ name: 'run_code', callId: 'test-run' as never, arguments: { description: 'x', code: '1' }, agent: childPtc, signal: new AbortController().signal })
       expect(blockedRun.isError).toBe(true)
       expect(JSON.stringify(blockedRun.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
       expect(body).not.toHaveBeenCalled()
@@ -117,17 +117,17 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     ctx.tools.register({ name: 'send_message', description: '发消息给另一个 agent', parameters: { type: 'object', properties: { agent_id: { type: 'string' }, message: { type: 'string' } }, required: ['agent_id', 'message'] }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: sendBody })
     const childReply = { session: { header: { id: 'btw-child', parentSession: 'parent-session' } } } as unknown as Agent
     protection.own(childReply)
-    const reply = await ctx.tools.execute({ name: 'send_message', callId: 'test-reply' as never, arguments: { agent_id: 'parent-session', message: '回答' }, agent: childReply, signal: new AbortController().signal })
+    const reply = await (ctx.tools as any).execute({ name: 'send_message', callId: 'test-reply' as never, arguments: { agent_id: 'parent-session', message: '回答' }, agent: childReply, signal: new AbortController().signal })
     expect(reply.isError).not.toBe(true)
     expect(sendBody).toHaveBeenCalledOnce()
 
     // 同一个 send_message 发给别的 agent 仍然被拒。
-    const misrouted = await ctx.tools.execute({ name: 'send_message', callId: 'test-misroute' as never, arguments: { agent_id: 'someone-else', message: '回答' }, agent: childReply, signal: new AbortController().signal })
+    const misrouted = await (ctx.tools as any).execute({ name: 'send_message', callId: 'test-misroute' as never, arguments: { agent_id: 'someone-else', message: '回答' }, agent: childReply, signal: new AbortController().signal })
     expect(misrouted.isError).toBe(true)
     expect(JSON.stringify(misrouted.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
     expect(sendBody).toHaveBeenCalledOnce()
 
-    const result = await ctx.tools.execute({ name: 'normal', callId: 'main' as never, arguments: {}, signal: new AbortController().signal })
+    const result = await (ctx.tools as any).execute({ name: 'normal', callId: 'main' as never, arguments: {}, signal: new AbortController().signal })
     expect(result.isError).not.toBe(true)
     expect(body).toHaveBeenCalledOnce()
     await scopeNative.dispose()
@@ -156,7 +156,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const body = vi.fn(async () => 'executed')
     scope.ctx.tools.register({ name: 'child_local', description: '子作用域工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: value => [{ type: 'text', text: String(value) }] }, execute: body })
     await commands.get(RUN_COMMAND)!.handler({ agent: { session: { header: { id: 'main' } } }, rawInput: JSON.stringify({ id: 'request-evt', question: '问题' }), signal: new AbortController().signal } as never)
-    const blocked = await ctx.tools.execute({ name: 'child_local', callId: 'event' as never, arguments: {}, agent: child, signal: new AbortController().signal })
+    const blocked = await (ctx.tools as any).execute({ name: 'child_local', callId: 'event' as never, arguments: {}, agent: child, signal: new AbortController().signal })
     expect(blocked.isError).toBe(true)
     expect(body).not.toHaveBeenCalled()
     await plugin.dispose()
@@ -268,7 +268,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     // start 回退返回的 localAgent 也要纳入工具拦截
     const currentScope = scope!
     currentScope.ctx.tools.register({ name: 'legacy_tool', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] }, execute: vi.fn() })
-    const blocked = await ctx.tools.execute({ name: 'legacy_tool', callId: 'test-call' as never, arguments: {}, agent: child, signal: new AbortController().signal })
+    const blocked = await (ctx.tools as any).execute({ name: 'legacy_tool', callId: 'test-call' as never, arguments: {}, agent: child, signal: new AbortController().signal })
     expect(blocked.isError).toBe(true)
     expect(JSON.stringify(blocked.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
 
@@ -339,12 +339,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(commands.has(RUN_COMMAND)).toBe(false)
     expect((await answer)?.kind).toBe('error')
     expect(dispose).toHaveBeenCalledTimes(1)
-    const blocked = await ctx.tools.execute({ name: 'orphan_tool', callId: 'orphan' as never, arguments: {}, agent: child, signal: new AbortController().signal })
+    const blocked = await (ctx.tools as any).execute({ name: 'orphan_tool', callId: 'orphan' as never, arguments: {}, agent: child, signal: new AbortController().signal })
     expect(blocked.isError).toBe(true)
     expect(body).not.toHaveBeenCalled()
     finishCleanup()
     await vi.advanceTimersByTimeAsync(0)
-    const released = await ctx.tools.execute({ name: 'orphan_tool', callId: 'released' as never, arguments: {}, agent: child, signal: new AbortController().signal })
+    const released = await (ctx.tools as any).execute({ name: 'orphan_tool', callId: 'released' as never, arguments: {}, agent: child, signal: new AbortController().signal })
     expect(released.isError).not.toBe(true)
     expect(body).toHaveBeenCalledTimes(1)
     await scope!.dispose()
@@ -426,7 +426,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await vi.waitFor(() => expect(capturedChildId).toBeDefined())
 
     // 1. 模拟子代理在 live 段尝试执行 ops_bash，由于预登记了 childId，凭 agent.id 立即单调拒绝
-    const blockedById = await ctx.tools.execute({
+    const blockedById = await (ctx.tools as any).execute({
       name: 'ops_bash',
       callId: 'call-1' as never,
       arguments: {},
@@ -438,7 +438,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(body).not.toHaveBeenCalled()
 
     // 2. 模拟以 session.header.id 传入（包装 agent 场景），同样单调拒绝
-    const blockedByHeader = await ctx.tools.execute({
+    const blockedByHeader = await (ctx.tools as any).execute({
       name: 'ops_bash',
       callId: 'call-2' as never,
       arguments: {},
@@ -450,7 +450,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(body).not.toHaveBeenCalled()
 
     // 3. 无 id 可依（既不是预登记 id，也读不到投影）时，仍凭子会话快照里的 descriptor 标签拦截
-    const blockedBySnapshot = await ctx.tools.execute({
+    const blockedBySnapshot = await (ctx.tools as any).execute({
       name: 'ops_bash',
       callId: 'call-3' as never,
       arguments: {},
@@ -470,7 +470,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await sideAsk
 
     // 任务结束后预登记 id 必须释放，避免残留 id 长期拦截已结束的子会话
-    const released = await ctx.tools.execute({
+    const released = await (ctx.tools as any).execute({
       name: 'ops_bash',
       callId: 'call-4' as never,
       arguments: {},

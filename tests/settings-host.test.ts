@@ -95,7 +95,7 @@ const harness = async (config: unknown, probes: readonly Probe[]): Promise<Harne
   const prompts: string[] = []
   const calls: CallResult[] = []
   const run = async (probe: Probe, agent?: object) => {
-    const outcome = await ctx.tools.execute({
+    const outcome = await (ctx.tools as any).execute({
       name: probe.name,
       callId: `call-${calls.length + 1}` as never,
       arguments: (probe.args ?? {}) as never,
