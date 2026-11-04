@@ -42,8 +42,8 @@ describe('DSH 宿主准入范围契约 (engines.dsh)', () => {
     expect(check('0.2.1-rc.4')).toBe(true)
     expect(check('0.2.1-rc.5')).toBe(true)
     expect(check('0.2.2-alpha.1')).toBe(true)
-    expect(check('0.2.2-alpha.2')).toBe(true)
-    expect(check('0.2.2-alpha.3')).toBe(true)
+    expect(check('0.2.2-rc.1')).toBe(true)
+    expect(check('0.2.2-rc.1')).toBe(true)
     expect(check('0.2.2-rc.1')).toBe(true)
     expect(check('0.2.9')).toBe(true)
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.3] - 2026-11-04
+
+### Compatibility & Dependencies
+
+- Align with official DSH `0.2.2-rc.1` release; upgrade development dependencies to `0.2.2-rc.1`.
+- Clean up obsolete alpha versions from the host compatibility matrix; support all `0.2.x` RC hosts (`0.2.0-rc.1` through `0.2.2-rc.1`).
+- Update documentation badges and verified build ranges.
+
 ## [1.3.2] - 2026-11-03
 
 - Extend host compatibility support: verified compatibility across DSH latest prerelease `0.2.2-alpha.3` and all RCs up to `0.2.1-rc.5`, ensuring seamless side-ask interaction on newer hosts.
