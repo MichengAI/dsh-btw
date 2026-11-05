@@ -6,98 +6,98 @@
 
 # DSH BTW
 
-**Ask a side question in DeepSeek Harness. Answers only, no tool execution.**
+**在 DeepSeek Harness 当前会话中随手旁问，只回答，不执行**
 
-[简体中文](README.zh-CN.md) · [Screenshots](#screenshots) · [Installation](#installation) · [Usage](#usage) · [Changelog](CHANGELOG.md) · [Apache-2.0](LICENSE)
+[English](README.en.md) · [界面预览](#界面预览) · [安装](#安装) · [使用](#使用) · [更新日志](CHANGELOG.zh-CN.md) · [Apache-2.0](LICENSE)
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![许可证：Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![DSH Web Plugin](https://img.shields.io/badge/DSH%20Web-Plugin-0f766e.svg)](https://github.com/deepseek-ai/deepseek-harness)
 [![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
 
 </div>
 
-> DSH BTW is a community-maintained DeepSeek Harness plugin, not an official DeepSeek AI product. Type `/btw your question` in the current conversation to get a context-aware answer in an independent bubble without interrupting the main task. Supports DSH Web and desktop apps that include DSH Web. From `1.0.0`, hosts outside the supported list are rejected by the version gate and the plugin will not run; installed configuration and main-conversation records are kept.
+> DSH BTW 是社区维护的 DeepSeek Harness 插件，并非 DeepSeek AI 官方产品。在当前会话中输入 `/btw 问题`，即可基于已有上下文获得独立气泡回答，不打断主任务。支持 DSH Web 及集成 DSH Web 的桌面应用。`1.0.0` 起，不在支持列表中的宿主会被版本门拒绝，插件不会运行；已安装配置和主会话记录仍保留。
 
-## Features
+## 功能概览
 
-- **Context-aware questions**: explain concepts, recap conclusions, or ask a quick question about the current conversation.
-- **Answers only**: no reading new files, browsing the web, running commands, or editing code.
-- **Independent answer bubbles**: render Markdown and formulas, copy answers, collapse, expand, and close individual bubbles. Multiple answers can stay visible.
-- **Keep the main task going**: side questions are answered separately and by default do not add answers to the main conversation.
-- **Return on request**: when you want the conclusion available to the main conversation, ask for it in the question ("send the answer back to the main conversation") and the side ask uses `send_message` to deliver a self-contained answer to the main session. It does not send anything when you did not ask.
-- **Cancel anytime**: close a bubble while it is answering to cancel that question.
-- **Themes and languages**: follow DSH light and dark themes and switch between Chinese and English UI.
+- **上下文旁问**：根据当前会话内容解释概念、回顾结论或回答临时问题。
+- **只回答，不执行**：不会读取新文件、联网、运行命令或修改代码。
+- **独立答案气泡**：支持 Markdown、公式、复制、折叠、展开和关闭，可同时查看多条旁问。
+- **不打断主任务**：旁问单独作答，答案默认不会写入主会话。
+- **需要时才回传**：想在主对话里拿到结论时，在问题中明确要求「把答案发回主对话」，旁问会用 `send_message` 把一份自足的答案发回主会话；没有要求时不会回传。
+- **随时取消**：关闭正在回答的气泡即可取消该旁问。
+- **主题与国际化**：跟随 DSH 浅色、深色主题，界面支持中文和英文切换。
 
-## Screenshots
+## 界面预览
 
-### Side questions in stock DSH
+### 原生 DSH 中的旁问
 
-The main conversation stays in place, with the side answer above the composer.
+主会话保留在原来的位置，旁问答案位于输入框上方。
 
-![A BTW answer bubble in the stock DSH conversation](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-conversation.png)
+![原生 DSH 会话中的 BTW 独立答案气泡](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-conversation.png)
 
-### Command menu
+### 命令入口
 
-Type `/` and select `btw` under Commands, or enter `/btw your question` directly.
+输入 `/` 后，可在「指令」中选择 `btw`，也可以直接输入 `/btw 问题`。
 
-![The official command menu with btw](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
+![官方指令菜单中的 btw 入口](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-command-menu.png)
 
-### Independent answer bubbles
+### 独立答案气泡
 
-Each answer has its own copy, collapse or expand, and close controls in the upper right.
+每条旁问单独展示，右上角提供复制、折叠或展开、关闭操作。
 
-![Multiple answer bubbles with copy, collapse, and close controls](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-bubbles.png)
+![多条旁问气泡及复制、折叠和关闭操作](https://raw.githubusercontent.com/MichengAI/dsh-btw/2d8dd7752cec1b29dd705969eaa932635ba0bf4f/assets/screenshots/btw-bubbles.png)
 
-### Side-question settings
+### 旁问配置
 
-Open **Plugins**, pick `@michengai/dsh-btw`, and the settings form sits directly on the detail page — the whitelist and the prompt box, pre-filled with the built-in prompt so you can edit it in place.
+打开 **插件**，选中 `@michengai/dsh-btw`，配置表单就在详情页上——放行工具与提示词两个输入框，提示词框已预填内置文案，可以直接在上面改。
 
-![The side-question settings form on the plugin detail page](assets/screenshots/btw-settings-panel.png)
+![插件详情页上的旁问配置表单](assets/screenshots/btw-settings-panel.png)
 
-### Drawing from a side question
+### 在旁问里画图
 
-With `pele_draw` on the whitelist, a side question can render a diagram. It shows up inside the side-question panel, and the main conversation is untouched.
+把 `pele_draw` 加进白名单后，旁问也能画图。图显示在旁问面板里，主对话不受影响。
 
-![A side question rendering a flowchart with pele_draw](assets/screenshots/btw-pele-draw.png)
+![旁问调用 pele_draw 渲染流程图](assets/screenshots/btw-pele-draw.png)
 
-## DSH product ecosystem
+## DSH 产品生态
 
-For a desktop workbench, download [DSH Codex Desktop](https://github.com/MichengAI/dsh-codex-desktop/releases). Existing [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) installations can add plugins as needed by following each project's README. Below are 11 first-party plugins; consult the corresponding desktop release notes and bundled catalog for what that version includes.
+想使用桌面工作台，可下载 [DSH Codex Desktop](https://github.com/MichengAI/dsh-codex-desktop/releases)；已有 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 环境，可按各项目 README 按需安装。以下列出 11 个自研插件；桌面端实际随附范围以对应版本的发行说明和内置清单为准。
 
-| Plugin | What you can do |
+| 插件 | 你可以用它做什么 |
 | --- | --- |
-| [Codex UI](https://github.com/MichengAI/dsh-codex-ui) | Organize projects and conversations, search tasks, and navigate chat turns |
-| [Agency Agents](https://github.com/MichengAI/dsh-agency-agents) | Choose and summon specialists for your task |
-| [Skills Manager](https://github.com/MichengAI/dsh-skills-manager) | Find, enable, create, and import local skills |
-| [Archive Manager](https://github.com/MichengAI/dsh-archive-manager) | Search, restore, or clean up archived conversations |
-| [IM Connect](https://github.com/MichengAI/dsh-im-connect) | Send tasks and receive replies through messaging platforms |
-| [Automation](https://github.com/MichengAI/dsh-automation) | Schedule tasks and review each run |
-| [BTW](https://github.com/MichengAI/dsh-btw) | Ask side questions without interrupting the main task |
-| [Simplify](https://github.com/MichengAI/dsh-simplify) | Use `/simplify` to improve code within your Git changes |
-| [PUA](https://github.com/MichengAI/dsh-pua) | Guide the Agent to try new approaches after failures, investigate causes, and verify results before completion |
-| [Code Review](https://github.com/MichengAI/dsh-code-review) | Use `/review` to request an independent Agent code review and receive the report in the current conversation |
-| [Codex Pet](https://github.com/MichengAI/dsh-codex-pet) | View conversation notifications and respond to tool approvals and questions through a desktop pet |
+| [Codex UI](https://github.com/MichengAI/dsh-codex-ui) | 整理项目与会话、搜索任务、跳转对话轮次 |
+| [Agency Agents](https://github.com/MichengAI/dsh-agency-agents) | 按任务选择并召唤专业角色 |
+| [Skills Manager](https://github.com/MichengAI/dsh-skills-manager) | 统一查找、启停、创建和导入本机技能 |
+| [Archive Manager](https://github.com/MichengAI/dsh-archive-manager) | 搜索、恢复或清理已归档会话 |
+| [IM Connect](https://github.com/MichengAI/dsh-im-connect) | 从消息平台下任务、收回复 |
+| [Automation](https://github.com/MichengAI/dsh-automation) | 按计划执行任务，查看每次运行的结果 |
+| [BTW](https://github.com/MichengAI/dsh-btw) | 在当前上下文中临时旁问，不打断主任务 |
+| [Simplify](https://github.com/MichengAI/dsh-simplify) | 用 `/simplify` 整理 Git 改动范围内的代码 |
+| [PUA](https://github.com/MichengAI/dsh-pua) | 引导 Agent 在失败时换方法、查原因，并在完成前验证结果 |
+| [Code Review](https://github.com/MichengAI/dsh-code-review) | 用 `/review` 发起独立 Agent 代码审查，在当前会话接收报告 |
+| [Codex Pet](https://github.com/MichengAI/dsh-codex-pet) | 通过桌面宠物查看会话提醒、处理工具审批和问题回答 |
 
-## Prerequisites
+## 前置条件
 
-- An installed copy of DeepSeek Harness.
-- Host compatibility: Full DeepSeek Harness `0.2.x` line (`>=0.2.0-rc.1 <0.3.0-0`), verified with `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`–`0.2.1-rc.5`, and `0.2.2-rc.1`, and forwards-compatible with subsequent `0.2.x` RC releases without requiring routine plugin version bumps.
-- Legacy hosts prior to `0.2.0-rc.1` are no longer supported. The version gate cleanly intercepts breaking changes in the `0.3.0` generation. Users on `0.1.x` hosts should install `0.1.24`.
-- Node.js 22+ and `dsh` available in your terminal.
+- 已安装 DeepSeek Harness。
+- 宿主支持范围：DeepSeek Harness `0.2.x` 全系列（`>=0.2.0-rc.1 <0.3.0-0`），已验证兼容 `0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-rc.1`～`0.2.1-rc.5`、`0.2.2-rc.1`，并自动支持后续 `0.2.x` 的全部 0.2.x RC 版本，同代宿主升级无需重复等待发版。
+- 不再支持 `0.2.0-rc.1` 之前的早期宿主，遇到 `0.3.0` 代际破坏性更新时将被版本门安全拦截。仍在使用 `0.1.x` 的用户请安装插件 `0.1.24`。
+- Node.js 22+，可在终端执行 `dsh`。
 
-## Installation
+## 安装
 
-Examples use the `web` profile; replace it with your target profile. Disable other plugins that provide `/btw` before installing.
+以下命令使用 `web` profile，请按实际环境替换。安装前停用其他提供 `/btw` 命令的插件。
 
-### Ask an agent to install it (recommended)
+### 让 Agent 帮你安装（推荐）
 
-Send the prompt below to any agent that can run terminal commands on your computer. Replace `web` with your actual profile. Once installed, use the plugin in DSH.
+把下面这段话发给任意能够执行本机终端命令的 Agent。将 `web` 替换为实际使用的 profile；安装完成后，在 DSH 中使用本插件。
 
 ```text
-Install the DSH plugin @michengai/dsh-btw into my local web profile by running: dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/. Then run dsh --profile web --dump-config, confirm the configuration includes michengai-btw, and explain how to reload DSH and start using the plugin.
+请将 DSH 插件 @michengai/dsh-btw 安装到本机 web profile，执行：dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/。安装后执行 dsh --profile web --dump-config，确认配置包含 michengai-btw，并告诉我如何重新加载 DSH 和开始使用。
 ```
 
-### Install manually from npm
+### 手动从 npm 安装
 
 ```powershell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -106,86 +106,86 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://registry.npmjs.org/
 ```
 
-### Reloading
+### 重新加载
 
-Install or update after current tasks finish, as desktop apps may reload automatically. If the change has not taken effect, use the desktop app's reload action or restart the `dsh web` service. Refreshing the browser alone is not enough.
+请在当前任务结束后安装或更新，桌面应用可能自动重载。若未生效，使用桌面应用的“重新加载”，或重启 `dsh web` 服务；仅刷新浏览器不够。
 
-Installing `@latest` on a host before `0.2.0`, or on a `0.2.1` alpha, is rejected by the version gate, and the plugin will not run. On `0.1.x`, install `0.1.24` instead. Rejection does not delete existing configuration or main-conversation records.
+`0.2.0` 之前的宿主，以及 `0.2.1` alpha，安装 `@latest` 会被版本门拒绝，插件不会运行。`0.1.x` 请改装 `0.1.24`。拒绝不会删除已有配置或主会话记录。
 
-## Usage
+## 使用
 
-### Ask about selected text
+### 划词旁问
 
-Select text within a single conversation message, choose **Ask BTW** from the compact selection toolbar, and enter a question or choose **Explain this**. Enter sends, Shift+Enter inserts a newline, and Esc cancels. Answers use the existing BTW bubbles with an expandable quote.
+在会话单条正文中选中文字，在选区上方的横条选择「旁问」，输入问题后按 Enter 发送，或点击「解释一下」。Shift+Enter 换行，Esc 取消。回答仍显示在独立 BTW 气泡中，引用原文可展开查看。
 
-- Supports prose, lists, and code text; quotes are limited to 8,000 UTF-16 code units including whitespace and are never silently truncated.
-- The quote is frozen when the menu opens. Other context comes from completed main-chat content at send time.
-- Main-composer drafts are preserved. Cross-message selections, editable fields, and tool output do not show the menu.
-- **Add to conversation** appends a quote to the existing draft without sending. After insertion, focus returns to the composer; insertion is blocked while a message is being submitted. Right-click keeps the browser's native menu.
-- Keyboard selection is supported inside focused message elements: release Shift to focus the toolbar. Browsers without the Popover API use a fixed-position fallback, which may be clipped by the host layout.
-- Coexists with `dsh-better-sidebar`: BTW handles conversation text only; file previews and editors retain the sidebar plugin's own **Add to conversation** action without a duplicate toolbar.
-- This entry uses host DOM markers. Unrecognized layouts keep their normal context menu; `/btw` remains available.
+- 支持普通段落、列表和代码块文字；一次引用最多 8000 个 UTF-16 代码单元（包括空白），超限会提示，不会截断。
+- 引用在划词时固定，正文继续生成不会改变它；其他背景使用发送时主会话已完成的内容。
+- 不占用或清空主输入框草稿；跨消息选区、输入框和工具输出不提供该菜单。
+- 横条还提供「添加到对话」，将引用追加到已有草稿并聚焦输入框，不自动发送；消息提交期间暂停添加。右键保留浏览器原有菜单。
+- 支持焦点位于正文元素内的键盘选区，释放 Shift 后聚焦横条。不支持 Popover API 的浏览器使用 fixed 浮层降级，可能受到宿主布局裁切。
+- 与 `dsh-better-sidebar` 分区域处理：BTW 仅处理会话正文，文件预览与编辑器保留侧边栏插件原有「添加到对话」选项，不重复弹出工具条。
+- 新入口依赖宿主正文 DOM 标记。无法识别的布局保留原有右键行为，仍可使用 `/btw`。
 
-### Command entry
+### 命令旁问
 
-In a conversation with existing context, enter:
+在已有上下文的会话中输入：
 
 ```text
-/btw Summarize the proposed plan in one sentence.
+/btw 用一句话总结刚才的方案
 ```
 
-| Goal | Action |
+| 目标 | 操作 |
 | --- | --- |
-| Ask a side question | Submit `/btw your question`, or choose `btw` from the `/` menu. |
-| Read the answer | Wait for the answer in the independent bubble above the composer. |
-| Copy an answer | Click the copy icon in the bubble's upper right. |
-| Collapse or expand | Click the collapse or expand icon. |
-| Cancel a question | Close its bubble while it is running. The main task is unaffected. |
-| Dismiss an answer | Close the completed bubble. |
-| Ask again | Submit another `/btw` question. Each question is independent. |
+| 提一个旁问 | 输入 `/btw 问题` 并提交，或从 `/` 菜单选择 `btw`。 |
+| 查看答案 | 等待输入框上方的独立气泡返回回答。 |
+| 复制答案 | 点击气泡右上角的复制图标。 |
+| 收起或展开 | 点击气泡右上角的折叠或展开图标。 |
+| 取消旁问 | 在回答过程中关闭对应气泡，不取消主任务。 |
+| 移除答案 | 关闭已完成的气泡。 |
+| 继续提问 | 再次输入 `/btw 问题`；每次都是独立旁问。 |
 
-Use the regular conversation to run commands, edit code, or continue the main task. BTW can only answer using existing context.
+若需要执行命令、修改代码或继续主任务，请通过普通会话提交。BTW 只能依据已有上下文作答。
 
-BTW accepts text only. Side questions with images or files are rejected without clearing the draft or attachments; remove the attachments before retrying.
+BTW 只接受文字。输入框中附带图片或普通文件时会拒绝旁问，并保留输入和附件，请移除附件后重试。
 
-### Usage Notes
+### 使用说明
 
-- Each question is independent and uses completed content from the main conversation at the time you ask. It does not include an answer still being generated or previous side questions.
-- Bubbles are not restored after refreshing the page. Copy any answers you want to keep first.
+- 每次旁问相互独立，参考的是提问时主会话已完成的内容，不包含正在生成的回答或之前的旁问。
+- 刷新页面后气泡不会保留，需要保存的答案请先复制。
 
-## Settings
+## 配置
 
-Both entries are optional. Leaving them empty keeps the built-in behaviour: text answers only, with the shipped prompt.
+下面两项都是可选的。两项都留空时保持出厂行为：只允许纯文字回答，使用内置提示词。
 
-Open **Plugins**, find `@michengai/dsh-btw`, and open **Configure** on its row. The page sits in the same place as the configuration page of `dsh-subagent-default-model`.
+打开 **插件**，找到 `@michengai/dsh-btw`，点击该行的 **配置**。配置页位置与 `dsh-subagent-default-model` 的配置页相同。
 
-| Field | Effect |
+| 配置项 | 作用 |
 | --- | --- |
-| **Allowed tools** | Tool names the side question may call in addition to `send_message`, one per line (for example `pele_draw`). Empty allows text answers only, which is the default. |
-| **Custom prompt** | Instruction text that replaces the built-in side-question prompt. The box is pre-filled with the built-in prompt so you can edit it in place; saving it unchanged restores the default. |
+| **放行工具** | 除 `send_message` 之外，旁问还允许调用的工具名，每行一个（例如 `pele_draw`）。留空表示只允许纯文字回答，这也是默认值。 |
+| **自定义提示词** | 替换内置的旁问提示词。输入框已预填内置文案，可直接在上面修改；原样保存即恢复默认。 |
 
-Notes:
+说明：
 
-- The whitelist widens what the side question may call; the main conversation is never restricted by it. A name that does not exist simply allows nothing.
-- `send_message` is not a whitelist entry. Delivering an answer back to the main conversation stays bound to the rule that it may only target the side question's own parent session, so a whitelist entry cannot turn it into "send to any agent".
-- The custom prompt replaces the instruction prefix only. The tool-permission sentence and the reply-channel sentence are always appended, so the model never believes it can call everything.
-- Changes apply to the next side question without reloading the plugin.
-- The permission sentence names the allowed tools, so widening the whitelist changes the side-question prompt. That prompt is a trailing user message; the tool list and system prompt stay byte-identical to the main conversation, so parent prompt cache reuse is unaffected.
+- 白名单只放宽旁问能调用的范围，从不限制主对话；写了不存在的工具名，等于什么都没放行。
+- `send_message` 不能写进白名单。把答案回传主对话仍然只允许发给旁问自己的父会话，白名单无法把它变成「发给任意 agent」。
+- 自定义提示词只替换指令前缀；工具权限说明与回传通道说明始终追加在末尾，避免模型误以为可以随意调用工具。
+- 改完对下一次旁问生效，不需要重新加载插件。
+- 权限说明里会点名放行的工具，因此放宽白名单会改变旁问提示词。它属于末尾的用户消息，工具定义与系统提示词仍与主会话逐字节一致，不影响主会话的 prompt cache 复用。
 
-### Example: let a side question draw diagrams
+### 示例：让旁问画图
 
-[`dsh-pele`](https://github.com/hesheng01/dsh-pele) provides the `pele_draw` tool, which renders Mermaid source into an SVG card inside the conversation. Add `pele_draw` to **Allowed tools** and a side question can draw too.
+[`dsh-pele`](https://github.com/hesheng01/dsh-pele) 提供 `pele_draw` 工具，把 Mermaid 源码渲染成会话里的 SVG 图表卡片。把 `pele_draw` 填进 **放行工具**，旁问也能画图。
 
-> Note: `dsh-pele` is a recent plugin that is not published to npm and not in the plugin marketplace yet, so it cannot be installed by searching the marketplace. Clone the repository and install its `plugin` directory into your profile:
+> 注意：`dsh-pele` 是最近新出的插件，还没有发布到 npm，也暂时没上架插件市场，因此在插件市场里搜不到。安装方式是从 GitHub 克隆仓库，把其中的 `plugin` 目录装进 profile：
 >
 > ```bash
 > git clone https://github.com/hesheng01/dsh-pele.git
-> dsh plugin --profile <profile> add <absolute-path>/dsh-pele/plugin
+> dsh plugin --profile <profile> add <绝对路径>/dsh-pele/plugin
 > ```
 >
-> The first install needs a Host restart.
+> 首次接入需要重启 Host。
 
-## Uninstallation
+## 卸载
 
 ```powershell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -194,26 +194,25 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 dsh plugin --profile web remove @michengai/dsh-btw
 ```
 
-Reload DSH afterward. Disabling or updating the plugin does not delete the main conversation's records.
+重新加载 DSH 后生效。停用或升级不会删除主会话记录。
 
-## Development
+## 本地开发
 
 ```powershell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
-
 npm ci --ignore-scripts
 npm run check
 ```
 
-`npm run check` runs type checking, tests, and a build.
+`npm run check` 执行类型检查、测试和构建。
 
-Development and builds target `0.2.1-rc.2`. `npm run test:compat` builds with that baseline and runs the test suite on each of the four isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
+开发与构建基线为 `0.2.1-rc.2`。`npm run test:compat` 用该基线编译，再在四个隔离宿主版本中分别运行测试集，模型使用测试适配器。DOM 组件测试不替代真实浏览器验收。
 
-GitHub and npm both include a ready-to-run `lib`; after changing source, run `npm run build` before committing.
+GitHub 与 npm 都包含可直接运行的 `lib`；改了源码后，提交前运行 `npm run build`。
 
-To install from source, run `dsh plugin --profile web add . --ignore-scripts` from the project directory, then reload DSH.
+从源码安装时，在项目目录执行 `dsh plugin --profile web add . --ignore-scripts`，然后重新加载 DSH。
 
-## License
+## 许可证
 
-[Apache-2.0](LICENSE). Copyright 2026 MichengAI.
+[Apache-2.0](LICENSE) © 2026 MichengAI。
