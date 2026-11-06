@@ -20,6 +20,7 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
     '0.2.1-rc.2': 'submittedAttachments',
     '0.2.1-rc.3': 'submittedAttachments',
     '0.2.1-rc.4': 'submittedAttachments',
+    '0.2.1-rc.5': 'submittedAttachments',
     '0.2.2-rc.1': 'submittedAttachments',
   }
   const attachmentField = Object.hasOwn(attachmentFields, version) ? attachmentFields[version] : undefined
