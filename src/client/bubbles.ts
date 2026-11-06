@@ -3,6 +3,15 @@ import { translate, type BtwTranslate } from '../locales'
 
 const MAX_BUBBLES_PER_SESSION = 20
 
+/** 局域网明文 HTTP 等非安全上下文不暴露 crypto.randomUUID，getRandomValues 不受该限制。 */
+function newRequestId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export interface Bubble {
   id: string
   sessionId: string
@@ -63,7 +72,7 @@ export class BubbleStore {
     if (this.disposed) throw new Error(this.t('error.stopped'))
     if (this.snapshot.filter(item => item.sessionId === sessionId).length >= MAX_BUBBLES_PER_SESSION) throw new Error(this.t('error.bubbleCapacity'))
     if (this.active.size >= 8) throw new Error(this.t('error.capacity'))
-    const id = crypto.randomUUID()
+    const id = newRequestId()
     const controller = new AbortController()
     this.active.set(id, controller)
     this.runEnd.set(id, 'pending')

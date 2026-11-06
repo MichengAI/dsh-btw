@@ -1,9 +1,11 @@
+import { webcrypto } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { BubbleStore, SideRequestNotStartedError } from '../src/client/bubbles'
+import { parseRequest } from '../src/shared'
 import { translate } from '../src/locales'
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve))
-afterEach(() => { vi.useRealTimers() })
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
 
 it('满额关闭挂起时五秒返回，迟到释放不会自动提交已拒绝的问题', async () => {
   const run = vi.fn().mockResolvedValue({ kind: 'success', text: '回答' })
@@ -226,4 +228,44 @@ it('淘汰气泡先确认关闭，清理失败保留答案和重试入口', asyn
   close.mockResolvedValue({ kind: 'success', text: '' })
   await store.close(first)
   expect(store.getSnapshot().find(item => item.id === first)).toBeUndefined()
+})
+
+/** 局域网明文 HTTP 等非安全上下文不暴露 crypto.randomUUID，仅保留 getRandomValues。 */
+function stubInsecureCrypto() {
+  const getRandomValues = vi.fn((array: Uint8Array) => webcrypto.getRandomValues(array))
+  vi.stubGlobal('crypto', { getRandomValues })
+  return getRandomValues
+}
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+it('局域网 HTTP 非安全上下文缺少 randomUUID 时旁问仍能启动', async () => {
+  const getRandomValues = stubInsecureCrypto()
+  const run = vi.fn().mockResolvedValue({ kind: 'success', text: '回答' })
+  const store = new BubbleStore({ run, close: async () => ({ kind: 'success', text: '' }) })
+  const id = await store.ask('session', '问题')
+  expect(id).toMatch(UUID_V4)
+  expect(getRandomValues).toHaveBeenCalledTimes(1)
+  expect(run).toHaveBeenCalledWith('session', id, '问题', expect.any(AbortSignal))
+  await tick()
+  expect(store.getSnapshot()).toMatchObject([{ id, answer: '回答' }])
+})
+
+it('非安全上下文生成的 id 互不重复且能通过服务端 parseRequest', async () => {
+  stubInsecureCrypto()
+  const store = new BubbleStore({ run: async () => ({ kind: 'success', text: '' }), close: async () => ({ kind: 'success', text: '' }) })
+  const ids: string[] = []
+  for (let index = 0; index < 20; index++) {
+    const id = await store.ask('session', `问题 ${index}`)
+    ids.push(id)
+    expect(parseRequest(JSON.stringify({ id, question: `问题 ${index}`, locale: 'zh' })).id).toBe(id)
+    await tick()
+  }
+  expect(new Set(ids).size).toBe(20)
+})
+
+it('安全上下文下旁问 id 仍是合法 UUID v4 格式', async () => {
+  const store = new BubbleStore({ run: async () => ({ kind: 'success', text: '' }), close: async () => ({ kind: 'success', text: '' }) })
+  const id = await store.ask('session', '问题')
+  expect(id).toMatch(UUID_V4)
 })
