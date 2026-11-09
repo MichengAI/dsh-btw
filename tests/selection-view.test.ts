@@ -5,14 +5,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SelectionAsk } from '../src/client/SelectionAsk'
 import { BubbleDock } from '../src/client/BubbleView'
 import { BubbleStore } from '../src/client/bubbles'
-import { QuoteStore } from '../src/client/quotes'
 import { translate } from '../src/locales'
 
 let root: Root
 let scope: HTMLDivElement
 let mount: HTMLDivElement
 let store: BubbleStore
-let quoteStore: QuoteStore
 const run = vi.fn(async () => ({ kind: 'success' as const, text: '引用解释' }))
 const close = vi.fn(async () => ({ kind: 'success' as const, text: '' }))
 
@@ -38,9 +36,8 @@ beforeEach(async () => {
   root = createRoot(mount)
   run.mockClear(); close.mockClear()
   store = new BubbleStore({ run, close })
-  quoteStore = new QuoteStore()
   await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate() }),
+    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate() }),
     React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
 })
 afterEach(async () => {
@@ -217,7 +214,7 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
     focus,
   }
   await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
     React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
 
   await open()
@@ -242,7 +239,7 @@ it('当宿主提供 insertQuote 时，点击「引用文本」优先调用原生
     insertQuote,
   }
   await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
     React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
 
   await open()
@@ -268,7 +265,7 @@ it('在老版本宿主（无 insertQuote 但提供 insertReference）时，点�
     }),
   }
   await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
     React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
 
   await open()
@@ -290,7 +287,7 @@ it('在纯文本输入框环境时，点击「引用文本」以 Markdown blockq
     focus,
   }
   await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, quoteStore, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
     React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
 
   await open()

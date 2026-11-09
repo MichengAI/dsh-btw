@@ -55,8 +55,7 @@ export function createQuoteReferenceInsert(
     turnIndex?: number
     text: string
     comment?: string
-  },
-  _t?: BtwTranslate
+  }
 ): ReferenceInsert {
   // 对齐官方 QuoteNode 展现：以引用文本正文作为输入框展示标签（单行超出省略）
   const preview = quote.text.trim().replace(/\s+/g, ' ')
@@ -134,7 +133,7 @@ export function createQuoteTriggerSource({
       const payload = parseQuoteRef(pick.candidate.value ?? '')
       if (!payload) return undefined
       return {
-        insert: createQuoteReferenceInsert(payload, t),
+        insert: createQuoteReferenceInsert(payload),
       }
     },
     openReference: (session: ClientSessionContext, reference: { ref: string }): boolean => {
@@ -174,7 +173,7 @@ export function insertQuoteReference(
     text: string
     comment?: string
   },
-  t: BtwTranslate
+  _t?: BtwTranslate
 ): boolean {
   if (typeof input.insertReference !== 'function') return false
 
@@ -189,7 +188,7 @@ export function insertQuoteReference(
             end: input.state.getSnapshot().draft.length,
             draftRev: input.state.getSnapshot().draftRev ?? 0,
           }
-    const refInsert = createQuoteReferenceInsert(quote, t)
+    const refInsert = createQuoteReferenceInsert(quote)
     return input.insertReference(refInsert, span)
   } catch {
     return false

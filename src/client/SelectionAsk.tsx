@@ -3,7 +3,6 @@ import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
-import type { QuoteStore } from './quotes'
 import { captureSelectionDetails, type CapturedSelectionDetails } from './selection'
 import { formatAsBlockquote } from './official-quote'
 import { insertQuoteReference } from './trigger-source'
@@ -31,11 +30,9 @@ interface SelectionDraft {
 /** 只接管会话正文选区；非模态 popover 不抢选区，顶层避免滚动裁切。 */
 export function SelectionAsk(props: {
   store: BubbleStore
-  quoteStore?: QuoteStore
   sessionId: string
   t: BtwTranslate
   input?: DraftInput
-  nativeSelection?: boolean
 }): React.JSX.Element {
   const { store, sessionId, t, input } = props
   const anchor = useRef<HTMLSpanElement>(null)

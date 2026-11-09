@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseRequest } from '../src/shared'
 import { SideJobs } from '../src/server/jobs'
-import { zh, en, ja, es, fr, de, ru, pt, translate, normalizeLocale, type BtwLocale } from '../src/locales'
+import { zh, en, ja, es, fr, de, ru, pt, LOCALE_DICTIONARIES, translate, normalizeLocale, type BtwLocale } from '../src/locales'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -38,6 +38,25 @@ describe('全量 8 门官方语言支持与一致性断言', () => {
 
   it(`中文基线字典恰好包含 ${expectedKeyCount} 个键`, () => {
     expect(zhKeys).toHaveLength(expectedKeyCount)
+  })
+
+  it('LOCALE_DICTIONARIES 常量导出并精确覆盖全部 8 门语言', () => {
+    const dictKeys = Object.keys(LOCALE_DICTIONARIES).sort()
+    expect(dictKeys).toEqual(['de', 'en', 'es', 'fr', 'ja', 'pt', 'ru', 'zh'])
+  })
+
+  it('客户端 apply 注册哨兵：源码必须直接注册 LOCALE_DICTIONARIES，杜绝两语回退', () => {
+    let rootDir = process.cwd()
+    let curr = path.resolve(__dirname, '..')
+    while (curr && curr !== path.dirname(curr)) {
+      if (fs.existsSync(path.join(curr, '.git')) && fs.existsSync(path.join(curr, 'package.json'))) {
+        rootDir = curr
+        break
+      }
+      curr = path.dirname(curr)
+    }
+    const clientSource = fs.readFileSync(path.resolve(rootDir, 'src/client/index.tsx'), 'utf8')
+    expect(clientSource).toContain('ctx.locale.register(NS, LOCALE_DICTIONARIES)')
   })
 
   it('所有 8 门语言具有完全相同的键集合，零遗漏、零多余', () => {

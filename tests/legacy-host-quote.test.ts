@@ -5,7 +5,6 @@ import { createRoot, Root } from 'react-dom/client'
 import { SelectionAsk } from '../src/client/SelectionAsk'
 import { OfficialQuotePreview } from '../src/client/official-quote'
 import { BubbleStore } from '../src/client/bubbles'
-import { QuoteStore } from '../src/client/quotes'
 import { translate } from '../src/locales'
 
 describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验与降级测试', () => {
@@ -13,7 +12,6 @@ describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验�
   let mount: HTMLDivElement
   let root: Root
   let store: BubbleStore
-  let quoteStore: QuoteStore
 
   beforeEach(() => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
@@ -40,7 +38,6 @@ describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验�
       run: () => Promise.resolve({ kind: 'success', text: 'ok' }),
       close: () => Promise.resolve({ kind: 'success', text: 'closed' }),
     })
-    quoteStore = new QuoteStore()
   })
 
   afterEach(async () => {
@@ -96,7 +93,6 @@ describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验�
       root.render(
         React.createElement(SelectionAsk, {
           store,
-          quoteStore,
           sessionId: 'legacy-session',
           t: translate(),
           input: mockLegacyInput,
@@ -156,7 +152,6 @@ describe('老版本宿主（无官方 quotes 插件与 insertQuote）1:1 体验�
       root.render(
         React.createElement(SelectionAsk, {
           store,
-          quoteStore,
           sessionId: 'bare-session',
           t: translate(),
           input: mockBareInput,

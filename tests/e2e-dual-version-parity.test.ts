@@ -6,7 +6,6 @@ import { SelectionAsk } from '../src/client/SelectionAsk'
 import { OfficialQuotePreview } from '../src/client/official-quote'
 import { QuoteUserTextNode, quoteUserTextRule } from '../src/client/user-quote-chip'
 import { BubbleStore } from '../src/client/bubbles'
-import { QuoteStore } from '../src/client/quotes'
 import { translate } from '../src/locales'
 
 describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验证', () => {
@@ -14,7 +13,6 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
   let mount: HTMLDivElement
   let root: Root
   let store: BubbleStore
-  let quoteStore: QuoteStore
 
   beforeEach(() => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
@@ -41,7 +39,6 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
       run: () => Promise.resolve({ kind: 'success', text: 'ok' }),
       close: () => Promise.resolve({ kind: 'success', text: 'closed' }),
     })
-    quoteStore = new QuoteStore()
   })
 
   afterEach(async () => {
@@ -64,11 +61,9 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
         root.render(
           React.createElement(SelectionAsk, {
             store,
-            quoteStore,
             sessionId: 'legacy-sess',
             t: translate('zh'),
             input: mockLegacyInput,
-            nativeSelection: false,
           })
         )
       })
@@ -106,11 +101,9 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
         root.render(
           React.createElement(SelectionAsk, {
             store,
-            quoteStore,
             sessionId: 'new-sess',
             t: translate('zh'),
             input: mockNewInput,
-            nativeSelection: true,
           })
         )
       })
@@ -142,11 +135,9 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
         root.render(
           React.createElement(SelectionAsk, {
             store,
-            quoteStore,
             sessionId: 'legacy-sess',
             t: translate('zh'),
             input: mockLegacyInput,
-            nativeSelection: false,
           })
         )
       })

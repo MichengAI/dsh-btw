@@ -21,7 +21,7 @@ import { createQuoteTriggerSource } from './trigger-source'
 import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
 import { createOfficialQuoteRule, OfficialQuotePreview, safeRegisterUserTextRule } from './official-quote'
 import { NativeBtwAskAction, safeRegisterInteraction } from './NativeBtwAsk'
-import { de, en, es, fr, ja, normalizeLocale, NS, pt, ru, zh, type BtwTranslate } from '../locales'
+import { LOCALE_DICTIONARIES, normalizeLocale, NS, type BtwTranslate } from '../locales'
 import { BtwSettingsCard, type BtwSettingsFace } from './SettingsCard'
 import { createSettingsScope, BUNDLE_NAME, ROW_CONFIG_KEY, type BtwSettingsScope, type HostConfigForms } from './settings-scope'
 
@@ -115,7 +115,7 @@ function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => Pic
 }
 
 export function apply(ctx: Context): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }))
+  ctx.effect(() => ctx.locale.register(NS, LOCALE_DICTIONARIES))
   const t = ctx.locale.bind(NS)
   const slots = ctx.get('slots') as SlotRegistry
   const remote = ctx.get('remote') as TypertClientRemote
@@ -269,8 +269,6 @@ export function apply(ctx: Context): void {
 
   function Dock(props: PropsRuntime<'conversation.input.dock'> & { t: BtwTranslate }): React.JSX.Element {
     const session = (ctx.get('sessions') as unknown as ISessions).scope(props.session.sessionId)
-    const uc = ctx.get('uiConversation') as { interactions?: { register?: unknown } } | undefined
-    const hasNativeSelection = typeof uc?.interactions?.register === 'function'
 
     return (
       <>
@@ -278,11 +276,9 @@ export function apply(ctx: Context): void {
           <SelectionAsk
             key={props.session.sessionId}
             store={store}
-            quoteStore={quoteStore}
             sessionId={props.session.sessionId}
             t={props.t}
             input={session ? ctx.conversation.input.for(session) : undefined}
-            nativeSelection={hasNativeSelection}
           />
         )}
         <BubbleDock store={store} sessionId={props.session.sessionId} t={props.t} />

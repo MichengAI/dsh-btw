@@ -23,7 +23,7 @@ export declare function createQuoteReferenceInsert(quote: {
     turnIndex?: number;
     text: string;
     comment?: string;
-}, _t?: BtwTranslate): ReferenceInsert;
+}): ReferenceInsert;
 export declare function createQuoteTriggerSource({ quoteStore, t, }: {
     quoteStore: QuoteStore;
     t: BtwTranslate;
@@ -49,5 +49,5 @@ export declare function insertQuoteReference(input: CompatibleInputTarget, quote
     turnIndex?: number;
     text: string;
     comment?: string;
-}, t: BtwTranslate): boolean;
+}, _t?: BtwTranslate): boolean;
 export {};

@@ -93,7 +93,6 @@ describe('NativeBtwAsk 适配官方选区交互规范与插槽', () => {
           store,
           sessionId: 'session-native',
           t: translate('zh'),
-          nativeSelection: true,
         })
       )
     })

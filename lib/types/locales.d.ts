@@ -12,6 +12,7 @@ export { zh, en, ja, es, fr, de, ru, pt };
 export type MessageKey = keyof typeof zh;
 export type BtwTranslate = Translate<MessageKey>;
 export type BtwLocale = 'zh' | 'en' | 'ja' | 'es' | 'fr' | 'de' | 'ru' | 'pt';
+export declare const LOCALE_DICTIONARIES: Record<BtwLocale, Record<MessageKey, string>>;
 declare module '@deepseek-ai/dsh-client-ui-slots' {
     interface LocaleNamespaceMap {
         'michengai.btw': MessageKey;
