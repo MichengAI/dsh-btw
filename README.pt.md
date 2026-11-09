@@ -210,7 +210,7 @@ npm run check
 
 O comando `npm run check` executa verificação de tipos, testes e compilação.
 
-A base de referência de desenvolvimento e compilação é `0.2.1-rc.2`. O comando `npm run test:compat` compila com essa base e executa a suíte de testes nas versões isoladas do host. Testes de componentes DOM não substituem a validação real em navegadores.
+A base de referência de desenvolvimento e compilação é `0.2.2-rc.1`. O comando `npm run test:compat` compila com essa base e executa a suíte de testes nas versões isoladas do host. Testes de componentes DOM não substituem a validação real em navegadores.
 
 Tanto o GitHub quanto o npm contêm a pasta executável `lib`; após modificar o código-fonte, execute `npm run build` antes de fazer o commit.
 

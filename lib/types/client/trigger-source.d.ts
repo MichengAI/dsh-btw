@@ -49,5 +49,5 @@ export declare function insertQuoteReference(input: CompatibleInputTarget, quote
     turnIndex?: number;
     text: string;
     comment?: string;
-}, _t?: BtwTranslate): boolean;
+}): boolean;
 export {};

@@ -133,7 +133,7 @@ export function QuoteDock({
     // 优先尝试作为结构化 Mention 胶囊插入输入框
     let allInserted = quotes.length > 0
     for (const q of quotes) {
-      if (!insertQuoteReference(input as any, q, t)) {
+      if (!insertQuoteReference(input as any, q)) {
         allInserted = false
         break
       }

@@ -210,7 +210,7 @@ npm run check
 
 `npm run check` ejecuta la comprobación de tipos, las pruebas y la compilación.
 
-La línea base de desarrollo y compilación es `0.2.1-rc.2`. `npm run test:compat` compila con dicha línea base y ejecuta el conjunto de pruebas en cada una de las versiones de host aisladas. Los modelos emplean adaptadores de prueba. Las pruebas de componentes DOM no sustituyen la verificación real en navegadores.
+La línea base de desarrollo y compilación es `0.2.2-rc.1`. `npm run test:compat` compila con dicha línea base y ejecuta el conjunto de pruebas en cada una de las versiones de host aisladas. Los modelos emplean adaptadores de prueba. Las pruebas de componentes DOM no sustituyen la verificación real en navegadores.
 
 Tanto GitHub como npm contienen el directorio `lib` ejecutable; tras modificar el código fuente ejecute `npm run build` antes de realizar una confirmación (commit).
 

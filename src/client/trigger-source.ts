@@ -172,8 +172,7 @@ export function insertQuoteReference(
     turnIndex?: number
     text: string
     comment?: string
-  },
-  _t?: BtwTranslate
+  }
 ): boolean {
   if (typeof input.insertReference !== 'function') return false
 

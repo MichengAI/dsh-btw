@@ -109,7 +109,7 @@ describe('trigger-source 结构化引用通道 (Issue #12)', () => {
       createdAt: Date.now(),
     }
 
-    const ok = insertQuoteReference(mockInput as any, quote, t)
+    const ok = insertQuoteReference(mockInput as any, quote)
     expect(ok).toBe(true)
     expect(mockInput.insertReference).toHaveBeenCalled()
     expect(insertedRef.source).toBe(QUOTE_TRIGGER_SOURCE)
@@ -150,7 +150,7 @@ describe('trigger-source 结构化引用通道 (Issue #12)', () => {
       createdAt: Date.now(),
     }
 
-    const ok = insertQuoteReference(mockInputWithActions as any, quote, t)
+    const ok = insertQuoteReference(mockInputWithActions as any, quote)
     expect(ok).toBe(true)
     expect(mockInputWithActions.actions.captureInsertion).toHaveBeenCalled()
     expect(capturedSpan).toEqual({ start: 1, end: 1, draftRev: 5 })
@@ -169,7 +169,7 @@ describe('trigger-source 结构化引用通道 (Issue #12)', () => {
       turnIndex: 3,
       createdAt: Date.now(),
     }
-    const ok = insertQuoteReference(mockLegacyInput as any, quote, t)
+    const ok = insertQuoteReference(mockLegacyInput as any, quote)
     expect(ok).toBe(false)
   })
 })

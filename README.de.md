@@ -210,7 +210,7 @@ npm run check
 
 `npm run check` führt Typprüfung, Tests und den Build aus.
 
-Die Entwicklungs- und Build-Basislinie ist `0.2.1-rc.2`. `npm run test:compat` kompiliert mit dieser Basislinie und führt die Testsuite auf den isolierten Host-Versionen aus. DOM-Komponententests ersetzen keine manuelle Browserabnahme.
+Die Entwicklungs- und Build-Basislinie ist `0.2.2-rc.1`. `npm run test:compat` kompiliert mit dieser Basislinie und führt die Testsuite auf den isolierten Host-Versionen aus. DOM-Komponententests ersetzen keine manuelle Browserabnahme.
 
 Sowohl GitHub als auch npm enthalten das ausführbare Verzeichnis `lib`; führen Sie nach Änderungen am Quellcode vor dem Commit `npm run build` aus.
 

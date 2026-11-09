@@ -210,8 +210,7 @@ export function SelectionAsk(props: {
               role: draft.details?.role ?? 'assistant',
               turnIndex: draft.details?.turnIndex,
               text: draft.reference,
-            },
-            t
+            }
           )
         } catch {}
       }

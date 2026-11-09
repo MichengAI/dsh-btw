@@ -210,7 +210,7 @@ npm run check
 
 `npm run check` exécute la vérification de types, les tests et le build.
 
-La version de référence pour le développement est `0.2.1-rc.2`. `npm run test:compat` compile avec cette référence et exécute la suite de tests sur chaque version isolée de l'hôte. Les tests de composants DOM ne remplacent pas la validation sur un navigateur réel.
+La version de référence pour le développement est `0.2.2-rc.1`. `npm run test:compat` compile avec cette référence et exécute la suite de tests sur chaque version isolée de l'hôte. Les tests de composants DOM ne remplacent pas la validation sur un navigateur réel.
 
 GitHub et npm contiennent tous deux le dossier `lib` directement exécutable ; après modification du code source, exécutez `npm run build` avant de valider votre commit.
 
