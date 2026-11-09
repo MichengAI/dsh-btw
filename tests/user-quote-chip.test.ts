@@ -3,7 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it } from 'vitest'
 import * as primitives from '@deepseek-ai/dsh-client-ui-primitives'
-import { quoteUserTextRule, parseQuotePromptBlock, QuoteUserTextNode } from '../src/client/user-quote-chip'
+import { quoteUserTextRule, QuoteUserTextNode } from '../src/client/user-quote-chip'
 
 describe('user-quote-chip 用户消息内上下文胶囊化 (Issue #12 & 对齐 Codex)', () => {
   it('primitives 导出测试', () => {

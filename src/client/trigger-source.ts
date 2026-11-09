@@ -56,20 +56,11 @@ export function createQuoteReferenceInsert(
     text: string
     comment?: string
   },
-  t: BtwTranslate
+  _t?: BtwTranslate
 ): ReferenceInsert {
   // 对齐官方 QuoteNode 展现：以引用文本正文作为输入框展示标签（单行超出省略）
   const preview = quote.text.trim().replace(/\s+/g, ' ')
   const label = preview.length > 36 ? `${preview.slice(0, 36)}…` : preview
-  const fakeRef: QuotedReference = {
-    id: quote.id,
-    sessionId: '',
-    text: quote.text,
-    role: quote.role,
-    turnIndex: quote.turnIndex,
-    createdAt: Date.now(),
-    comment: quote.comment,
-  }
 
   return {
     source: QUOTE_TRIGGER_SOURCE,

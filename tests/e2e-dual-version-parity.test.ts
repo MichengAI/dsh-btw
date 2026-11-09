@@ -132,7 +132,7 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
       const mockLegacyInput = {
         state: { getSnapshot: () => ({ draft: '既有用户草稿', phase: 'plain' }) },
         setDraft: vi.fn(),
-        insertReference: vi.fn((ref, span) => {
+        insertReference: vi.fn((ref, _span) => {
           insertedRef = ref
           return true
         }),

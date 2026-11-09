@@ -66,7 +66,7 @@ for (const version of versions) {
       }))
     }
     writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: 'dsh-btw-compatibility', private: true, type: 'module', dependencies }, null, 2) + '\n', 'utf8')
-    for (const name of ['src', 'lib', 'tests', 'scripts', 'tsconfig.json', 'tsconfig.build.json', 'vitest.config.ts', 'cordis.patch.yml']) {
+    for (const name of ['src', 'lib', 'tests', 'scripts', 'locale', 'tsconfig.json', 'tsconfig.build.json', 'vitest.config.ts', 'cordis.patch.yml']) {
       const dest = join(directory, name)
       rmSync(dest, { recursive: true, force: true })
       cpSync(join(root, name), dest, { recursive: true })

@@ -8,7 +8,9 @@
 
 **Ask a side question in DeepSeek Harness. Answers only, no tool execution.**
 
-[简体中文](README.md) · [Screenshots](#screenshots) · [Installation](#installation) · [Usage](#usage) · [Changelog](CHANGELOG.md) · [Apache-2.0](LICENSE)
+[简体中文](README.zh-CN.md) · [English](README.en.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md) · [Português](README.pt.md)
+
+[Screenshots](#screenshots) · [Installation](#installation) · [Usage](#usage) · [Changelog](CHANGELOG.md) · [Apache-2.0](LICENSE)
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![DSH Web Plugin](https://img.shields.io/badge/DSH%20Web-Plugin-0f766e.svg)](https://github.com/deepseek-ai/deepseek-harness)
@@ -26,7 +28,7 @@
 - **Keep the main task going**: side questions are answered separately and by default do not add answers to the main conversation.
 - **Return on request**: when you want the conclusion available to the main conversation, ask for it in the question ("send the answer back to the main conversation") and the side ask uses `send_message` to deliver a self-contained answer to the main session. It does not send anything when you did not ask.
 - **Cancel anytime**: close a bubble while it is answering to cancel that question.
-- **Themes and languages**: follow DSH light and dark themes and switch between Chinese and English UI.
+- **Full i18n & Themes**: follow DSH light and dark themes with complete native support for all 8 official DeepSeek Harness languages (English, Chinese, Japanese, Spanish, French, German, Russian, Portuguese).
 
 ## Screenshots
 

@@ -8,7 +8,9 @@
 
 **在 DeepSeek Harness 当前会话中随手旁问，只回答，不执行**
 
-[English](README.en.md) · [界面预览](#界面预览) · [安装](#安装) · [使用](#使用) · [更新日志](CHANGELOG.zh-CN.md) · [Apache-2.0](LICENSE)
+[简体中文](README.zh-CN.md) · [English](README.en.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md) · [Português](README.pt.md)
+
+[界面预览](#界面预览) · [安装](#安装) · [使用](#使用) · [更新日志](CHANGELOG.zh-CN.md) · [Apache-2.0](LICENSE)
 
 [![许可证：Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![DSH Web Plugin](https://img.shields.io/badge/DSH%20Web-Plugin-0f766e.svg)](https://github.com/deepseek-ai/deepseek-harness)
@@ -26,7 +28,7 @@
 - **不打断主任务**：旁问单独作答，答案默认不会写入主会话。
 - **需要时才回传**：想在主对话里拿到结论时，在问题中明确要求「把答案发回主对话」，旁问会用 `send_message` 把一份自足的答案发回主会话；没有要求时不会回传。
 - **随时取消**：关闭正在回答的气泡即可取消该旁问。
-- **主题与国际化**：跟随 DSH 浅色、深色主题，界面支持中文和英文切换。
+- **全量国际化与主题**：跟随 DSH 浅色、深色主题，完整支持 DeepSeek Harness 官方 8 门内置语言（中文、英语、日语、西班牙语、法语、德语、俄语、葡萄牙语）。
 
 ## 界面预览
 

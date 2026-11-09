@@ -274,7 +274,7 @@ describe('继承父会话包含工具调用时的旁问隔离与反污染约束'
 
       class RawToolCallModelAdapter extends LlmAdapter {
         async resolveModel(provider: string, model: string) { return { provider, id: model, name: model } }
-        async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        async * stream(_options: GenerateOptions): AsyncIterable<StreamChunk> {
           turnStep++
 
           // 步骤 1 & 2：主会话完成正常 toolcall

@@ -172,7 +172,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     const dispose = vi.fn(async () => {})
-    const startActivation = vi.fn(async (spec: {
+    const startActivation = vi.fn(async (_spec: {
       provider: string
       request: { parent: unknown; agentOptions?: { maxTokens?: number }; prompt: readonly { type: string; text: string }[] }
     }) => ({

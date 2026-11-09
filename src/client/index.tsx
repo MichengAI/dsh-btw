@@ -21,7 +21,7 @@ import { createQuoteTriggerSource } from './trigger-source'
 import { quoteUserTextRule, QuoteUserTextNode } from './user-quote-chip'
 import { createOfficialQuoteRule, OfficialQuotePreview, safeRegisterUserTextRule } from './official-quote'
 import { NativeBtwAskAction, safeRegisterInteraction } from './NativeBtwAsk'
-import { en, zh, NS, normalizeLocale, type BtwTranslate } from '../locales'
+import { de, en, es, fr, ja, normalizeLocale, NS, pt, ru, zh, type BtwTranslate } from '../locales'
 import { BtwSettingsCard, type BtwSettingsFace } from './SettingsCard'
 import { createSettingsScope, BUNDLE_NAME, ROW_CONFIG_KEY, type BtwSettingsScope, type HostConfigForms } from './settings-scope'
 
@@ -115,7 +115,7 @@ function attachOfficialBtw(commandUi: unknown, claim: (sessionId: string) => Pic
 }
 
 export function apply(ctx: Context): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }))
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }))
   const t = ctx.locale.bind(NS)
   const slots = ctx.get('slots') as SlotRegistry
   const remote = ctx.get('remote') as TypertClientRemote

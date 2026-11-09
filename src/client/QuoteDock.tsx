@@ -58,7 +58,7 @@ export function QuoteDock({
       return
     }
 
-    const consumeAndMerge = (source: 'enter' | 'click') => {
+    const consumeAndMerge = () => {
       const current = store.getQuotes(sessionId)
       if (current.length === 0) return
       const snapshot = input.state.getSnapshot()
@@ -89,7 +89,7 @@ export function QuoteDock({
         active instanceof HTMLTextAreaElement ||
         (active.isContentEditable || active.matches('textarea, [contenteditable="true"]'))
       if (!isInput) return
-      consumeAndMerge('enter')
+      consumeAndMerge()
     }
 
     const onClick = (event: MouseEvent) => {
@@ -113,7 +113,7 @@ export function QuoteDock({
         )
       )
       if (!isSubmit) return
-      consumeAndMerge('click')
+      consumeAndMerge()
     }
 
     window.addEventListener('keydown', onKeyDown, true)
