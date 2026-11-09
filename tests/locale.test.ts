@@ -33,7 +33,7 @@ describe('全量 8 门官方语言支持与一致性断言', () => {
     pt,
   }
 
-  const expectedKeyCount = 95
+  const expectedKeyCount = 85
   const zhKeys = Object.keys(zh).sort()
 
   it(`中文基线字典恰好包含 ${expectedKeyCount} 个键`, () => {
@@ -77,7 +77,7 @@ describe('全量 8 门官方语言支持与一致性断言', () => {
       const t = translate(lang)
       expect(t('settings.invalidTools', { max: 120 })).toContain('120')
       expect(t('agent.toolsAllowed', { tools: 'pele_draw' })).toContain('pele_draw')
-      expect(t('quote.count', { count: 3 })).toContain('3')
+      expect(t('agent.replyHint', { parent: 'sess-123' })).toContain('sess-123')
     }
   })
 

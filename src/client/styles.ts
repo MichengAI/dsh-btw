@@ -16,6 +16,7 @@ export const CSS = `
 .btw-reference summary{cursor:pointer;color:var(--dsw-alias-label-secondary)}
 .btw-reference blockquote{margin:8px 0 0;padding:8px;border-left:2px solid var(--dsw-alias-border-l2);white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto}
 .btw-selection-modal .btw-reference{padding:0}
+.btw-reference-tag{display:inline-flex;align-items:center;font-size:11px;font-weight:500;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-interactive-bg-hover);padding:1px 6px;border-radius:4px;border:1px solid var(--dsw-alias-border-l3);margin-right:4px}
 .btw-dock{display:flex;flex:none;flex-direction:column;gap:8px;width:calc(100% - var(--dsh-composer-side-clearance,0px) - var(--dsh-composer-side-clearance,0px));max-width:var(--dsh-composer-card-max-width,100%);margin:0 auto;max-height:440px;overflow:auto;padding:4px 0 10px;box-sizing:border-box;letter-spacing:0}
 .btw-bubble{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:12px;min-width:0;flex-shrink:0;font-size:13px;line-height:1.6;font-family:var(--dsw-font-family,inherit);letter-spacing:0}
 .btw-header{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;min-width:0;min-height:44px}
@@ -44,10 +45,12 @@ export const CSS = `
 .btw-settings[data-btw-settings="loading"]{font-size:12px;color:var(--dsw-alias-label-secondary)}
 .btw-settings-title{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);line-height:1.4}
 .btw-settings-description{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
+.btw-settings-summary{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary)}
 .btw-settings-warning{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-state-warning-primary,var(--dsw-alias-label-secondary))}
 .btw-settings-field{display:flex;flex-direction:column;gap:6px}
 .btw-settings-label{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .btw-settings-textarea{font:inherit;font-size:12px;line-height:1.6;padding:8px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);resize:vertical;box-sizing:border-box}
+.btw-settings-prompt{min-height:120px}
 .btw-settings-textarea:focus{outline:none;border-color:var(--dsw-alias-state-business-primary)}
 .btw-settings-textarea:disabled{opacity:0.6;cursor:not-allowed}
 .btw-settings-hint{font-size:11px;line-height:1.5;color:var(--dsw-alias-label-secondary)}

@@ -17,13 +17,6 @@ export declare function serializeQuoteRef(quote: {
     comment?: string;
 }): string;
 export declare function parseQuoteRef(raw: string): SerializedQuotePayload | undefined;
-export declare function createQuoteReferenceInsert(quote: {
-    id: string;
-    role: 'user' | 'assistant';
-    turnIndex?: number;
-    text: string;
-    comment?: string;
-}): ReferenceInsert;
 export declare function createQuoteTriggerSource({ quoteStore, t, }: {
     quoteStore: QuoteStore;
     t: BtwTranslate;

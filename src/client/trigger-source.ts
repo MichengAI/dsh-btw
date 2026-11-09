@@ -48,7 +48,7 @@ export function parseQuoteRef(raw: string): SerializedQuotePayload | undefined {
   return undefined
 }
 
-export function createQuoteReferenceInsert(
+function createQuoteReferenceInsert(
   quote: {
     id: string
     role: 'user' | 'assistant'

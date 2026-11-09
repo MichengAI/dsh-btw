@@ -56,10 +56,10 @@ export type AllowedToolsOf = () => readonly string[]
  * 而不是新注册工具，才能保持旁问请求的工具列表与主会话逐字节一致
  * （`tests/cache-prefix.test.ts` 的 prompt cache 复用护栏）。
  */
-export const REPLY_TOOL = 'send_message'
+const REPLY_TOOL = 'send_message'
 
 /** 本次旁问所属父会话的 id；没有父会话时不存在回传通道。 */
-export function parentSessionOf(agent: AgentIdentity | undefined): string | undefined {
+function parentSessionOf(agent: AgentIdentity | undefined): string | undefined {
   const parent = (agent?.session as { header?: { parentSession?: unknown } } | undefined)?.header?.parentSession
   return typeof parent === 'string' ? parent : undefined
 }

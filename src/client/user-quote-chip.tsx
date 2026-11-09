@@ -1,5 +1,4 @@
 import React from 'react'
-import type { BtwTranslate } from '../locales'
 import { OfficialQuotePreview } from './official-quote'
 
 export interface ParsedQuoteItem {
@@ -27,7 +26,7 @@ declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   }
 }
 
-export function parseQuotePromptBlock(text: string, from = 0): {
+function parseQuotePromptBlock(text: string, from = 0): {
   start: number
   end: number
   data: QuoteNodeData
@@ -202,7 +201,6 @@ export function QuoteUserTextNode(props: {
     readonly id: 'dsh-btw-quote'
     readonly data: QuoteNodeData
   }
-  readonly t?: BtwTranslate
 }): React.JSX.Element {
   const { node } = props
   const items = node.data.items && node.data.items.length > 0

@@ -284,7 +284,7 @@ export function SelectionAsk(props: {
           <form onSubmit={event => { event.preventDefault(); void send(question) }}>
             <details className="btw-reference">
               <summary>
-                <span className="btw-codex-tag-badge">{t('quote.source')}</span> {t('selection.reference')} · {draft.reference.length}
+                <span className="btw-reference-tag">{t('quote.source')}</span> {t('selection.reference')} · {draft.reference.length}
                 <span className="btw-reference-preview">{draft.reference.slice(0, 120)}{draft.reference.length > 120 ? '…' : ''}</span>
               </summary>
               <blockquote>{draft.reference}</blockquote>
