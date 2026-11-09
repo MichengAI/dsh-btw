@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.6] - 2026-11-09
+
+- **Full support for all 8 official DeepSeek Harness languages**: Natively provides faithful localized text for Chinese, English, Japanese, Spanish, French, German, Russian, and Portuguese (`zh`, `en`, `ja`, `es`, `fr`, `de`, `ru`, `pt`). From host `0.2.2-rc.1` onwards, the text-selection menu, side-ask bubbles, action buttons, and settings configuration card dynamically adapt to the selected language; earlier hosts safely fall back to Chinese and English.
+- **Dedicated full-fidelity documentation for all 8 languages**: Ships comprehensive localized README documentation variants for all supported languages, covering quick-action tables, configuration rules, and development guidelines.
+- **Plugin metadata enrichment and interface refinement**: Registers complete author information, keywords, and icon exports while pruning internal redundant properties to ensure responsive, lightweight interactions.
+
 ## [1.3.5] - 2026-11-06
 
 - Fix side questions failing to start when DSH is opened over a plain-HTTP LAN address: browsers do not expose `crypto.randomUUID` in a non-secure context, so asking a side question failed with an error. Request ids now come from a random source that works in every context, so LAN access behaves the same as local access (#25).

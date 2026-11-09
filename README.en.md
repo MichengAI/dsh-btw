@@ -211,7 +211,7 @@ npm run check
 
 `npm run check` runs type checking, tests, and a build.
 
-Development and builds target `0.2.2-rc.1`. `npm run test:compat` builds with that baseline and runs the test suite on each of the eight isolated host versions, using a test model adapter. DOM component tests do not replace live-browser acceptance.
+Development and builds target `0.2.2-rc.1`. `npm run test:compat` builds with that baseline and runs the test suite on each isolated host version, using a test model adapter. DOM component tests do not replace live-browser acceptance.
 
 GitHub and npm both include a ready-to-run `lib`; after changing source, run `npm run build` before committing.
 
