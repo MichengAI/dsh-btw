@@ -10,7 +10,7 @@
 
 [简体中文](README.zh-CN.md) · [English](README.en.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md) · [Português](README.pt.md)
 
-[Capturas](#capturas-de-tela) · [Instalação](#instalação) · [Uso](#uso) · [Registro de alterações](CHANGELOG.md) · [Apache-2.0](LICENSE)
+[Registro de alterações](CHANGELOG.md) · [Apache-2.0](LICENSE)
 
 [![Licença: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![DSH Web Plugin](https://img.shields.io/badge/DSH%20Web-Plugin-0f766e.svg)](https://github.com/deepseek-ai/deepseek-harness)
