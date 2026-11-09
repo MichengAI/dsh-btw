@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.7] - 2026-11-09
+
+- **Package size refinement and legacy asset pruning**: Eliminates redundant legacy components and unused multilingual dictionary keys across all supported languages, resulting in a cleaner and faster loading package.
+- **Visual styling enhancement for quoted context tag**: Adapts the reference source badge in the side-question modal into an inline pill chip aligned with native theme primitives.
+- **Settings list alignment polish**: Enhances layout and margin styling for plugin settings row summaries to ensure consistent visual harmony across hosts.
+
 ## [1.3.6] - 2026-11-09
 
 - **Full support for all 8 official DeepSeek Harness languages**: Natively provides faithful localized text for Chinese, English, Japanese, Spanish, French, German, Russian, and Portuguese (`zh`, `en`, `ja`, `es`, `fr`, `de`, `ru`, `pt`). From host `0.2.2-rc.1` onwards, the text-selection menu, side-ask bubbles, action buttons, and settings configuration card dynamically adapt to the selected language; earlier hosts safely fall back to Chinese and English.
