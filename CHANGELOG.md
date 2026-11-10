@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.8] - 2026-11-10
+
+- **Align side-ask bubble and dock styling with native conversation dock tokens**: Adapts the outer dock layout to match host drawer inset geometry, eliminating horizontal width mismatch when task lists or plan status bars are active; upgrades bubble surface to native frosted menu material and soft elevation styling for seamless visual integration (#26).
+- **Refine collapsed header compactness and action touch targets**: Tightens header minimum height to 36px and standardizes circular 28px action buttons with matching gap rhythms to match native host toolbar primitives.
+- **Polish multiline question typography**: Corrects viewport clipping on multiline side-questions to smoothly accommodate full 3-line question headers without baseline truncation or unwanted scrollbars.
+
 ## [1.3.7] - 2026-11-09
 
 - **Package size refinement and legacy asset pruning**: Eliminates redundant legacy components and unused multilingual dictionary keys across all supported languages, resulting in a cleaner and faster loading package.
