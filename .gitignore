@@ -20,3 +20,4 @@ coverage/
 !.env.example
 .DS_Store
 Thumbs.db
+/baidu-20261108.png
