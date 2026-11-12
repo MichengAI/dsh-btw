@@ -7,7 +7,12 @@ import type {} from '@deepseek-ai/dsh-tools'
 import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SIDE_MAX_OUTPUT_TOKENS } from './limits'
 import { DEFAULT_TIMEOUT_MS, SideJobs } from './server/jobs'
-import { createAnswerOnlyGuard, identityOfFromContext, parentNameOfFromContext } from './server/tool-guard'
+import {
+  createAnswerOnlyGuard,
+  identityOfFromContext,
+  parentNameOfFromContext,
+  type SubagentMemberNamesLike,
+} from './server/tool-guard'
 import { readSettings } from './server/settings'
 import { translate } from './locales'
 import { hideInternalCommands } from './server/command-visibility'
@@ -82,7 +87,7 @@ export function apply(ctx: Context, config?: unknown): void {
     const parentId = parentAgent?.session?.header?.id
     const subagents = ctx.subagents as unknown as {
       rootOf?: (caller: Agent) => Agent
-      namesOf?: (agent: Agent) => { self?: unknown; parent?: unknown }
+      namesOf?: (agent: Agent) => SubagentMemberNamesLike | undefined
       startActivation?: (spec:
         | {
           provider: string
@@ -111,7 +116,14 @@ export function apply(ctx: Context, config?: unknown): void {
         prompt: readonly { type: string; text: string }[]
       }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
     }
+    // DSH 0.2.2-rc.2 扁平激活契约探测依据：
+    // 官方在 0.2.2-rc.2 随 subagent 协作树与命名机制重构，将 startActivation 的 spec 改为扁平结构并移除了 spec.request。
+    // 在已验证宿主矩阵中，rootOf 与扁平 spec 均且仅在 0.2.2-rc.2+ 同时出现，故以 rootOf 作为扁平启动的代际分流依据。
     const isFlatActivation = typeof subagents.rootOf === 'function'
+
+    // 回传参数字段判定：
+    // 优先通过当前宿主中实际注册的 send_message 工具参数定义动态识别目标参数字段名（'agent' 或 'agent_id'）；
+    // 若工具定义不可读取，则按当前宿主代际（isFlatActivation）安全回退默认字段名。
     let replyField: 'agent' | 'agent_id' = isFlatActivation ? 'agent' : 'agent_id'
     try {
       const sendTool = (ctx.tools as unknown as {
@@ -125,6 +137,9 @@ export function apply(ctx: Context, config?: unknown): void {
     } catch {
       // 保留基于 subagents 能力探测的默认字段名
     }
+    // replyTarget 判定：
+    // 当字段为 'agent' 时，优先使用 parentAgent 在协作树中的模型侧名称（如 'lead' 或路径别名）以便与模型提示词规范严格对齐；
+    // 若名称未声明，也可安全保留父会话 ID（宿主 resolveName 机制将单一 token 直接作为 SessionId 解析）。
     let replyTarget: string | undefined = parentId
     if (parentId !== undefined && replyField === 'agent' && parentAgent) {
       let resolvedName: string | undefined

@@ -25,6 +25,11 @@ export type IdentityOf = (session: object) => SubagentIdentityHint | null | unde
 /** 读取当前旁问在协作树中的直接父代理名（如 `'lead'` 或路径名），仅在宿主提供命名路由时存在。 */
 export type ParentNameOf = (agent: AgentIdentity, parentSession: string) => string | undefined
 
+export interface SubagentMemberNamesLike {
+  readonly self?: unknown
+  readonly parent?: unknown
+}
+
 export interface AnswerOnlyGuard {
   (execution: { agent?: AgentIdentity; name?: string; arguments?: unknown }): string | undefined
   own(agent: object): void
@@ -146,7 +151,7 @@ export function identityOfFromContext(ctx: { get(name: string): unknown }): Iden
 export function parentNameOfFromContext(ctx: { get(name: string): unknown }): ParentNameOf | undefined {
   try {
     const subagents = ctx.get('subagents') as {
-      namesOf?(agent: object): { parent?: unknown }
+      namesOf?(agent: object): SubagentMemberNamesLike | undefined
       rootOf?(agent: object): { id?: unknown }
     } | undefined
     if (!subagents || (typeof subagents.namesOf !== 'function' && typeof subagents.rootOf !== 'function')) {
