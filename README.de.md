@@ -83,7 +83,7 @@ Für eine vollwertige Desktop-Workbench laden Sie [DSH Codex Desktop](https://gi
 ## Voraussetzungen
 
 - DeepSeek Harness installiert.
-- Host-Kompatibilitätsbereich: DeepSeek Harness `0.2.x`-Gesamtreihe (`>=0.2.0-rc.1 <0.3.0-0`), verifiziert mit `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`. Upgrades innerhalb derselben Generation erfordern keine neuen Plugin-Releases.
+- Host-Kompatibilitätsbereich: DeepSeek Harness `0.2.x`-Gesamtreihe (`>=0.2.0-rc.1 <0.3.0-0`), verifiziert mit `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`. Upgrades innerhalb derselben Generation erfordern keine neuen Plugin-Releases.
 - Sprachunterstützung: Ab DeepSeek Harness `0.2.2-rc.1` sind alle 8 integrierten Sprachen nativ auswählbar. Auf `0.2.0`〜`0.2.1`-Hosts bleiben zusätzlich registrierte Sprachwörterbücher inaktiv und die Oberfläche fällt sicher auf Chinesisch und Englisch zurück.
 - Ältere Hosts vor `0.2.0-rc.1` werden nicht mehr unterstützt. Destruktive Änderungen der `0.3.0`-Generation werden durch die Versionsschranke abgefangen. Benutzer von `0.1.x` sollten Version `0.1.24` installieren.
 - Node.js 22+, Befehl `dsh` im Terminal verfügbar.
@@ -210,7 +210,7 @@ npm run check
 
 `npm run check` führt Typprüfung, Tests und den Build aus.
 
-Die Entwicklungs- und Build-Basislinie ist `0.2.2-rc.1`. `npm run test:compat` kompiliert mit dieser Basislinie und führt die Testsuite auf den isolierten Host-Versionen aus. DOM-Komponententests ersetzen keine manuelle Browserabnahme.
+Die Entwicklungs- und Build-Basislinie ist `0.2.2-rc.2`. `npm run test:compat` kompiliert mit dieser Basislinie und führt die Testsuite auf den isolierten Host-Versionen aus. DOM-Komponententests ersetzen keine manuelle Browserabnahme.
 
 Sowohl GitHub als auch npm enthalten das ausführbare Verzeichnis `lib`; führen Sie nach Änderungen am Quellcode vor dem Commit `npm run build` aus.
 

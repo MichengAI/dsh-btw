@@ -83,7 +83,7 @@ Para obter um ambiente de trabalho completo em desktop, baixe o [DSH Codex Deskt
 ## Pré-requisitos
 
 - DeepSeek Harness instalado.
-- Intervalo de suporte do host: linha completa DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), verificado em `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`. Atualizações dentro da mesma geração não requerem aguardar novas versões do plugin.
+- Intervalo de suporte do host: linha completa DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), verificado em `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`. Atualizações dentro da mesma geração não requerem aguardar novas versões do plugin.
 - Suporte a idiomas: todos os 8 idiomas integrados são selecionáveis nativamente a partir do DeepSeek Harness `0.2.2-rc.1`. Em hosts `0.2.0`〜`0.2.1`, dicionários registrados adicionais permanecem inativos e a interface recorre de forma segura ao chinês e inglês.
 - Hosts anteriores a `0.2.0-rc.1` não são mais suportados. Modificações destrutivas da geração `0.3.0` serão interceptadas pela barreira de versão. Usuários da versão `0.1.x` devem instalar a versão `0.1.24`.
 - Node.js 22+, comando `dsh` funcional no terminal.
@@ -210,7 +210,7 @@ npm run check
 
 O comando `npm run check` executa verificação de tipos, testes e compilação.
 
-A base de referência de desenvolvimento e compilação é `0.2.2-rc.1`. O comando `npm run test:compat` compila com essa base e executa a suíte de testes nas versões isoladas do host. Testes de componentes DOM não substituem a validação real em navegadores.
+A base de referência de desenvolvimento e compilação é `0.2.2-rc.2`. O comando `npm run test:compat` compila com essa base e executa a suíte de testes nas versões isoladas do host. Testes de componentes DOM não substituem a validação real em navegadores.
 
 Tanto o GitHub quanto o npm contêm a pasta executável `lib`; após modificar o código-fonte, execute `npm run build` antes de fazer o commit.
 

@@ -483,4 +483,123 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await plugin.dispose()
     await ctx.fiber.dispose()
   })
+
+  it('0.2.2-rc.2+ 扁平 startActivation（存在 rootOf）与动态 replyHint 适配 { agent: "lead" }', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
+
+    const sendBody = vi.fn(async () => 'sent')
+    ctx.tools.register({
+      name: 'send_message',
+      description: 'Send a message to an agent.',
+      parameters: { type: 'object', properties: { agent: { type: 'string' }, message: { type: 'string' } }, required: ['agent', 'message'] },
+      output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] },
+      execute: sendBody,
+    })
+
+    const receivedSpecs: Array<Record<string, unknown>> = []
+    const rootAgent = { id: 'main', session: { header: { id: 'main' } }, options: { maxTokens: 4096 } } as unknown as Agent
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, outputSchema: true } }),
+      rootOf: (caller: object) => caller === rootAgent ? rootAgent : rootAgent,
+      namesOf: (caller: object) => caller === rootAgent ? { self: 'lead' } : { self: 'agent-1', parent: 'lead' },
+      startActivation: async (spec: Record<string, unknown>) => {
+        receivedSpecs.push(spec)
+        const childId = spec.childId as string
+        const child = { id: childId, session: { header: { id: childId, parentSession: 'main' } } } as unknown as Agent
+        // 子代理在运行期通过新版 send_message({ agent: 'lead' }) 回传必须放行
+        const replyRes = await (ctx.tools as any).execute({
+          name: 'send_message',
+          callId: 'call-lead' as never,
+          arguments: { agent: 'lead', message: '完成结论' },
+          agent: child,
+          signal: new AbortController().signal,
+        })
+        expect(replyRes.isError).not.toBe(true)
+        // 旧版误用或传给别的 agent 必须拦截
+        const wrongRes = await (ctx.tools as any).execute({
+          name: 'send_message',
+          callId: 'call-other' as never,
+          arguments: { agent: 'other-agent', message: '越权' },
+          agent: child,
+          signal: new AbortController().signal,
+        })
+        expect(wrongRes.isError).toBe(true)
+        return {
+          result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '扁平回答' }] }),
+          dispose: async () => {},
+        }
+      },
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+    const outcome = await commands.get(RUN_COMMAND)!.handler({
+      agent: rootAgent,
+      rawInput: JSON.stringify({ id: 'flat-rc2-req', question: '测试扁平启动' }),
+      signal: new AbortController().signal,
+    } as never)
+
+    expect(outcome).toEqual({ kind: 'success', text: '扁平回答' })
+    expect(sendBody).toHaveBeenCalledOnce()
+    expect(receivedSpecs).toHaveLength(1)
+    const spec = receivedSpecs[0]!
+    expect(spec.request).toBeUndefined()
+    expect(spec.parent).toBe(rootAgent)
+    expect(spec.agentOptions).toEqual({ maxTokens: 4096 })
+    expect(spec.delivery).toBe('caller')
+    const promptText = (spec.prompt as Array<{ text: string }>)[0]!.text
+    expect(promptText).toContain('agent 为 "lead"')
+    expect(promptText).not.toContain('agent_id')
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
+
+  it('<= 0.2.2-rc.1 旧版 send_message({ agent_id }) 时 replyHint 保持提示 agent_id = parentId', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
+
+    ctx.tools.register({
+      name: 'send_message',
+      description: 'Send a message to an agent.',
+      parameters: { type: 'object', properties: { agent_id: { type: 'string' }, message: { type: 'string' } }, required: ['agent_id', 'message'] },
+      output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] },
+      execute: async () => 'sent',
+    })
+
+    const prompts: string[] = []
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true } }),
+      startActivation: async (spec: { request: { prompt: readonly { type: string; text: string }[] } }) => {
+        prompts.push(spec.request.prompt.map(b => b.text).join(''))
+        return {
+          result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '旧版回答' }] }),
+          dispose: async () => {},
+        }
+      },
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+    const outcome = await commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main-legacy' } } },
+      rawInput: JSON.stringify({ id: 'legacy-hint-req', question: '旧版提示' }),
+      signal: new AbortController().signal,
+    } as never)
+
+    expect(outcome).toEqual({ kind: 'success', text: '旧版回答' })
+    expect(prompts[0]).toContain('agent_id 为 "main-legacy"')
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
 })

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.9] - 2026-11-12
+
+- **Full compatibility with latest DeepSeek Harness host releases**: Integrates smoothly with the latest host session lifecycle and message delivery mechanisms, resolving an issue where side-ask requests could fail to start on newer host environments.
+- **Accurate and reliable answer delivery back to caller conversations**: Enhances side-ask conclusion delivery so that answers returned to the main conversation reliably reach the exact conversation that initiated the side ask, preventing cross-session delivery confusion in nested agent structures; system guidance automatically aligns with the host's addressing scheme.
+- **Extended host compatibility matrix**: Verified full compatibility with DeepSeek Harness `0.2.2-rc.2`, supporting the complete `0.2.x` RC release spectrum (`0.2.0-rc.1` through `0.2.2-rc.2`).
+
 ## [1.3.8] - 2026-11-10
 
 - **Align side-ask bubble and dock styling with native conversation dock tokens**: Adapts the outer dock layout to match host drawer inset geometry, eliminating horizontal width mismatch when task lists or plan status bars are active; upgrades bubble surface to native frosted menu material and soft elevation styling for seamless visual integration (#26).

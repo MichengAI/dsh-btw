@@ -22,6 +22,9 @@ export interface SubagentIdentityHint {
 
 export type IdentityOf = (session: object) => SubagentIdentityHint | null | undefined
 
+/** 读取当前旁问在协作树中的直接父代理名（如 `'lead'` 或路径名），仅在宿主提供命名路由时存在。 */
+export type ParentNameOf = (agent: AgentIdentity, parentSession: string) => string | undefined
+
 export interface AnswerOnlyGuard {
   (execution: { agent?: AgentIdentity; name?: string; arguments?: unknown }): string | undefined
   own(agent: object): void
@@ -61,15 +64,44 @@ const REPLY_TOOL = 'send_message'
 /** 本次旁问所属父会话的 id；没有父会话时不存在回传通道。 */
 function parentSessionOf(agent: AgentIdentity | undefined): string | undefined {
   const parent = (agent?.session as { header?: { parentSession?: unknown } } | undefined)?.header?.parentSession
-  return typeof parent === 'string' ? parent : undefined
+  return typeof parent === 'string' && parent.length > 0 ? parent : undefined
 }
 
-/** 仅当工具是 `send_message` 且目标严格等于父会话 id 时放行，其余一律拒绝。 */
-function isReplyToParent(name: string | undefined, args: unknown, agent: AgentIdentity | undefined): boolean {
+/**
+ * 解析 `send_message` 的目标参数：兼容 `0.2.2-rc.2+` 的 `agent` 与旧版 `agent_id`。
+ * 若两字段同时出现但值不一致，一律视为无效参数并拒绝。
+ */
+function replyTargetOf(args: unknown): string | undefined {
+  if (typeof args !== 'object' || args === null) return undefined
+  const record = args as { agent?: unknown; agent_id?: unknown }
+  const hasAgent = record.agent !== undefined
+  const hasAgentId = record.agent_id !== undefined
+  if (hasAgent && typeof record.agent !== 'string') return undefined
+  if (hasAgentId && typeof record.agent_id !== 'string') return undefined
+  if (hasAgent && hasAgentId && record.agent !== record.agent_id) return undefined
+  const target = hasAgent ? (record.agent as string) : (record.agent_id as string | undefined)
+  return typeof target === 'string' && target.length > 0 ? target : undefined
+}
+
+/**
+ * 仅当工具是 `send_message` 且目标指向当前旁问的直接父会话时放行，其余一律拒绝。
+ * 二级子代理触发旁问时，绝不把 `"lead"` 误放行给祖父/树根。
+ */
+function isReplyToParent(
+  name: string | undefined,
+  args: unknown,
+  agent: AgentIdentity | undefined,
+  parentNameOf?: ParentNameOf,
+): boolean {
   if (name !== REPLY_TOOL) return false
-  const target = (args as { agent_id?: unknown } | undefined)?.agent_id
+  const target = replyTargetOf(args)
+  if (target === undefined) return false
   const parent = parentSessionOf(agent)
-  return parent !== undefined && typeof target === 'string' && target === parent
+  if (parent === undefined) return false
+  if (target === parent) return true
+  if (!parentNameOf || !agent) return false
+  const parentName = parentNameOf(agent, parent)
+  return typeof parentName === 'string' && parentName.length > 0 && target === parentName
 }
 
 function descriptorLabel(data: unknown): string | undefined {
@@ -105,8 +137,54 @@ export function identityOfFromContext(ctx: { get(name: string): unknown }): Iden
   } catch { return undefined }
 }
 
+/**
+ * 从宿主 `subagents` 服务读取旁问直接父会话的模型侧名称（0.2.2-rc.2+）。
+ * 必须通过服务实例方法调用以保留 Cordis 代理的 `this` 上下文；当 `namesOf` 不可用时，
+ * 仅在 `rootOf(agent)` 确认为直接父会话（`root !== agent && root.id === parentSession`）时返回 `'lead'`，
+ * 避免二级子代理误将 `'lead'` 解析到祖父/树根。
+ */
+export function parentNameOfFromContext(ctx: { get(name: string): unknown }): ParentNameOf | undefined {
+  try {
+    const subagents = ctx.get('subagents') as {
+      namesOf?(agent: object): { parent?: unknown }
+      rootOf?(agent: object): { id?: unknown }
+    } | undefined
+    if (!subagents || (typeof subagents.namesOf !== 'function' && typeof subagents.rootOf !== 'function')) {
+      return undefined
+    }
+    return (agent, parentSession) => {
+      if (typeof subagents.namesOf === 'function') {
+        try {
+          const names = subagents.namesOf(agent)
+          if (typeof names?.parent === 'string' && names.parent.length > 0) return names.parent
+        } catch {
+          // 降级到 rootOf 判定（例如部分 mock 或非 resident 对象）
+        }
+      }
+      if (typeof subagents.rootOf === 'function') {
+        try {
+          const root = subagents.rootOf(agent)
+          if (root && root !== agent && typeof root.id === 'string' && root.id === parentSession) {
+            return 'lead'
+          }
+        } catch {
+          return undefined
+        }
+      }
+      return undefined
+    }
+  } catch {
+    return undefined
+  }
+}
+
 /** 空白名单过滤继承工具；本保护额外拒绝 PTC 及子作用域自注册工具。 */
-export function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: IdentityOf, allowedTools: AllowedToolsOf = () => []): AnswerOnlyGuard {
+export function createAnswerOnlyGuard(
+  labels: ReadonlySet<string>,
+  identityOf?: IdentityOf,
+  allowedTools: AllowedToolsOf = () => [],
+  parentNameOf?: ParentNameOf,
+): AnswerOnlyGuard {
   const allowedNow = (): string[] => {
     const names = allowedTools()
     if (!Array.isArray(names)) return []
@@ -147,7 +225,7 @@ export function createAnswerOnlyGuard(labels: ReadonlySet<string>, identityOf?: 
     const allowed = allowedNow()
     // 白名单只覆盖普通工具；回传工具的父会话归属校验由 `isReplyToParent` 独占，
     // 配置无法把「只能交回自己的主会话」放宽成「发给任意 agent」。
-    const permitted = isReplyToParent(name, args, agent)
+    const permitted = isReplyToParent(name, args, agent, parentNameOf)
       || (name !== undefined && allowed.includes(name))
     const verdict = permitted ? undefined : denyFor(allowed)
     if (isOwnedId(agent)) return verdict

@@ -7,7 +7,7 @@ import type {} from '@deepseek-ai/dsh-tools'
 import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
 import { SIDE_MAX_OUTPUT_TOKENS } from './limits'
 import { DEFAULT_TIMEOUT_MS, SideJobs } from './server/jobs'
-import { createAnswerOnlyGuard, identityOfFromContext } from './server/tool-guard'
+import { createAnswerOnlyGuard, identityOfFromContext, parentNameOfFromContext } from './server/tool-guard'
 import { readSettings } from './server/settings'
 import { translate } from './locales'
 import { hideInternalCommands } from './server/command-visibility'
@@ -32,7 +32,12 @@ export function apply(ctx: Context, config?: unknown): void {
   const settingsNow = () => readSettings(config)
   // 保护挂在子代理自己的上下文上，随子代理释放，不借用宿主根 fiber。
   // dsh-tui 会拒绝插件激活期间的 root.effect / root.events。
-  const protection = createAnswerOnlyGuard(labels, identityOfFromContext(ctx), () => settingsNow().allowedTools)
+  const protection = createAnswerOnlyGuard(
+    labels,
+    identityOfFromContext(ctx),
+    () => settingsNow().allowedTools,
+    parentNameOfFromContext(ctx),
+  )
   const releasePluginGuard = ctx.tools.guard(protection)
   const childGuards = new WeakMap<object, () => void | Promise<void>>()
   const arm = (agent: GuardedAgent) => {
@@ -73,22 +78,31 @@ export function apply(ctx: Context, config?: unknown): void {
     }
     const label = t('agent.name')
     retainLabel(label)
-    const parentId = (request.context as Agent | undefined)?.session?.header?.id
-    const settings = settingsNow()
-    const replyHint = parentId === undefined ? '' : `\n\n${t('agent.replyHint', { parent: JSON.stringify(parentId) })}`
-    // 自定义提示词替换内置前缀；工具权限句始终追加，配置不能让模型误以为「什么都能调」。
-    const permissions = settings.allowedTools.length === 0 ? '' : `\n\n${t('agent.toolsAllowed', { tools: settings.allowedTools.join(', ') })}`
-    const prefix = settings.promptPrefix === '' ? t('agent.promptPrefix') : settings.promptPrefix
-    const promptText = `${prefix}${permissions}${replyHint}\n\n${request.question}`
+    const parentAgent = request.context as Agent | undefined
+    const parentId = parentAgent?.session?.header?.id
     const subagents = ctx.subagents as unknown as {
-      startActivation?: (spec: {
-        provider: string
-        label: string
-        childId: ReturnType<typeof SessionId>
-        request: { parent: Agent; prompt: readonly { type: string; text: string }[]; agentOptions?: { maxTokens?: number } }
-        signal: AbortSignal
-        delivery: 'caller'
-      }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; dispose(): Promise<void> }>
+      rootOf?: (caller: Agent) => Agent
+      namesOf?: (agent: Agent) => { self?: unknown; parent?: unknown }
+      startActivation?: (spec:
+        | {
+          provider: string
+          label: string
+          childId: ReturnType<typeof SessionId>
+          parent: Agent
+          prompt: readonly { type: string; text: string }[]
+          agentOptions?: { maxTokens?: number }
+          signal: AbortSignal
+          delivery: 'caller'
+        }
+        | {
+          provider: string
+          label: string
+          childId: ReturnType<typeof SessionId>
+          request: { parent: Agent; prompt: readonly { type: string; text: string }[]; agentOptions?: { maxTokens?: number } }
+          signal: AbortSignal
+          delivery: 'caller'
+        }
+      ) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; dispose(): Promise<void> }>
       start?: (provider: string, options: {
         parent: Agent
         label: string
@@ -97,7 +111,44 @@ export function apply(ctx: Context, config?: unknown): void {
         prompt: readonly { type: string; text: string }[]
       }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
     }
-    const parentAgent = request.context as Agent | undefined
+    const isFlatActivation = typeof subagents.rootOf === 'function'
+    let replyField: 'agent' | 'agent_id' = isFlatActivation ? 'agent' : 'agent_id'
+    try {
+      const sendTool = (ctx.tools as unknown as {
+        get?(name: string, agent?: Agent): { parameters?: { properties?: Record<string, unknown> } } | undefined
+      }).get?.('send_message', parentAgent)
+      const props = sendTool?.parameters?.properties
+      if (props && typeof props === 'object') {
+        if ('agent' in props && !('agent_id' in props)) replyField = 'agent'
+        else if ('agent_id' in props) replyField = 'agent_id'
+      }
+    } catch {
+      // 保留基于 subagents 能力探测的默认字段名
+    }
+    let replyTarget: string | undefined = parentId
+    if (parentId !== undefined && replyField === 'agent' && parentAgent) {
+      let resolvedName: string | undefined
+      if (typeof subagents.namesOf === 'function') {
+        try {
+          const self = subagents.namesOf(parentAgent)?.self
+          if (typeof self === 'string' && self.length > 0) resolvedName = self
+        } catch {}
+      }
+      if (resolvedName === undefined && typeof subagents.rootOf === 'function') {
+        try {
+          if (subagents.rootOf(parentAgent) === parentAgent) resolvedName = 'lead'
+        } catch {}
+      }
+      if (resolvedName !== undefined) replyTarget = resolvedName
+    }
+    const settings = settingsNow()
+    const replyHint = replyTarget === undefined
+      ? ''
+      : `\n\n${t('agent.replyHint', { field: replyField, parent: JSON.stringify(replyTarget) })}`
+    // 自定义提示词替换内置前缀；工具权限句始终追加，配置不能让模型误以为「什么都能调」。
+    const permissions = settings.allowedTools.length === 0 ? '' : `\n\n${t('agent.toolsAllowed', { tools: settings.allowedTools.join(', ') })}`
+    const prefix = settings.promptPrefix === '' ? t('agent.promptPrefix') : settings.promptPrefix
+    const promptText = `${prefix}${permissions}${replyHint}\n\n${request.question}`
     const parentMaxTokens = parentAgent?.options?.maxTokens
     const maxTokens = typeof parentMaxTokens === 'number' && parentMaxTokens > 0
       ? Math.min(SIDE_MAX_OUTPUT_TOKENS, parentMaxTokens)
@@ -117,20 +168,34 @@ export function apply(ctx: Context, config?: unknown): void {
         })
         let activation
         try {
-          activation = await subagents.startActivation({
-            provider: 'fork',
-            label,
-            childId,
-            request: {
-              parent: request.context as Agent,
-              // 旁问只需一次性只读回答：收紧继承来的过大输出预算，避免长会话溢出；
-              // 同时取 min 避免反向抬高小预算路由。
-              agentOptions: { maxTokens },
-              prompt: [{ type: 'text', text: promptText }],
-            },
-            signal: request.signal,
-            delivery: 'caller',
-          })
+          // 0.2.2-rc.2+（存在 rootOf）使用扁平 SubagentActivationSpec；0.2.1-rc.1 ~ 0.2.2-rc.1 仍包装在 request 内。
+          activation = await subagents.startActivation(
+            isFlatActivation
+              ? {
+                provider: 'fork',
+                label,
+                childId,
+                parent: request.context as Agent,
+                // 旁问只需一次性只读回答：收紧继承来的过大输出预算，避免长会话溢出；
+                // 同时取 min 避免反向抬高小预算路由。
+                agentOptions: { maxTokens },
+                prompt: [{ type: 'text', text: promptText }],
+                signal: request.signal,
+                delivery: 'caller',
+              }
+              : {
+                provider: 'fork',
+                label,
+                childId,
+                request: {
+                  parent: request.context as Agent,
+                  agentOptions: { maxTokens },
+                  prompt: [{ type: 'text', text: promptText }],
+                },
+                signal: request.signal,
+                delivery: 'caller',
+              },
+          )
         } finally {
           stopCreated()
         }

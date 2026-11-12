@@ -77,7 +77,10 @@ describe('全量 8 门官方语言支持与一致性断言', () => {
       const t = translate(lang)
       expect(t('settings.invalidTools', { max: 120 })).toContain('120')
       expect(t('agent.toolsAllowed', { tools: 'pele_draw' })).toContain('pele_draw')
-      expect(t('agent.replyHint', { parent: 'sess-123' })).toContain('sess-123')
+      expect(t('agent.replyHint', { field: 'agent', parent: 'sess-123' })).toContain('agent')
+      expect(t('agent.replyHint', { field: 'agent', parent: 'sess-123' })).toContain('sess-123')
+      expect(t('agent.replyHint', { field: 'agent_id', parent: 'sess-123' })).toContain('agent_id')
+      expect(t('agent.promptPrefix')).not.toContain('agent_id')
     }
   })
 

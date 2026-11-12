@@ -43,8 +43,7 @@ describe('DSH 宿主准入范围契约 (engines.dsh)', () => {
     expect(check('0.2.1-rc.5')).toBe(true)
     expect(check('0.2.2-alpha.1')).toBe(true)
     expect(check('0.2.2-rc.1')).toBe(true)
-    expect(check('0.2.2-rc.1')).toBe(true)
-    expect(check('0.2.2-rc.1')).toBe(true)
+    expect(check('0.2.2-rc.2')).toBe(true)
     expect(check('0.2.9')).toBe(true)
 
     // 0.3.0 的破坏性更新（包括其 alpha、rc 和正式版）必须被坚决拦截
