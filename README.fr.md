@@ -83,7 +83,7 @@ Pour utiliser l'espace de travail sur bureau, téléchargez [DSH Codex Desktop](
 ## Prérequis
 
 - DeepSeek Harness installé.
-- Compatibilité de l'hôte : série complète DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), validée sur `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`. Les mises à niveau de la même génération ne nécessitent pas de nouvelles versions du plugin.
+- Compatibilité de l'hôte : série complète DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), validée sur `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`. Les mises à niveau de la même génération ne nécessitent pas de nouvelles versions du plugin.
 - Support linguistique : l'ensemble des 8 langues intégrées est nativement sélectionnable à partir de DeepSeek Harness `0.2.2-rc.1`. Sur les hôtes `0.2.0`〜`0.2.1`, les dictionnaires supplémentaires enregistrés restent dormants et l'interface bascule de façon sécurisée en chinois et anglais.
 - Les hôtes antérieurs à `0.2.0-rc.1` ne sont plus pris en charge. Les modifications destructives de la génération `0.3.0` sont interceptées par la barrière de version. Les utilisateurs de versions `0.1.x` doivent installer la version `0.1.24`.
 - Node.js 22+, avec la commande `dsh` disponible dans le terminal.
@@ -210,7 +210,7 @@ npm run check
 
 `npm run check` exécute la vérification de types, les tests et le build.
 
-La version de référence pour le développement est `0.2.2-rc.2`. `npm run test:compat` compile avec cette référence et exécute la suite de tests sur chaque version isolée de l'hôte. Les tests de composants DOM ne remplacent pas la validation sur un navigateur réel.
+La version de référence pour le développement est `0.2.2-rc.3`. `npm run test:compat` compile avec cette référence et exécute la suite de tests sur chaque version isolée de l'hôte. Les tests de composants DOM ne remplacent pas la validation sur un navigateur réel.
 
 GitHub et npm contiennent tous deux le dossier `lib` directement exécutable ; après modification du code source, exécutez `npm run build` avant de valider votre commit.
 

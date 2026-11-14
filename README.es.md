@@ -83,7 +83,7 @@ Si desea utilizar la estación de trabajo de escritorio, descargue [DSH Codex De
 ## Requisitos previos
 
 - DeepSeek Harness instalado.
-- Rango de compatibilidad del host: serie completa DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), verificado con `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`. Las actualizaciones dentro de la misma generación no requieren esperar nuevos lanzamientos del plugin.
+- Rango de compatibilidad del host: serie completa DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), verificado con `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`. Las actualizaciones dentro de la misma generación no requieren esperar nuevos lanzamientos del plugin.
 - Rango de compatibilidad de idiomas: los 8 idiomas integrados son seleccionables de forma nativa a partir de DeepSeek Harness `0.2.2-rc.1`. En hosts `0.2.0`〜`0.2.1`, los diccionarios adicionales registrados permanecen inactivos y la interfaz recurre de manera segura al chino e inglés.
 - Los hosts anteriores a `0.2.0-rc.1` ya no son compatibles. Las modificaciones destructivas de la generación `0.3.0` serán interceptadas por la barrera de versión. Los usuarios de `0.1.x` deben instalar la versión `0.1.24`.
 - Node.js 22+, capaz de ejecutar el comando `dsh` en la terminal.
@@ -210,7 +210,7 @@ npm run check
 
 `npm run check` ejecuta la comprobación de tipos, las pruebas y la compilación.
 
-La línea base de desarrollo y compilación es `0.2.2-rc.2`. `npm run test:compat` compila con dicha línea base y ejecuta el conjunto de pruebas en cada una de las versiones de host aisladas. Los modelos emplean adaptadores de prueba. Las pruebas de componentes DOM no sustituyen la verificación real en navegadores.
+La línea base de desarrollo y compilación es `0.2.2-rc.3`. `npm run test:compat` compila con dicha línea base y ejecuta el conjunto de pruebas en cada una de las versiones de host aisladas. Los modelos emplean adaptadores de prueba. Las pruebas de componentes DOM no sustituyen la verificación real en navegadores.
 
 Tanto GitHub como npm contienen el directorio `lib` ejecutable; tras modificar el código fuente ejecute `npm run build` antes de realizar una confirmación (commit).
 

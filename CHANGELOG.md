@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.11] - 2026-11-14
+
+### Host Compatibility
+
+- DSH host support now covers `0.2.2-rc.3`; the verified host list, development baseline and localized README badges follow the same version.
+
 ## [1.3.10] - 2026-11-12
 
 - **Full compatibility with latest DeepSeek Harness host releases**: Integrates smoothly with the latest host session lifecycle and message delivery mechanisms, resolving an issue where side-ask requests could fail to start on newer host environments.
