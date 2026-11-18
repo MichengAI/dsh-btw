@@ -291,4 +291,16 @@ describe('一次性旁问生命周期', () => {
     await jobs.close('parent', 'request-clean-1')
     expect(jobs.query('parent', 'request-clean-1')).toEqual({ state: 'not-found' })
   })
+
+  it('传入已中断的 signal 时立即早退返回取消，不启动子代理且不分配任务额度', async () => {
+    const start = vi.fn()
+    const jobs = new SideJobs(start)
+    const controller = new AbortController()
+    controller.abort(new Error('提前中断'))
+    const outcome = await jobs.ask('parent', 'req-pre-aborted', '问题', controller.signal)
+    expect(outcome.kind).toBe('error')
+    expect(outcome.text).toContain('取消')
+    expect(start).not.toHaveBeenCalled()
+    expect(jobs.size).toBe(0)
+  })
 })

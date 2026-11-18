@@ -5,6 +5,7 @@ import { normalizeLocale, translate, type BtwLocale } from './locales'
 export const RUN_COMMAND = 'btw-run'
 export const CLOSE_COMMAND = 'btw-close'
 export const QUERY_COMMAND = 'btw-query'
+export const INTERNAL_COMMANDS = [RUN_COMMAND, CLOSE_COMMAND, QUERY_COMMAND] as const
 export const JOB_ROUTE_PATH = '/api/michengai-btw/job'
 
 export type SideJobState = 'running' | 'done' | 'not-found'

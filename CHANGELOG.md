@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.12] - 2026-11-18
+
+- **Seamless recovery for long-running deep-thinking side questions**: Fixes an issue where front-end connection timeouts on requests taking longer than 5 minutes (300 seconds) would cause the side-ask bubble to error and discard the answer. When a long HTTP connection times out, the server continues executing and preserves the completed result, allowing the front end to automatically reconnect and retrieve the full answer seamlessly (#27).
+- **Cleaner conversation history and command view isolation**: Fully registers internal status queries in the chat command view filter, preventing redundant command placeholder cards during side-question recovery and keeping the conversation history clean and uncluttered.
+
 ## [1.3.11] - 2026-11-14
 
 ### Host Compatibility

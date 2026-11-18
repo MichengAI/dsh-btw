@@ -1,5 +1,7 @@
 import type { CommandRuntime } from '@deepseek-ai/dsh-commands'
-import { CLOSE_COMMAND, QUERY_COMMAND, RUN_COMMAND } from '../shared'
+import { INTERNAL_COMMANDS } from '../shared'
+
+const internalCommandNames: ReadonlySet<string> = new Set(INTERNAL_COMMANDS)
 
 /** 兼容没有 hidden 选项的宿主：仅过滤目录，find/execute 仍由宿主处理。 */
 export function hideInternalCommands(commands: Pick<CommandRuntime, 'list'>): () => void {
@@ -8,7 +10,7 @@ export function hideInternalCommands(commands: Pick<CommandRuntime, 'list'>): ()
   let active = true
   const filtered: typeof original = function (this: Pick<CommandRuntime, 'list'>, agent) {
     const rows = original.call(this, agent)
-    return active ? Object.freeze(rows.filter(row => row.name !== RUN_COMMAND && row.name !== CLOSE_COMMAND && row.name !== QUERY_COMMAND)) : rows
+    return active ? Object.freeze(rows.filter(row => !internalCommandNames.has(row.name))) : rows
   }
   Object.defineProperty(commands, 'list', { configurable: true, writable: true, value: filtered })
   return () => {

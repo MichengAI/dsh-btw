@@ -656,4 +656,83 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     expect(registeredRoute).toBeUndefined()
     await ctx.fiber.dispose()
   })
+
+  it('宿主后加载 connection 服务时，通过 inject 仍能正确注册 fetch 路由', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    ctx.provide('commands', { register: () => () => {} })
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true } }),
+      startActivation: async () => ({
+        result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '' }] }),
+        dispose: async () => {},
+      }),
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    let registeredRoute: any
+    // 在插件加载之后才 provide connection 服务
+    ctx.provide('connection', {
+      fetch: {
+        register: (route: any) => {
+          registeredRoute = route
+          return () => { registeredRoute = undefined }
+        },
+      },
+    })
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(registeredRoute).toBeDefined()
+    expect(registeredRoute.path).toBe('/api/michengai-btw/job')
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
+
+  it('/btw 终端命令在调用方 signal 中断时自动调用 close 取消任务，防止 token 浪费', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (c: CommandDefinition) => { commands.set(c.name, c); return () => { commands.delete(c.name) } } })
+
+    const dispose = vi.fn(async () => {})
+    let resolvePending!: (val: any) => void
+    const pending = new Promise(resolve => { resolvePending = resolve })
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true } }),
+      startActivation: async () => ({
+        result: pending as any,
+        dispose,
+      }),
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    const controller = new AbortController()
+    const task = commands.get('btw')!.handler({
+      agent: { session: { header: { id: 'main-tui' } } },
+      rawInput: '终端旁问',
+      signal: controller.signal,
+    } as never)
+
+    // 用户在终端按下 Ctrl+C，触发 signal abort
+    controller.abort(new Error('Terminal interrupted'))
+    const outcome = await task
+    expect(outcome.kind).toBe('error')
+
+    // 等待 close 释放
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(dispose).toHaveBeenCalled()
+    resolvePending({ stopReason: 'completed', output: [] })
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
 })

@@ -11,7 +11,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { MessageCircle } from 'lucide-react'
-import { CLOSE_COMMAND, JOB_ROUTE_PATH, QUERY_COMMAND, RUN_COMMAND, type SideJobStatus, type SideResult } from '../shared'
+import { CLOSE_COMMAND, INTERNAL_COMMANDS, JOB_ROUTE_PATH, QUERY_COMMAND, RUN_COMMAND, type SideJobStatus, type SideResult } from '../shared'
 import { BubbleStore, SideRequestNotStartedError } from './bubbles'
 import { BubbleDock } from './BubbleView'
 import { QuoteStore } from './quotes'
@@ -141,33 +141,64 @@ export function apply(ctx: Context): void {
   const pollResult = async (session: string, id: string, signal: AbortSignal): Promise<SideResult> => {
     const startTime = Date.now()
     let delay = 50
+    let httpAvailable = typeof window !== 'undefined' && typeof window.fetch === 'function'
+    let consecutiveFailures = 0
+    let firstFailureTime = 0
+    let lastError: Error | undefined
+
     while (!signal.aborted && Date.now() - startTime < 1_800_000) {
       if (delay > 0) {
         await new Promise(resolve => setTimeout(resolve, delay))
       }
-      delay = 1000
+      // 自适应退避：50ms -> 1000ms -> 2000ms -> 3000ms -> 4000ms -> 5000ms 封顶
+      delay = Math.min(delay < 1000 ? 1000 : delay + 1000, 5000)
       if (signal.aborted) break
+
       let status: SideJobStatus | undefined
-      if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+      let transportSuccess = false
+
+      if (httpAvailable) {
         try {
           const resp = await window.fetch(`${JOB_ROUTE_PATH}?session=${encodeURIComponent(session)}&id=${encodeURIComponent(id)}`, { signal })
-          if (resp.ok) {
+          if (resp.status === 404) {
+            httpAvailable = false
+          } else if (resp.ok) {
             status = await resp.json() as SideJobStatus
+            transportSuccess = true
+          } else {
+            lastError = new Error(`HTTP ${resp.status}`)
           }
-        } catch {
-          // fetch 失败静默，降级走 execute 内部命令
+        } catch (err) {
+          if (signal.aborted) break
+          lastError = err instanceof Error ? err : new Error(String(err))
         }
       }
-      if (!status) {
+
+      if (!status && !signal.aborted) {
         try {
           const queryRes = await execute(session, `/${QUERY_COMMAND} ${id}`, signal)
           if (queryRes.kind === 'success' && queryRes.text) {
             status = JSON.parse(queryRes.text) as SideJobStatus
+            transportSuccess = true
           }
-        } catch {
-          // 内部命令查询遇到临时异常，继续轮询
+        } catch (err) {
+          if (signal.aborted) break
+          lastError = err instanceof Error ? err : new Error(String(err))
         }
       }
+
+      if (transportSuccess) {
+        consecutiveFailures = 0
+        firstFailureTime = 0
+      } else {
+        consecutiveFailures++
+        if (firstFailureTime === 0) firstFailureTime = Date.now()
+        // 所有通道连续失败超过 15 秒且连续失败达到 5 次以上，认定传输中断提前退出
+        if (consecutiveFailures >= 5 && Date.now() - firstFailureTime >= 15_000) {
+          throw lastError ?? new Error(t('error.backend'))
+        }
+      }
+
       if (status?.state === 'done' && status.result) {
         return status.result
       }
@@ -378,7 +409,7 @@ export function apply(ctx: Context): void {
     return () => disposers.forEach(d => d())
   })
   slots.inject('conversation.chat.commandview', () => {
-    const off = [RUN_COMMAND, CLOSE_COMMAND].map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))
+    const off = INTERNAL_COMMANDS.map(key => slots.register({ name: 'conversation.chat.commandview', key }, () => null))
     return () => off.forEach(dispose => dispose())
   })
 

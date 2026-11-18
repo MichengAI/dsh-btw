@@ -66,6 +66,7 @@ export class SideJobs {
     const key = JSON.stringify([scope, id])
     const t = translate(locale)
     this.prune()
+    if (signal?.aborted) return Promise.resolve(failure(t('error.cancelled')))
     if (this.disposed) return Promise.resolve(failure(t('error.stopped')))
     if (this.jobs.has(key) || this.retired.has(key)) return Promise.resolve(failure(t('error.duplicate')))
     if (this.jobs.size >= 8) return Promise.resolve(failure(t('error.capacity')))

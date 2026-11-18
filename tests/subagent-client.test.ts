@@ -48,10 +48,14 @@ async function setup() {
   })
   ctx.provide('conversation', { input: { for: () => ({}) } })
   ctx.provide('commandUi', commands)
+  const commandViews = new Map<string, () => unknown>()
   ctx.provide('slots', {
     inject: (_name: string, register: () => void) => { register(); return () => {} },
-    register: (spec: { name: string }, component: unknown) => {
+    register: (spec: { name: string; key?: string }, component: unknown) => {
       if (spec.name === 'conversation.input.dock') dock = component as Dock
+      if (spec.name === 'conversation.chat.commandview' && spec.key) {
+        commandViews.set(spec.key, component as () => unknown)
+      }
       return () => {}
     },
   })
@@ -73,7 +77,7 @@ async function setup() {
   const children = (session: SessionHint) => React.Children.toArray(dock({ session, t: translate() }).props.children)
     .filter((node): node is React.ReactElement<{ store: BubbleStore }> => React.isValidElement(node))
   const store = () => children({ sessionId: 'main', subagent: null }).find(node => typeof node.type === 'function' && node.type.name === 'BubbleDock')!.props.store
-  return { ctx, commands, execute, addresses, rows, children, store }
+  return { ctx, commands, execute, addresses, rows, children, store, commandViews }
 }
 
 it('子代理不显示旁问候选或认领命令，普通分叉会话仍可用', async () => {
@@ -302,4 +306,83 @@ it('长耗时旁问轮询期间用户关闭气泡，立即停止轮询并触发�
     expect(store.getSnapshot()).toEqual([])
     expect(h.execute).toHaveBeenCalledWith('main', expect.stringContaining('/btw-close '), [], undefined)
   } finally { await h.ctx.fiber.dispose() }
+})
+
+it('HTTP 路由返回 404 时标记路由不可用，后续轮询不再发起 fetch 请求', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ status: 404, ok: false })
+  const h = await setup()
+  ;(window as any).fetch = fetchMock
+  try {
+    let queryCount = 0
+    h.execute.mockImplementation(async (_session: string, line: string) => {
+      if (line.includes('/btw-run')) {
+        return { ok: false, error: { code: 'network-error', message: 'Failed to fetch' } }
+      }
+      if (line.includes('/btw-query')) {
+        queryCount++
+        if (queryCount === 1) {
+          return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({ state: 'running' }) } } }
+        }
+        return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({ state: 'done', result: { kind: 'success', text: '404后正常取回答案' } }) } } }
+      }
+      return { ok: true, value: { result: { kind: 'success', text: '' } } }
+    })
+    const store = h.store()
+    const id = await store.ask('main', '404测试题')
+
+    for (let i = 0; i < 40; i++) {
+      await tick()
+      await new Promise(r => setTimeout(r, 50))
+      if (store.getSnapshot().find(item => item.id === id)?.phase === 'done') break
+    }
+
+    const item = store.getSnapshot().find(b => b.id === id)
+    expect(item?.phase).toBe('done')
+    expect(item?.answer).toBe('404后正常取回答案')
+    // 第一次探测到 404 后，后续轮询周期不再发起 fetch 请求
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  } finally {
+    await h.ctx.fiber.dispose()
+  }
+})
+
+it('所有查询通道持续网络报错且达到连续失败上限时，判定传输断开并结束轮询抛错', async () => {
+  vi.useFakeTimers()
+  const fetchMock = vi.fn().mockRejectedValue(new Error('Network dead'))
+  const h = await setup()
+  ;(window as any).fetch = fetchMock
+  try {
+    h.execute.mockImplementation(async (_session: string, line: string) => {
+      if (line.includes('/btw-run')) {
+        return { ok: false, error: { code: 'network-error', message: 'Failed to fetch' } }
+      }
+      if (line.includes('/btw-query')) {
+        return { ok: false, error: { code: 'network-error', message: 'Transport broken' } }
+      }
+      return { ok: true, value: { result: { kind: 'success', text: '' } } }
+    })
+    const store = h.store()
+    const id = await store.ask('main', '网络彻底断开测试题')
+
+    await vi.advanceTimersByTimeAsync(20_000)
+
+    const item = store.getSnapshot().find(b => b.id === id)
+    expect(item?.phase).toBe('error')
+    expect(item?.error).toContain('Transport broken')
+  } finally {
+    vi.useRealTimers()
+    await h.ctx.fiber.dispose()
+  }
+})
+
+it('conversation.chat.commandview 槽覆盖所有内部命令且返回 null，防止渲染通用命令卡片', async () => {
+  const h = await setup()
+  try {
+    expect([...h.commandViews.keys()].sort()).toEqual(['btw-close', 'btw-query', 'btw-run'])
+    for (const key of ['btw-close', 'btw-query', 'btw-run']) {
+      expect(h.commandViews.get(key)!()).toBeNull()
+    }
+  } finally {
+    await h.ctx.fiber.dispose()
+  }
 })

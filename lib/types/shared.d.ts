@@ -3,6 +3,7 @@ import { type BtwLocale } from './locales';
 export declare const RUN_COMMAND = "btw-run";
 export declare const CLOSE_COMMAND = "btw-close";
 export declare const QUERY_COMMAND = "btw-query";
+export declare const INTERNAL_COMMANDS: readonly ["btw-run", "btw-close", "btw-query"];
 export declare const JOB_ROUTE_PATH = "/api/michengai-btw/job";
 export type SideJobState = 'running' | 'done' | 'not-found';
 export interface SideJobStatus {

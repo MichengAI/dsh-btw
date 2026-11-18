@@ -270,7 +270,15 @@ export function apply(ctx: Context, config?: unknown): void {
       const question = invocation.rawInput.trim()
       if (!question) return { kind: 'error', text: translate()('error.empty') }
       if (question.length > MAX_QUESTION_LENGTH) return { kind: 'error', text: translate()('error.length') }
-      return jobs.ask(invocation.agent.session.header.id, globalThis.crypto.randomUUID(), question, invocation.signal, invocation.agent)
+      const sessionId = invocation.agent.session.header.id
+      const id = globalThis.crypto.randomUUID()
+      const task = jobs.ask(sessionId, id, question, invocation.signal, invocation.agent)
+      if (invocation.signal) {
+        invocation.signal.addEventListener('abort', () => {
+          void jobs.close(sessionId, id)
+        }, { once: true })
+      }
+      return task
     },
   }))
   ctx.effect(() => ctx.commands.register({
@@ -306,20 +314,28 @@ export function apply(ctx: Context, config?: unknown): void {
     },
   }))
 
-  const connection = ctx.get('connection') as { fetch?: { register: (route: unknown) => () => void } } | undefined
-  if (connection?.fetch) {
-    ctx.effect(() => connection.fetch!.register({
-      path: JOB_ROUTE_PATH,
-      methods: ['GET'],
-      requestBody: 'buffered',
-      fetch: async (request: Request) => {
-        const url = new URL(request.url)
-        const session = url.searchParams.get('session')
-        const id = url.searchParams.get('id')
-        if (!session || !id) return new Response(JSON.stringify({ error: 'missing session or id' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
-        const status = jobs.query(session, id)
-        return new Response(JSON.stringify(status), { status: 200, headers: { 'Content-Type': 'application/json' } })
-      },
-    }))
+  const registerConnectionFetch = (connection: unknown, scope: Context) => {
+    const conn = connection as { fetch?: { register: (route: unknown) => () => void } } | undefined
+    if (conn?.fetch) {
+      scope.effect(() => conn.fetch!.register({
+        path: JOB_ROUTE_PATH,
+        methods: ['GET'],
+        requestBody: 'buffered',
+        fetch: async (request: Request) => {
+          const url = new URL(request.url)
+          const session = url.searchParams.get('session')
+          const id = url.searchParams.get('id')
+          if (!session || !id) return new Response(JSON.stringify({ error: 'missing session or id' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+          const status = jobs.query(session, id)
+          return new Response(JSON.stringify(status), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        },
+      }))
+    }
+  }
+
+  if (typeof ctx.inject === 'function') {
+    ctx.inject(['connection'], scope => registerConnectionFetch(scope.get('connection'), scope))
+  } else {
+    registerConnectionFetch(ctx.get('connection'), ctx)
   }
 }
