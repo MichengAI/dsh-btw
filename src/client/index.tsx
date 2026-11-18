@@ -164,8 +164,8 @@ export function apply(ctx: Context): void {
           if (resp.status === 404 || resp.status === 401 || resp.status === 403) {
             httpAvailable = false
           } else if (resp.ok) {
-            status = await resp.json() as SideJobStatus
             transportSuccess = true
+            status = await resp.json() as SideJobStatus
           } else {
             lastError = new Error(`HTTP ${resp.status}`)
           }
@@ -182,8 +182,8 @@ export function apply(ctx: Context): void {
           if (httpAvailable) commandQueryAttempts++
           const queryRes = await execute(session, `/${QUERY_COMMAND} ${id}`, signal)
           if (queryRes.kind === 'success' && queryRes.text) {
-            status = JSON.parse(queryRes.text) as SideJobStatus
             transportSuccess = true
+            status = JSON.parse(queryRes.text) as SideJobStatus
           }
         } catch (err) {
           if (signal.aborted) break
