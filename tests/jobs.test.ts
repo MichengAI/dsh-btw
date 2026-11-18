@@ -248,4 +248,47 @@ describe('一次性旁问生命周期', () => {
     expect(sanitizeModelAnswer('```tool_call\n{"action": "test"}\n```\n结论是正确的')).toBe('结论是正确的')
     expect(sanitizeModelAnswer('<tool_call>\n{"name": "fail"}\n</tool_call>')).toBe('')
   })
+
+  it('调用方连接 signal 中断不终止后台任务，子代理继续推进至完成并支持 query 查回答案', async () => {
+    const pending = deferred<typeof answer>()
+    const dispose = vi.fn(async () => {})
+    const jobs = new SideJobs(async () => ({ result: pending.promise, dispose }))
+    const controller = new AbortController()
+    const task = jobs.ask('parent', 'request-resumable-1', '长耗时问题', controller.signal)
+
+    // 模拟 HTTP 连接在 300s 断开（signal.abort）
+    controller.abort(new Error('This operation was aborted'))
+    const outcome = await task
+    // 调用方本次 ask 被中断
+    expect(outcome.kind).toBe('error')
+
+    // 但后台子代理没有被杀死！jobs.query 显示 running
+    expect(jobs.query('parent', 'request-resumable-1')).toEqual({ state: 'running' })
+    expect(dispose).not.toHaveBeenCalled()
+
+    // 随后模型完成作答
+    pending.resolve(answer)
+    await tick()
+
+    // 状态转为 done，答案被安全缓存，dispose 被正常释放
+    expect(jobs.query('parent', 'request-resumable-1')).toEqual({
+      state: 'done',
+      result: { kind: 'success', text: '答案' },
+    })
+    expect(dispose).toHaveBeenCalledTimes(1)
+  })
+
+  it('close 既能中止运行中任务，也能清理已完成结果缓存与墓碑防重入', async () => {
+    const dispose = vi.fn(async () => {})
+    const jobs = new SideJobs(async () => ({ result: Promise.resolve(answer), dispose }))
+    await jobs.ask('parent', 'request-clean-1', '测试')
+    expect(jobs.query('parent', 'request-clean-1')).toEqual({
+      state: 'done',
+      result: { kind: 'success', text: '答案' },
+    })
+
+    // 主动关闭清理缓存
+    await jobs.close('parent', 'request-clean-1')
+    expect(jobs.query('parent', 'request-clean-1')).toEqual({ state: 'not-found' })
+  })
 })

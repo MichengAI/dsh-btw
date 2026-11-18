@@ -4,7 +4,7 @@ import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-subagent'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-tools'
-import { CLOSE_COMMAND, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, RUN_COMMAND } from './shared'
+import { CLOSE_COMMAND, JOB_ROUTE_PATH, MAX_QUESTION_LENGTH, parseRequest, questionWithReference, QUERY_COMMAND, RUN_COMMAND } from './shared'
 import { SIDE_MAX_OUTPUT_TOKENS } from './limits'
 import { DEFAULT_TIMEOUT_MS, SideJobs } from './server/jobs'
 import {
@@ -294,4 +294,32 @@ export function apply(ctx: Context, config?: unknown): void {
       return jobs.close(invocation.agent.session.header.id, id)
     },
   }))
+  ctx.effect(() => ctx.commands.register({
+    name: QUERY_COMMAND,
+    description: translate()('command.internalRun'),
+    recordInput: false,
+    handler: invocation => {
+      const id = invocation.rawInput.trim()
+      if (!/^[a-zA-Z0-9-]{8,80}$/.test(id)) return { kind: 'error', text: translate()('error.id') }
+      const status = jobs.query(invocation.agent.session.header.id, id)
+      return { kind: 'success', text: JSON.stringify(status) }
+    },
+  }))
+
+  const connection = ctx.get('connection') as { fetch?: { register: (route: unknown) => () => void } } | undefined
+  if (connection?.fetch) {
+    ctx.effect(() => connection.fetch!.register({
+      path: JOB_ROUTE_PATH,
+      methods: ['GET'],
+      requestBody: 'buffered',
+      fetch: async (request: Request) => {
+        const url = new URL(request.url)
+        const session = url.searchParams.get('session')
+        const id = url.searchParams.get('id')
+        if (!session || !id) return new Response(JSON.stringify({ error: 'missing session or id' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+        const status = jobs.query(session, id)
+        return new Response(JSON.stringify(status), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      },
+    }))
+  }
 }

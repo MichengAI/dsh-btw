@@ -1,4 +1,4 @@
-import type { SideResult } from '../shared'
+import type { SideJobStatus, SideResult } from '../shared'
 import { translate, type BtwLocale, type BtwTranslate } from '../locales'
 
 export interface ChildResult {
@@ -54,6 +54,7 @@ export const DEFAULT_TIMEOUT_MS = 1_800_000 // 30 分钟兜底看门狗，防长
 export class SideJobs {
   private readonly jobs = new Map<string, Job>()
   private readonly retired = new Map<string, number>()
+  private readonly completed = new Map<string, { result: SideResult; time: number }>()
   private disposed = false
   private idleNotified = false
 
@@ -70,26 +71,36 @@ export class SideJobs {
     if (this.jobs.size >= 8) return Promise.resolve(failure(t('error.capacity')))
     const job: Job = { key, controller: new AbortController(), finished: Promise.resolve({ kind: 'success', text: '' }), t }
     this.jobs.set(key, job)
-    const cancel = () => job.controller.abort(new Error(t('error.cancelled')))
-    signal?.addEventListener('abort', cancel, { once: true })
-    if (signal?.aborted) cancel()
     const timer = this.timeoutMs > 0
       ? setTimeout(() => job.controller.abort(new Error(t('error.timeout'))), this.timeoutMs)
       : undefined
     timer?.unref?.()
     job.finished = this.execute(job, { scope, id, question, signal: job.controller.signal, context, locale })
+      .then(result => {
+        this.completed.set(key, { result, time: Date.now() })
+        return result
+      })
       .finally(() => {
         if (timer) clearTimeout(timer)
-        signal?.removeEventListener('abort', cancel)
         this.release(job)
       })
-    return job.finished
+    return signal ? this.interruptible(job.finished, signal).catch(error => failure(error)) : job.finished
+  }
+
+  query(scope: string, id: string): SideJobStatus {
+    const key = JSON.stringify([scope, id])
+    this.prune()
+    if (this.jobs.has(key)) return { state: 'running' }
+    const cached = this.completed.get(key)
+    if (cached) return { state: 'done', result: cached.result }
+    return { state: 'not-found' }
   }
 
   /** 关闭可先于启动到达；短期墓碑阻止网络乱序重新启动请求。 */
   async close(scope: string, id: string): Promise<SideResult> {
     const key = JSON.stringify([scope, id])
     this.retire(key)
+    this.completed.delete(key)
     const job = this.jobs.get(key)
     if (!job) return { kind: 'success', text: '' }
     job.controller.abort(new Error(job.t('error.cancelled')))
@@ -215,6 +226,8 @@ export class SideJobs {
     this.prune()
   }
   private prune(): void {
-    for (const [key, time] of this.retired) if (Date.now() - time > 300_000 || this.retired.size > 1_000) this.retired.delete(key)
+    const now = Date.now()
+    for (const [key, time] of this.retired) if (now - time > 300_000 || this.retired.size > 1_000) this.retired.delete(key)
+    for (const [key, item] of this.completed) if (now - item.time > 300_000 || this.completed.size > 1_000) this.completed.delete(key)
   }
 }

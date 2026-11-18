@@ -239,3 +239,67 @@ it('一般 agent-busy 或断网不丢弃气泡，保留关闭重试', async () =
     expect(h.execute).toHaveBeenCalledTimes(2)
   } finally { await h.ctx.fiber.dispose() }
 })
+
+it('长耗时旁问断线恢复：execute 发生 Failed to fetch 时通过 query 接力取回答案', async () => {
+  const h = await setup()
+  try {
+    let callCount = 0
+    h.execute.mockImplementation(async (_session: string, line: string) => {
+      callCount++
+      if (line.includes('/btw-run')) {
+        // 模拟 300s 长连接断开抛出 Failed to fetch
+        return { ok: false, error: { code: 'network-error', message: 'client api: commands/execute failed: Failed to fetch' } }
+      }
+      if (line.includes('/btw-query')) {
+        // 第一次查询正在运行，第二次查询成功完成
+        if (callCount === 2) {
+          return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({ state: 'running' }) } } }
+        }
+        return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({ state: 'done', result: { kind: 'success', text: '长耗时旁问最终答案' } }) } } }
+      }
+      return { ok: true, value: { result: { kind: 'success', text: '' } } }
+    })
+    const store = h.store()
+    const id = await store.ask('main', '深度思考长问题')
+    // 气泡处于 answering
+    expect(store.getSnapshot().find(item => item.id === id)?.phase).toBe('answering')
+
+    // 等待恢复轮询推进
+    for (let i = 0; i < 40; i++) {
+      await tick()
+      await new Promise(r => setTimeout(r, 50))
+      if (store.getSnapshot().find(item => item.id === id)?.phase === 'done') break
+    }
+
+    const item = store.getSnapshot().find(b => b.id === id)
+    expect(item?.phase).toBe('done')
+    expect(item?.answer).toBe('长耗时旁问最终答案')
+    expect(item?.error).toBeUndefined()
+  } finally { await h.ctx.fiber.dispose() }
+})
+
+it('长耗时旁问轮询期间用户关闭气泡，立即停止轮询并触发关闭命令', async () => {
+  const h = await setup()
+  try {
+    h.execute.mockImplementation(async (_session: string, line: string) => {
+      if (line.includes('/btw-run')) {
+        return { ok: false, error: { code: 'network-error', message: 'Failed to fetch' } }
+      }
+      if (line.includes('/btw-query')) {
+        return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({ state: 'running' }) } } }
+      }
+      if (line.includes('/btw-close')) {
+        return { ok: true, value: { result: { kind: 'success', text: '' } } }
+      }
+      return { ok: true, value: { result: { kind: 'success', text: '' } } }
+    })
+    const store = h.store()
+    const id = await store.ask('main', '取消测试题')
+    await tick()
+
+    // 用户在轮询期间关闭气泡
+    await store.close(id)
+    expect(store.getSnapshot()).toEqual([])
+    expect(h.execute).toHaveBeenCalledWith('main', expect.stringContaining('/btw-close '), [], undefined)
+  } finally { await h.ctx.fiber.dispose() }
+})

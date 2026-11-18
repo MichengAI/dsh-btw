@@ -11,7 +11,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { MessageCircle } from 'lucide-react'
-import { CLOSE_COMMAND, RUN_COMMAND, type SideResult } from '../shared'
+import { CLOSE_COMMAND, JOB_ROUTE_PATH, QUERY_COMMAND, RUN_COMMAND, type SideJobStatus, type SideResult } from '../shared'
 import { BubbleStore, SideRequestNotStartedError } from './bubbles'
 import { BubbleDock } from './BubbleView'
 import { QuoteStore } from './quotes'
@@ -137,8 +137,60 @@ export function apply(ctx: Context): void {
     if (!response.value) throw new Error(t('error.backend'))
     return { kind: response.value.result.kind, text: response.value.result.text ?? '' }
   }
+
+  const pollResult = async (session: string, id: string, signal: AbortSignal): Promise<SideResult> => {
+    const startTime = Date.now()
+    let delay = 50
+    while (!signal.aborted && Date.now() - startTime < 1_800_000) {
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+      delay = 1000
+      if (signal.aborted) break
+      let status: SideJobStatus | undefined
+      if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+        try {
+          const resp = await window.fetch(`${JOB_ROUTE_PATH}?session=${encodeURIComponent(session)}&id=${encodeURIComponent(id)}`, { signal })
+          if (resp.ok) {
+            status = await resp.json() as SideJobStatus
+          }
+        } catch {
+          // fetch 失败静默，降级走 execute 内部命令
+        }
+      }
+      if (!status) {
+        try {
+          const queryRes = await execute(session, `/${QUERY_COMMAND} ${id}`, signal)
+          if (queryRes.kind === 'success' && queryRes.text) {
+            status = JSON.parse(queryRes.text) as SideJobStatus
+          }
+        } catch {
+          // 内部命令查询遇到临时异常，继续轮询
+        }
+      }
+      if (status?.state === 'done' && status.result) {
+        return status.result
+      }
+      if (status?.state === 'not-found' && Date.now() - startTime > 10_000) {
+        throw new Error(t('error.backend'))
+      }
+    }
+    if (signal.aborted) throw new Error(t('error.cancelled'))
+    throw new Error(t('error.timeout'))
+  }
+
+  const runWithRecovery = async (session: string, id: string, question: string, signal: AbortSignal, reference?: string): Promise<SideResult> => {
+    try {
+      return await execute(session, `/${RUN_COMMAND} ${JSON.stringify({ id, question, reference, locale: normalizeLocale(t('locale.id')) })}`, signal)
+    } catch (error) {
+      if (signal.aborted) throw error
+      if (error instanceof SideRequestNotStartedError) throw error
+      return await pollResult(session, id, signal)
+    }
+  }
+
   const store = new BubbleStore({
-    run: (session, id, question, signal, reference) => execute(session, `/${RUN_COMMAND} ${JSON.stringify({ id, question, reference, locale: normalizeLocale(t('locale.id')) })}`, signal),
+    run: (session, id, question, signal, reference) => runWithRecovery(session, id, question, signal, reference),
     close: (session, id) => execute(session, `/${CLOSE_COMMAND} ${id}`),
   }, t)
   const quoteStore = new QuoteStore()

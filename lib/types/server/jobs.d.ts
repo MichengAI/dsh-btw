@@ -1,4 +1,4 @@
-import type { SideResult } from '../shared';
+import type { SideJobStatus, SideResult } from '../shared';
 import { type BtwLocale } from '../locales';
 export interface ChildResult {
     stopReason: string;
@@ -36,11 +36,13 @@ export declare class SideJobs {
     private readonly options;
     private readonly jobs;
     private readonly retired;
+    private readonly completed;
     private disposed;
     private idleNotified;
     constructor(start: StartChild, timeoutMs?: number, options?: JobOptions);
     get size(): number;
     ask(scope: string, id: string, question: string, signal?: AbortSignal, context?: unknown, locale?: BtwLocale): Promise<SideResult>;
+    query(scope: string, id: string): SideJobStatus;
     /** 关闭可先于启动到达；短期墓碑阻止网络乱序重新启动请求。 */
     close(scope: string, id: string): Promise<SideResult>;
     dispose(): Promise<void>;

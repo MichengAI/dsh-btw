@@ -602,4 +602,58 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await plugin.dispose()
     await ctx.fiber.dispose()
   })
+
+  it('宿主提供 connection 时注册 JOB_ROUTE_PATH 路由供只读状态查询', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (c: CommandDefinition) => { commands.set(c.name, c); return () => { commands.delete(c.name) } } })
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true } }),
+      startActivation: async () => ({
+        result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '路由查询回答' }] }),
+        dispose: async () => {},
+      }),
+    })
+
+    let registeredRoute: any
+    ctx.provide('connection', {
+      fetch: {
+        register: (route: any) => {
+          registeredRoute = route
+          return () => { registeredRoute = undefined }
+        },
+      },
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    expect(registeredRoute).toBeDefined()
+    expect(registeredRoute.path).toBe('/api/michengai-btw/job')
+
+    // 未启动任务查询
+    const missingRes = await registeredRoute.fetch(new Request('http://127.0.0.1/api/michengai-btw/job?session=main&id=none'))
+    expect(await missingRes.json()).toEqual({ state: 'not-found' })
+
+    // 启动任务并完成
+    await commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main' } } },
+      rawInput: JSON.stringify({ id: 'route-test-1', question: '查验' }),
+      signal: new AbortController().signal,
+    } as never)
+
+    // 通过 Fetch 路由取回完成结果
+    const doneRes = await registeredRoute.fetch(new Request('http://127.0.0.1/api/michengai-btw/job?session=main&id=route-test-1'))
+    expect(await doneRes.json()).toEqual({
+      state: 'done',
+      result: { kind: 'success', text: '路由查询回答' },
+    })
+
+    await plugin.dispose()
+    expect(registeredRoute).toBeUndefined()
+    await ctx.fiber.dispose()
+  })
 })

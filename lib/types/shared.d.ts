@@ -2,6 +2,13 @@ export { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH, MAX_TOTAL_QUOTES_LENGTH } fr
 import { type BtwLocale } from './locales';
 export declare const RUN_COMMAND = "btw-run";
 export declare const CLOSE_COMMAND = "btw-close";
+export declare const QUERY_COMMAND = "btw-query";
+export declare const JOB_ROUTE_PATH = "/api/michengai-btw/job";
+export type SideJobState = 'running' | 'done' | 'not-found';
+export interface SideJobStatus {
+    state: SideJobState;
+    result?: SideResult;
+}
 export interface SideRequest {
     id: string;
     question: string;

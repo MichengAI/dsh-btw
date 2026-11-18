@@ -4,6 +4,15 @@ import { normalizeLocale, translate, type BtwLocale } from './locales'
 
 export const RUN_COMMAND = 'btw-run'
 export const CLOSE_COMMAND = 'btw-close'
+export const QUERY_COMMAND = 'btw-query'
+export const JOB_ROUTE_PATH = '/api/michengai-btw/job'
+
+export type SideJobState = 'running' | 'done' | 'not-found'
+
+export interface SideJobStatus {
+  state: SideJobState
+  result?: SideResult
+}
 
 export interface SideRequest {
   id: string
