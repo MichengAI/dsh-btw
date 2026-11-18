@@ -5,6 +5,7 @@ export declare const CLOSE_COMMAND = "btw-close";
 export declare const QUERY_COMMAND = "btw-query";
 export declare const INTERNAL_COMMANDS: readonly ["btw-run", "btw-close", "btw-query"];
 export declare const JOB_ROUTE_PATH = "/api/michengai-btw/job";
+export declare const DEFAULT_TIMEOUT_MS = 1800000;
 export type SideJobState = 'running' | 'done' | 'not-found';
 export interface SideJobStatus {
     state: SideJobState;

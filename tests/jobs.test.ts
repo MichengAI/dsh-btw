@@ -303,4 +303,24 @@ describe('一次性旁问生命周期', () => {
     expect(start).not.toHaveBeenCalled()
     expect(jobs.size).toBe(0)
   })
+
+  it('completed 结果超过字符预算或容量时，从最旧条目开始淘汰，保留最新条目', async () => {
+    const jobs = new SideJobs(async req => ({
+      result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: req.question }] } as any),
+      dispose: async () => {},
+    }))
+
+    // 产生一个 1.5MB 的旧结果
+    const bigText1 = 'A'.repeat(1_500_000)
+    await jobs.ask('parent', 'req-1', bigText1)
+    expect(jobs.query('parent', 'req-1').state).toBe('done')
+
+    // 产生第二个 1MB 的新结果，两者相加 2.5MB > 2MB 预算
+    const bigText2 = 'B'.repeat(1_000_000)
+    await jobs.ask('parent', 'req-2', bigText2)
+
+    // 最旧的 req-1 应该被淘汰，最新的 req-2 依然保留
+    expect(jobs.query('parent', 'req-1').state).toBe('not-found')
+    expect(jobs.query('parent', 'req-2').state).toBe('done')
+  })
 })

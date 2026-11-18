@@ -7,6 +7,7 @@ export const CLOSE_COMMAND = 'btw-close'
 export const QUERY_COMMAND = 'btw-query'
 export const INTERNAL_COMMANDS = [RUN_COMMAND, CLOSE_COMMAND, QUERY_COMMAND] as const
 export const JOB_ROUTE_PATH = '/api/michengai-btw/job'
+export const DEFAULT_TIMEOUT_MS = 1_800_000 // 30 分钟兜底看门狗，防长连接死锁占满并发配额
 
 export type SideJobState = 'running' | 'done' | 'not-found'
 

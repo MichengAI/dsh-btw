@@ -1,4 +1,5 @@
-import type { SideJobStatus, SideResult } from '../shared'
+import { DEFAULT_TIMEOUT_MS, type SideJobStatus, type SideResult } from '../shared'
+export { DEFAULT_TIMEOUT_MS }
 import { translate, type BtwLocale, type BtwTranslate } from '../locales'
 
 export interface ChildResult {
@@ -47,8 +48,6 @@ export function sanitizeModelAnswer(raw: string): string {
     .replace(/```(?:tool_call|function_call)[\s\S]*?```/gi, '')
     .trim()
 }
-
-export const DEFAULT_TIMEOUT_MS = 1_800_000 // 30 分钟兜底看门狗，防长连接死锁占满并发配额
 
 /** 管理一次性任务；父会话和请求标识共同构成所有权边界。 */
 export class SideJobs {
@@ -228,7 +227,24 @@ export class SideJobs {
   }
   private prune(): void {
     const now = Date.now()
-    for (const [key, time] of this.retired) if (now - time > 300_000 || this.retired.size > 1_000) this.retired.delete(key)
-    for (const [key, item] of this.completed) if (now - item.time > 300_000 || this.completed.size > 1_000) this.completed.delete(key)
+    for (const [key, time] of this.retired) {
+      if (now - time > 300_000 || this.retired.size > 1_000) this.retired.delete(key)
+    }
+    for (const [key, item] of this.completed) {
+      if (now - item.time > 300_000) {
+        this.completed.delete(key)
+      }
+    }
+    let totalChars = 0
+    for (const [, item] of this.completed) {
+      totalChars += item.result.text.length
+    }
+    if (this.completed.size > 1_000 || totalChars > 2_000_000) {
+      for (const [key, item] of this.completed) {
+        if (this.completed.size <= 1_000 && totalChars <= 2_000_000) break
+        totalChars -= item.result.text.length
+        this.completed.delete(key)
+      }
+    }
   }
 }

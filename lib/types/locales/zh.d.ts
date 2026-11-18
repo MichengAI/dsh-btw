@@ -18,6 +18,7 @@ export declare const zh: {
     readonly "command.description": "根据当前上下文回答，不执行工具";
     readonly "command.hint": "旁问内容";
     readonly "command.internalClose": "关闭并清理指定 BTW 请求";
+    readonly "command.internalQuery": "查询 BTW 旁问任务状态";
     readonly "command.internalRun": "BTW 气泡内部请求";
     readonly "command.label": "旁问";
     readonly "error.attachments": "旁问只接受文字，图片和文件仍保留在输入框中。";
@@ -36,6 +37,7 @@ export declare const zh: {
     readonly "error.incomplete": "旁问未完成（{reason}）。{detail}";
     readonly "error.length": "旁问最多支持 8000 个字符。";
     readonly "error.noText": "模型未返回文字回答。";
+    readonly "error.network": "网络连接中断，无法取回旁问结果。";
     readonly "error.provider": "当前 fork provider 不支持继承上下文并禁用工具，旁问未启动。";
     readonly "error.quotesTotalLength": `\u5F15\u7528\u5408\u8BA1\u957F\u5EA6\u8D85\u51FA\u4E0A\u9650\uFF08\u6700\u591A ${string} \u5B57\u7B26\uFF09\u3002`;
     readonly "error.reference": "请选择 1–8000 个字符的正文（含空白，部分符号计为多个字符）。";

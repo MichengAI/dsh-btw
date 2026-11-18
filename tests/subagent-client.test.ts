@@ -346,17 +346,57 @@ it('HTTP 路由返回 404 时标记路由不可用，后续轮询不再发起 fe
   }
 })
 
+it('HTTP 路由不可用时（404），长耗时任务在命令通道持续轮询超过 2 次仍能正常自愈并取回最终结果', async () => {
+  vi.useFakeTimers()
+  const fetchMock = vi.fn().mockResolvedValue({ status: 404, ok: false })
+  const h = await setup()
+  ;(window as any).fetch = fetchMock
+  try {
+    let queryCount = 0
+    h.execute.mockImplementation(async (_session: string, line: string) => {
+      if (line.includes('/btw-run')) {
+        return { ok: false, error: { code: 'network-error', message: 'Failed to fetch' } }
+      }
+      if (line.includes('/btw-query')) {
+        queryCount++
+        if (queryCount < 5) {
+          return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({ state: 'running' }) } } }
+        }
+        return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({ state: 'done', result: { kind: 'success', text: '多次轮询后最终完成' } }) } } }
+      }
+      return { ok: true, value: { result: { kind: 'success', text: '' } } }
+    })
+    const store = h.store()
+    const id = await store.ask('main', '长耗时404测试')
+
+    for (let i = 0; i < 10; i++) {
+      await vi.advanceTimersByTimeAsync(2000)
+      if (store.getSnapshot().find(item => item.id === id)?.phase === 'done') break
+    }
+
+    const item = store.getSnapshot().find(b => b.id === id)
+    expect(item?.phase).toBe('done')
+    expect(item?.answer).toBe('多次轮询后最终完成')
+    expect(queryCount).toBeGreaterThanOrEqual(5)
+  } finally {
+    vi.useRealTimers()
+    await h.ctx.fiber.dispose()
+  }
+})
+
 it('所有查询通道持续网络报错且达到连续失败上限时，判定传输断开并结束轮询抛错', async () => {
   vi.useFakeTimers()
   const fetchMock = vi.fn().mockRejectedValue(new Error('Network dead'))
   const h = await setup()
   ;(window as any).fetch = fetchMock
+  let queryCommands = 0
   try {
     h.execute.mockImplementation(async (_session: string, line: string) => {
       if (line.includes('/btw-run')) {
         return { ok: false, error: { code: 'network-error', message: 'Failed to fetch' } }
       }
       if (line.includes('/btw-query')) {
+        queryCommands++
         return { ok: false, error: { code: 'network-error', message: 'Transport broken' } }
       }
       return { ok: true, value: { result: { kind: 'success', text: '' } } }
@@ -364,11 +404,12 @@ it('所有查询通道持续网络报错且达到连续失败上限时，判定�
     const store = h.store()
     const id = await store.ask('main', '网络彻底断开测试题')
 
-    await vi.advanceTimersByTimeAsync(20_000)
+    await vi.advanceTimersByTimeAsync(70_000)
 
     const item = store.getSnapshot().find(b => b.id === id)
     expect(item?.phase).toBe('error')
-    expect(item?.error).toContain('Transport broken')
+    expect(item?.error).toMatch(/Network connection lost|网络连接中断/)
+    expect(queryCommands).toBeLessThanOrEqual(3)
   } finally {
     vi.useRealTimers()
     await h.ctx.fiber.dispose()

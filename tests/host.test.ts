@@ -7,7 +7,7 @@ import type { ToolRuntime as RuntimeType } from '@deepseek-ai/dsh-tools'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { CommandDefinition } from '@deepseek-ai/dsh-commands'
 import { apply } from '../src/index'
-import { RUN_COMMAND } from '../src/shared'
+import { QUERY_COMMAND, RUN_COMMAND } from '../src/shared'
 import { translate } from '../src/locales'
 import { SIDE_MAX_OUTPUT_TOKENS } from '../src/limits'
 import { createAnswerOnlyGuard } from '../src/server/tool-guard'
@@ -731,6 +731,154 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await new Promise(resolve => setTimeout(resolve, 10))
     expect(dispose).toHaveBeenCalled()
     resolvePending({ stopReason: 'completed', output: [] })
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
+
+  it('btw-run 内部命令在 invocation.signal abort 后任务继续在后台运行，不被取消（核心断线恢复不变量）', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (c: CommandDefinition) => { commands.set(c.name, c); return () => { commands.delete(c.name) } } })
+
+    const dispose = vi.fn(async () => {})
+    let resolvePending!: (val: any) => void
+    const pending = new Promise(resolve => { resolvePending = resolve })
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true } }),
+      startActivation: async () => ({
+        result: pending as any,
+        dispose,
+      }),
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    const controller = new AbortController()
+    const runTask = commands.get(RUN_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main-web' } } },
+      rawInput: JSON.stringify({ id: 'web-job-1', question: '长耗时问题' }),
+      signal: controller.signal,
+    } as never)
+
+    // 模拟前端长连接 300s 发生超时，触发 invocation.signal abort
+    controller.abort(new Error('Failed to fetch'))
+    await runTask
+
+    // 核心断线恢复不变量：btw-run 绝不主动调用 close，任务继续保持 running
+    expect(dispose).not.toHaveBeenCalled()
+    const queryResBefore = await commands.get(QUERY_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main-web' } } },
+      rawInput: 'web-job-1',
+    } as never)
+    expect(JSON.parse((queryResBefore as any).text)).toEqual({ state: 'running' })
+
+    // 后台完成计算
+    resolvePending({ stopReason: 'completed', output: [{ type: 'text', text: '恢复出的答案' }] })
+    await new Promise(resolve => setTimeout(resolve, 10))
+
+    // query 可以正确取回结果
+    const queryResAfter = await commands.get(QUERY_COMMAND)!.handler({
+      agent: { session: { header: { id: 'main-web' } } },
+      rawInput: 'web-job-1',
+    } as never)
+    expect(JSON.parse((queryResAfter as any).text)).toEqual({
+      state: 'done',
+      result: { kind: 'success', text: '恢复出的答案' },
+    })
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
+
+  it('btw TUI 命令正常完成后，请求级 signal 的迟到 abort 不会清除已缓存的结果', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (c: CommandDefinition) => { commands.set(c.name, c); return () => { commands.delete(c.name) } } })
+
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true } }),
+      startActivation: async () => ({
+        result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'TUI 答案' }] }) as any,
+        dispose: async () => {},
+      }),
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    const fixedId = 'fixed-tui-job-id'
+    const originalRandomUUID = globalThis.crypto.randomUUID
+    globalThis.crypto.randomUUID = () => fixedId as any
+
+    try {
+      const controller = new AbortController()
+      const task = commands.get('btw')!.handler({
+        agent: { session: { header: { id: 'main-settle' } } },
+        rawInput: '终端命令',
+        signal: controller.signal,
+      } as never)
+
+      const outcome = await task
+      expect(outcome).toEqual({ kind: 'success', text: 'TUI 答案' })
+
+      // 宿主在命令完成后回收请求资源触发 signal abort
+      controller.abort(new Error('Request settled'))
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      // 验证迟到 abort 没有把 completed 缓存误删：使用 btw-query 查询原任务，状态仍为 done
+      const queryOutcome = await commands.get('btw-query')!.handler({
+        rawInput: fixedId,
+        agent: { session: { header: { id: 'main-settle' } } },
+      } as never)
+      expect(queryOutcome).toEqual({
+        kind: 'success',
+        text: JSON.stringify({ state: 'done', result: { kind: 'success', text: 'TUI 答案' } }),
+      })
+    } finally {
+      globalThis.crypto.randomUUID = originalRandomUUID
+    }
+
+    await plugin.dispose()
+    await ctx.fiber.dispose()
+  })
+
+  it('btw TUI 命令传入已 abort 的 signal 时直接取消且不产生多余 close 报错', async () => {
+    const { Context, ToolRuntime } = await load()
+    const ctx = new Context()
+    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
+    await setupTools(ctx, ToolRuntime)
+    const commands = new Map<string, CommandDefinition>()
+    ctx.provide('commands', { register: (c: CommandDefinition) => { commands.set(c.name, c); return () => { commands.delete(c.name) } } })
+
+    ctx.provide('subagents', {
+      getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true } }),
+      startActivation: async () => ({
+        result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'TUI 答案' }] }) as any,
+        dispose: async () => {},
+      }),
+    })
+
+    const plugin = ctx.plugin(apply)
+    await plugin.await()
+
+    const controller = new AbortController()
+    controller.abort(new Error('Pre-aborted'))
+
+    const outcome = await commands.get('btw')!.handler({
+      agent: { session: { header: { id: 'main-pre-abort' } } },
+      rawInput: '提前取消命令',
+      signal: controller.signal,
+    } as never)
+
+    expect(outcome.kind).toBe('error')
 
     await plugin.dispose()
     await ctx.fiber.dispose()

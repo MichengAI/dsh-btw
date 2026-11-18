@@ -11,7 +11,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { MessageCircle } from 'lucide-react'
-import { CLOSE_COMMAND, INTERNAL_COMMANDS, JOB_ROUTE_PATH, QUERY_COMMAND, RUN_COMMAND, type SideJobStatus, type SideResult } from '../shared'
+import { CLOSE_COMMAND, DEFAULT_TIMEOUT_MS, INTERNAL_COMMANDS, JOB_ROUTE_PATH, QUERY_COMMAND, RUN_COMMAND, type SideJobStatus, type SideResult } from '../shared'
 import { BubbleStore, SideRequestNotStartedError } from './bubbles'
 import { BubbleDock } from './BubbleView'
 import { QuoteStore } from './quotes'
@@ -142,11 +142,12 @@ export function apply(ctx: Context): void {
     const startTime = Date.now()
     let delay = 50
     let httpAvailable = typeof window !== 'undefined' && typeof window.fetch === 'function'
+    let commandQueryAttempts = 0
     let consecutiveFailures = 0
     let firstFailureTime = 0
     let lastError: Error | undefined
 
-    while (!signal.aborted && Date.now() - startTime < 1_800_000) {
+    while (!signal.aborted && Date.now() - startTime < DEFAULT_TIMEOUT_MS) {
       if (delay > 0) {
         await new Promise(resolve => setTimeout(resolve, delay))
       }
@@ -160,7 +161,7 @@ export function apply(ctx: Context): void {
       if (httpAvailable) {
         try {
           const resp = await window.fetch(`${JOB_ROUTE_PATH}?session=${encodeURIComponent(session)}&id=${encodeURIComponent(id)}`, { signal })
-          if (resp.status === 404) {
+          if (resp.status === 404 || resp.status === 401 || resp.status === 403) {
             httpAvailable = false
           } else if (resp.ok) {
             status = await resp.json() as SideJobStatus
@@ -174,8 +175,11 @@ export function apply(ctx: Context): void {
         }
       }
 
-      if (!status && !signal.aborted) {
+      // 内部命令通道在 HTTP 不可用时作为全量保底通道持续轮询；在 HTTP 可用时仅作为边缘冗余探测最多尝试 2 次，避免产生过多会话命令事件日志
+      const shouldQueryViaCommand = !status && !signal.aborted && (!httpAvailable || commandQueryAttempts < 2)
+      if (shouldQueryViaCommand) {
         try {
+          if (httpAvailable) commandQueryAttempts++
           const queryRes = await execute(session, `/${QUERY_COMMAND} ${id}`, signal)
           if (queryRes.kind === 'success' && queryRes.text) {
             status = JSON.parse(queryRes.text) as SideJobStatus
@@ -193,9 +197,12 @@ export function apply(ctx: Context): void {
       } else {
         consecutiveFailures++
         if (firstFailureTime === 0) firstFailureTime = Date.now()
-        // 所有通道连续失败超过 15 秒且连续失败达到 5 次以上，认定传输中断提前退出
-        if (consecutiveFailures >= 5 && Date.now() - firstFailureTime >= 15_000) {
-          throw lastError ?? new Error(t('error.backend'))
+        // 允许宿主网络重连/切换缓冲（宿主客户端重连退避可达 15~30s），持续失败超 60 秒且失败达 6 次以上认定传输中断
+        if (consecutiveFailures >= 6 && Date.now() - firstFailureTime >= 60_000) {
+          if (lastError && typeof console !== 'undefined' && console.debug) {
+            console.debug('[dsh-btw] side-ask polling failed due to network disruption:', lastError)
+          }
+          throw new Error(t('error.network'))
         }
       }
 
@@ -207,6 +214,9 @@ export function apply(ctx: Context): void {
       }
     }
     if (signal.aborted) throw new Error(t('error.cancelled'))
+    if (lastError && typeof console !== 'undefined' && console.debug) {
+      console.debug('[dsh-btw] side-ask polling timeout, last error:', lastError)
+    }
     throw new Error(t('error.timeout'))
   }
 

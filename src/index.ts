@@ -274,9 +274,13 @@ export function apply(ctx: Context, config?: unknown): void {
       const id = globalThis.crypto.randomUUID()
       const task = jobs.ask(sessionId, id, question, invocation.signal, invocation.agent)
       if (invocation.signal) {
-        invocation.signal.addEventListener('abort', () => {
+        const onAbort = () => {
           void jobs.close(sessionId, id)
-        }, { once: true })
+        }
+        invocation.signal.addEventListener('abort', onAbort, { once: true })
+        void task.finally(() => {
+          invocation.signal?.removeEventListener('abort', onAbort)
+        })
       }
       return task
     },
@@ -304,7 +308,7 @@ export function apply(ctx: Context, config?: unknown): void {
   }))
   ctx.effect(() => ctx.commands.register({
     name: QUERY_COMMAND,
-    description: translate()('command.internalRun'),
+    description: translate()('command.internalQuery'),
     recordInput: false,
     handler: invocation => {
       const id = invocation.rawInput.trim()
