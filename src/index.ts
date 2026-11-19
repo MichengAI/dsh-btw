@@ -59,7 +59,11 @@ export function apply(ctx: Context, config?: unknown): void {
       return () => {}
     }
     try {
-      const dispose = subagents.registerProvider(createContextInclusiveForkProvider())
+      const dispose = subagents.registerProvider(
+        createContextInclusiveForkProvider(error => {
+          ctx.logger?.warn?.(error)
+        }),
+      )
       sideAskProviderName = CONTEXT_INCLUSIVE_FORK_PROVIDER
       return () => {
         sideAskProviderName = 'fork'

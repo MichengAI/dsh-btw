@@ -128,9 +128,9 @@ describe('进行中轮次（In-flight step）旁问上下文支持', () => {
       expect(dumped).toContain('slow_tool')
       expect(dumped).toContain('"type":"tool-call"')
       // 必须使用 forked 语义收尾，严禁使用 interrupted 崩溃收尾。
-      // 注：'The history inherited by this branch' 是宿主 @deepseek-ai/dsh-session
+      // 注：'inherited by this branch' 是宿主 @deepseek-ai/dsh-session
       // 的 buildForkSeed 注入的官方合成结果，在 0.2.2-rc.1 ~ rc.5 全矩阵中稳定一致。
-      expect(dumped).toContain('The history inherited by this branch')
+      expect(dumped).toContain('inherited by this branch')
       expect(dumped).not.toContain('The tool call was interrupted after it was recorded')
 
       await plugin.dispose()
@@ -203,8 +203,8 @@ describe('进行中轮次（In-flight step）旁问上下文支持', () => {
     expect(await buildSideAskSeed(undefined)).toEqual([])
   })
 
-  it('当 open turn 的收尾构造触发异常时，优雅降级至最后一个已完成轮次', async () => {
-    // 构造一个包含异常事件结构的快照使得宿主收尾逻辑处理崩溃，测试其 try/catch 降级路径
+  it('当 open turn 的收尾构造触发异常时，优雅降级至最后一个已完成轮次并记录警告', async () => {
+    // 构造一个包含异常事件结构的快照使得宿主收尾逻辑处理崩溃，测试其 try/catch 降级与告警路径
     const brokenParent = {
       session: {
         snapshotEvents: () => [
@@ -218,9 +218,13 @@ describe('进行中轮次（In-flight step）旁问上下文支持', () => {
       },
     } as unknown as Agent
 
-    const seed = (await buildSideAskSeed(brokenParent)) as any[]
+    let loggedError: unknown = null
+    const seed = (await buildSideAskSeed(brokenParent, err => {
+      loggedError = err
+    })) as any[]
     // 降级截取到上一个 turn/end
     expect(seed).toHaveLength(3)
     expect(seed[2].type).toBe('turn/end')
+    expect(loggedError).toBeDefined()
   })
 })

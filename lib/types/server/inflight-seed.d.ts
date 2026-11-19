@@ -18,12 +18,12 @@ export declare const CONTEXT_INCLUSIVE_FORK_PROVIDER = "michengai-btw-fork";
  * @param parent - 触发旁问的父 Agent。
  * @returns 种子事件；父会话尚无任何内容时为空数组。
  */
-export declare function buildSideAskSeed(parent: Agent | undefined): Promise<readonly unknown[]>;
+export declare function buildSideAskSeed(parent: Agent | undefined, onFallback?: (error: unknown) => void): Promise<readonly unknown[]>;
 /**
  * 构造上下文完整版 fork provider：能力与官方 fork 完全一致，
  * 仅 `prepareContinuable` 的种子延伸到进行中的 step。
  */
-export declare function createContextInclusiveForkProvider(): {
+export declare function createContextInclusiveForkProvider(onFallback?: (error: unknown) => void): {
     name: string;
     capabilities: {
         agentOptions: boolean;

@@ -77,7 +77,10 @@ function hasOpenTurn(events: readonly SessionEventLike[]): boolean {
  * @param parent - 触发旁问的父 Agent。
  * @returns 种子事件；父会话尚无任何内容时为空数组。
  */
-export async function buildSideAskSeed(parent: Agent | undefined): Promise<readonly unknown[]> {
+export async function buildSideAskSeed(
+  parent: Agent | undefined,
+  onFallback?: (error: unknown) => void,
+): Promise<readonly unknown[]> {
   const session: any = (parent as any)?.session
   const events: readonly SessionEventLike[] | undefined = session?.snapshotEvents?.()
   if (!Array.isArray(events) || events.length === 0) return []
@@ -119,8 +122,9 @@ export async function buildSideAskSeed(parent: Agent | undefined): Promise<reado
     if (close !== undefined) {
       return events.concat(close(events))
     }
-  } catch {
-    // 宿主 fork 逻辑异常或收尾失败时安全降级至已完成轮次
+  } catch (error) {
+    // 宿主 fork 逻辑异常或收尾失败时记录日志并安全降级至已完成轮次
+    onFallback?.(error)
   }
 
   // 宿主不提供收尾能力或构造异常时保持官方行为，避免产出非法种子。
@@ -132,13 +136,13 @@ export async function buildSideAskSeed(parent: Agent | undefined): Promise<reado
  * 构造上下文完整版 fork provider：能力与官方 fork 完全一致，
  * 仅 `prepareContinuable` 的种子延伸到进行中的 step。
  */
-export function createContextInclusiveForkProvider() {
+export function createContextInclusiveForkProvider(onFallback?: (error: unknown) => void) {
   return {
     name: CONTEXT_INCLUSIVE_FORK_PROVIDER,
     capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true },
     inheritsParentContext: true,
     async prepareContinuable(request: { parent?: Agent }) {
-      const seed = await buildSideAskSeed(request.parent)
+      const seed = await buildSideAskSeed(request.parent, onFallback)
       return seed.length > 0 ? { seed } : {}
     },
   }
