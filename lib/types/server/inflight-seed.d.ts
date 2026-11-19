@@ -6,24 +6,6 @@ import type { Agent } from '@deepseek-ai/dsh-agent';
  * 一并纳入，并使用宿主官方 `buildForkSeed` 产出的 `forked` 语义收尾事件补齐成合法的会话前缀。
  */
 export declare const CONTEXT_INCLUSIVE_FORK_PROVIDER = "michengai-btw-fork";
-interface SessionEventLike {
-    type: string;
-    seq?: number;
-    time?: number;
-    data?: any;
-}
-type BuildForkSeedFn = (events: readonly SessionEventLike[], boundary: number) => readonly SessionEventLike[];
-type InterruptedClosersFn = (events: readonly SessionEventLike[]) => readonly SessionEventLike[];
-/**
- * 动态探测宿主是否导出 `buildForkSeed`。
- * 使用官方 fork 语义生成收尾事件（turn/end reason 为 `forked`，且模型可见文案明确告知父会话可能在 fork 点后完成该工具）。
- */
-export declare function loadBuildForkSeed(): Promise<BuildForkSeedFn | undefined>;
-/**
- * 动态探测宿主是否导出 `interruptedTurnClosers`。
- * 作为备选降级方案。
- */
-export declare function loadInterruptedTurnClosers(): Promise<InterruptedClosersFn | undefined>;
 /**
  * 计算一次旁问的 fork 种子事件。
  *
@@ -58,4 +40,3 @@ export declare function createContextInclusiveForkProvider(): {
         seed?: undefined;
     }>;
 };
-export {};

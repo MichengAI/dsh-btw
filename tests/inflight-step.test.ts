@@ -127,7 +127,9 @@ describe('进行中轮次（In-flight step）旁问上下文支持', () => {
       // 正在进行中的工具调用与思考都必须进入旁问上下文
       expect(dumped).toContain('slow_tool')
       expect(dumped).toContain('"type":"tool-call"')
-      // 必须使用 forked 语义收尾，严禁使用 interrupted 崩溃收尾
+      // 必须使用 forked 语义收尾，严禁使用 interrupted 崩溃收尾。
+      // 注：'The history inherited by this branch' 是宿主 @deepseek-ai/dsh-session
+      // 的 buildForkSeed 注入的官方合成结果，在 0.2.2-rc.1 ~ rc.5 全矩阵中稳定一致。
       expect(dumped).toContain('The history inherited by this branch')
       expect(dumped).not.toContain('The tool call was interrupted after it was recorded')
 
@@ -199,5 +201,26 @@ describe('进行中轮次（In-flight step）旁问上下文支持', () => {
     const emptyParent = { session: { snapshotEvents: () => [] } } as unknown as Agent
     expect(await buildSideAskSeed(emptyParent)).toEqual([])
     expect(await buildSideAskSeed(undefined)).toEqual([])
+  })
+
+  it('当 open turn 的收尾构造触发异常时，优雅降级至最后一个已完成轮次', async () => {
+    // 构造一个包含异常事件结构的快照使得宿主收尾逻辑处理崩溃，测试其 try/catch 降级路径
+    const brokenParent = {
+      session: {
+        snapshotEvents: () => [
+          { type: 'turn/start', seq: 0, time: 1000, data: { turn: 0 } },
+          { type: 'user/message', seq: 1, time: 1001, data: { turn: 0, message: { role: 'user', content: [] } } },
+          { type: 'turn/end', seq: 2, time: 1002, data: { turn: 0, reason: { kind: 'completed' } } },
+          // open turn
+          { type: 'turn/start', seq: 3, time: 1003, data: { turn: 1 } },
+          { type: 'assistant/message', seq: 4, time: 1004, data: null },
+        ],
+      },
+    } as unknown as Agent
+
+    const seed = (await buildSideAskSeed(brokenParent)) as any[]
+    // 降级截取到上一个 turn/end
+    expect(seed).toHaveLength(3)
+    expect(seed[2].type).toBe('turn/end')
   })
 })
