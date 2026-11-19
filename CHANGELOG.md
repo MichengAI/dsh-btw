@@ -2,7 +2,7 @@
 
 ## [1.4.2] - 2026-11-19
 
-- **Real-time context awareness during in-flight steps**: When asking a side question (`/btw`) while the main assistant is actively running a tool, the side ask now seamlessly captures the current turn's prompt, reasoning, and the active tool call instead of appearing amnesic (#28).
+- **Real-time context awareness during in-flight steps**: When asking a side question (`/btw`) while the main assistant is actively running a tool, the side ask now seamlessly captures the current turn's prompt and active tool call context instead of appearing amnesic (#28).
 
 ## [1.4.1] - 2026-11-19
 

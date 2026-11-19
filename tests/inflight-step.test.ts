@@ -127,12 +127,56 @@ describe('进行中轮次（In-flight step）旁问上下文支持', () => {
       // 正在进行中的工具调用与思考都必须进入旁问上下文
       expect(dumped).toContain('slow_tool')
       expect(dumped).toContain('"type":"tool-call"')
+      // 必须使用 forked 语义收尾，严禁使用 interrupted 崩溃收尾
+      expect(dumped).toContain('The history inherited by this branch')
+      expect(dumped).not.toContain('The tool call was interrupted after it was recorded')
 
       await plugin.dispose()
     } finally {
       await ctx.fiber.dispose()
     }
   }, 20_000)
+
+  it('正在进行中的 open turn 采用 forked 语义生成种子，且 seq 严格连续', async () => {
+    const mockParent = {
+      session: {
+        snapshotEvents: () => [
+          { type: 'turn/start', seq: 0, time: 1000, data: { turn: 0 } },
+          { type: 'step/start', seq: 1, time: 1001, data: { turn: 0, step: 0 } },
+          {
+            type: 'assistant/message',
+            seq: 2,
+            time: 1002,
+            data: {
+              turn: 0,
+              step: 0,
+              message: {
+                id: 'msg-call',
+                role: 'assistant',
+                content: [{ type: 'tool-call', id: 'call_live', name: 'read_file', arguments: '{}' }],
+              },
+            },
+          },
+          { type: 'tool/call', seq: 3, time: 1003, data: { callId: 'call_live' } },
+        ],
+      },
+    } as unknown as Agent
+
+    const seed = (await buildSideAskSeed(mockParent)) as any[]
+    expect(seed.length).toBeGreaterThan(4)
+    // 检查 seq 严格连续递增
+    seed.forEach((event, idx) => {
+      expect(event.seq).toBe(idx)
+      expect(event.type).not.toBe('session/end-seed')
+    })
+    const lastEvent = seed.at(-1)
+    expect(lastEvent.type).toBe('turn/end')
+    expect(lastEvent.data?.reason?.kind).toBe('forked')
+
+    const toolResultEvent = seed.find(e => e.type === 'tool/result')
+    expect(toolResultEvent).toBeDefined()
+    expect(toolResultEvent.data?.message?.content?.[0]?.text).toContain('The history inherited by this branch')
+  })
 
   it('父会话空闲（无开放 turn）时，种子截取只到最后一个 turn/end', async () => {
     const mockParent = {

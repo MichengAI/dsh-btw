@@ -63,9 +63,10 @@ export function apply(ctx: Context, config?: unknown): void {
       sideAskProviderName = CONTEXT_INCLUSIVE_FORK_PROVIDER
       return () => {
         sideAskProviderName = 'fork'
-        try { dispose?.() } catch {}
+        try { dispose?.() } catch (err) { ctx.logger?.warn?.(err) }
       }
-    } catch {
+    } catch (error) {
+      ctx.logger?.warn?.(error)
       return () => {}
     }
   })
