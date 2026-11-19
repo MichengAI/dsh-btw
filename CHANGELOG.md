@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.13] - 2026-11-19
+
+- **Side questions now include the in-flight step**: Fixes the case where, while the main conversation is still in the middle of an unfinished turn (e.g. a tool is still running or deep thinking is still streaming), a `/btw` side question only inherited "completed turns" and could not see the current thinking and tool calls. The fork seed now extends through the in-flight step: it includes the assistant reasoning and tool calls already produced, and appends synthetic "outcome unknown" results plus step/turn closers for tool calls without results, so the seed is a valid conversation prefix. When the main conversation is idle the behavior is identical to the official `fork`, leaving the prompt-cache prefix untouched.
+
 ## [1.3.12] - 2026-11-18
 
 - **Seamless recovery for long-running deep-thinking side questions**: Fixes an issue where front-end connection timeouts on requests taking longer than 5 minutes (300 seconds) would cause the side-ask bubble to error and discard the answer. When a long HTTP connection times out, the server continues executing and preserves the completed result, allowing the front end to automatically reconnect and retrieve the full answer seamlessly (#27).

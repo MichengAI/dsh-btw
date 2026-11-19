@@ -169,6 +169,32 @@ it('真实宿主下旁问回传 send_message 只放行直接父会话并防二�
       async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
         requests.push(options)
         const promptText = JSON.stringify(options.messages)
+        // 注意：修复「旁问纳入进行中 step」后，二级子代理旁问会继承 worker 的任务文本
+        // （包含 'worker 任务'），所以这里必须优先识别旁问请求，避免误入等待中的 worker 分支。
+        if (promptText.includes('二级子代理要求回传')) {
+          nestedBtwStep++
+          if (nestedBtwStep === 1) {
+            // 二级子代理里试图把答案发给 "lead"（祖父）必须被拒！
+            const c1 = ToolCallId('call-lead-escalate')
+            yield { type: 'block-start', index: 0, blockType: 'tool-call' }
+            yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: c1, name: 'send_message', arguments: JSON.stringify({ agent: 'lead', message: '越权祖父' }) } }
+            yield { type: 'finish', reason: { kind: 'tool-calls' } }
+            return
+          }
+          if (nestedBtwStep === 2) {
+            // 发给直接父代理 'worker' 必须放行！
+            const c2 = ToolCallId('call-worker-ok')
+            yield { type: 'block-start', index: 0, blockType: 'tool-call' }
+            yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: c2, name: 'send_message', arguments: JSON.stringify({ agent: 'worker', message: '直接父结论' }) } }
+            yield { type: 'finish', reason: { kind: 'tool-calls' } }
+            return
+          }
+          const text = '已回传给worker'
+          yield { type: 'block-start', index: 0, blockType: 'text' }
+          yield { type: 'block-end', index: 0, block: { type: 'text', text } }
+          yield { type: 'finish', reason: { kind: 'stop' } }
+          return
+        }
         if (promptText.includes('worker 任务')) {
           await Promise.race([
             workerGate,
@@ -202,30 +228,6 @@ it('真实宿主下旁问回传 send_message 只放行直接父会话并防二�
             return
           }
           const text = '已回传给根会话'
-          yield { type: 'block-start', index: 0, blockType: 'text' }
-          yield { type: 'block-end', index: 0, block: { type: 'text', text } }
-          yield { type: 'finish', reason: { kind: 'stop' } }
-          return
-        }
-        if (promptText.includes('二级子代理要求回传')) {
-          nestedBtwStep++
-          if (nestedBtwStep === 1) {
-            // 二级子代理里试图把答案发给 "lead"（祖父）必须被拒！
-            const c1 = ToolCallId('call-lead-escalate')
-            yield { type: 'block-start', index: 0, blockType: 'tool-call' }
-            yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: c1, name: 'send_message', arguments: JSON.stringify({ agent: 'lead', message: '越权祖父' }) } }
-            yield { type: 'finish', reason: { kind: 'tool-calls' } }
-            return
-          }
-          if (nestedBtwStep === 2) {
-            // 发给直接父代理 'worker' 必须放行！
-            const c2 = ToolCallId('call-worker-ok')
-            yield { type: 'block-start', index: 0, blockType: 'tool-call' }
-            yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: c2, name: 'send_message', arguments: JSON.stringify({ agent: 'worker', message: '直接父结论' }) } }
-            yield { type: 'finish', reason: { kind: 'tool-calls' } }
-            return
-          }
-          const text = '已回传给worker'
           yield { type: 'block-start', index: 0, blockType: 'text' }
           yield { type: 'block-end', index: 0, block: { type: 'text', text } }
           yield { type: 'finish', reason: { kind: 'stop' } }

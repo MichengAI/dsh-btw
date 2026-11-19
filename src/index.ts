@@ -16,6 +16,7 @@ import {
 import { readSettings } from './server/settings'
 import { translate } from './locales'
 import { hideInternalCommands } from './server/command-visibility'
+import { CONTEXT_INCLUSIVE_FORK_PROVIDER, createContextInclusiveForkProvider } from './server/inflight-seed'
 
 export const name = 'michengai-btw'
 export const inject = ['commands', 'subagents', 'tools']
@@ -44,6 +45,27 @@ export function apply(ctx: Context, config?: unknown): void {
     parentNameOfFromContext(ctx),
   )
   const releasePluginGuard = ctx.tools.guard(protection)
+  // 注册上下文完整版 fork provider：让旁问种子包含主会话当前尚未完成的 step。
+  // 旧宿主若不支持自定义 provider，或注册失败，则安全回退到官方 `fork`（只含已完成轮次）。
+  let sideAskProviderName = 'fork'
+  ctx.effect(() => {
+    const subagents = ctx.subagents as unknown as {
+      registerProvider?: (provider: unknown) => () => void
+      getProvider?: (providerName: string) => unknown
+    }
+    if (typeof subagents.registerProvider !== 'function') return () => {}
+    if (typeof subagents.getProvider === 'function' && subagents.getProvider(CONTEXT_INCLUSIVE_FORK_PROVIDER) !== undefined) {
+      sideAskProviderName = CONTEXT_INCLUSIVE_FORK_PROVIDER
+      return () => {}
+    }
+    try {
+      const dispose = subagents.registerProvider(createContextInclusiveForkProvider())
+      sideAskProviderName = CONTEXT_INCLUSIVE_FORK_PROVIDER
+      return dispose ?? (() => {})
+    } catch {
+      return () => {}
+    }
+  })
   const childGuards = new WeakMap<object, () => void | Promise<void>>()
   const arm = (agent: GuardedAgent) => {
     // child 级 guard 只是纵深防御：确定性拦截已由 ownId 预登记承担（agent.id === childId），
@@ -76,7 +98,9 @@ export function apply(ctx: Context, config?: unknown): void {
 
   const jobs = new SideJobs(async request => {
     // 0.2.1-rc.1 起只有 startActivation；0.2.0-rc.1 与 0.2.0-rc.2 仍只有 start。
-    const provider = ctx.subagents.getProvider('fork')
+    // 优先使用上下文完整版 provider（包含进行中的 step）；宿主不支持时回退官方 `fork`。
+    const providerName = sideAskProviderName
+    const provider = ctx.subagents.getProvider(providerName)
     const t = translate(request.locale)
     if (!provider?.inheritsParentContext) {
       throw new Error(t('error.provider'))
@@ -187,7 +211,7 @@ export function apply(ctx: Context, config?: unknown): void {
           activation = await subagents.startActivation(
             isFlatActivation
               ? {
-                provider: 'fork',
+                provider: providerName,
                 label,
                 childId,
                 parent: request.context as Agent,
@@ -199,7 +223,7 @@ export function apply(ctx: Context, config?: unknown): void {
                 delivery: 'caller',
               }
               : {
-                provider: 'fork',
+                provider: providerName,
                 label,
                 childId,
                 request: {
@@ -239,7 +263,7 @@ export function apply(ctx: Context, config?: unknown): void {
     }
     try {
       // 不传 persona / toolFilter，理由同上；工具由 AnswerOnlyGuard 在执行期拒绝。
-      const run = await subagents.start('fork', {
+      const run = await subagents.start(providerName, {
         parent: request.context as Agent,
         label,
         signal: request.signal,
