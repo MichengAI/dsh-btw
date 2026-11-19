@@ -108,13 +108,6 @@ export function apply(ctx: Context, config?: unknown): void {
           delivery: 'caller'
         }
       ) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; dispose(): Promise<void> }>
-      start?: (provider: string, options: {
-        parent: Agent
-        label: string
-        signal: AbortSignal
-        agentOptions?: { maxTokens?: number }
-        prompt: readonly { type: string; text: string }[]
-      }) => Promise<{ result: Promise<{ stopReason: string; output: readonly { type: string; text?: string }[] }>; localAgent?: object; dispose(): Promise<void> }>
     }
     // DSH 0.2.2-rc.2 扁平激活契约探测依据：
     // 官方在 0.2.2-rc.2 随 subagent 协作树与命名机制重构，将 startActivation 的 spec 改为扁平结构并移除了 spec.request。
@@ -168,93 +161,74 @@ export function apply(ctx: Context, config?: unknown): void {
     const maxTokens = typeof parentMaxTokens === 'number' && parentMaxTokens > 0
       ? Math.min(SIDE_MAX_OUTPUT_TOKENS, parentMaxTokens)
       : SIDE_MAX_OUTPUT_TOKENS
-    if (typeof subagents.startActivation === 'function') {
-      const childId = SessionId(globalThis.crypto.randomUUID())
-      const releaseChildId = protection.ownId(childId)
-      let childAgent: object | undefined
-      try {
-        const stopCreated = ctx.on('agent/created', ({ agent }) => {
-          if (agent.id !== childId) return undefined
-          childAgent = agent
-          // 只挂执行期拦截，不改系统提示、不过滤工具定义：请求前缀与主会话逐字节一致，
-          // 才能复用主会话的 prompt cache（与 Claude Code /btw 一致）。
-          arm(agent as GuardedAgent)
-          return undefined
-        })
-        let activation
-        try {
-          // 0.2.2-rc.2+（存在 rootOf）使用扁平 SubagentActivationSpec；0.2.1-rc.1 ~ 0.2.2-rc.1 仍包装在 request 内。
-          activation = await subagents.startActivation(
-            isFlatActivation
-              ? {
-                provider: 'fork',
-                label,
-                childId,
-                parent: request.context as Agent,
-                // 旁问只需一次性只读回答：收紧继承来的过大输出预算，避免长会话溢出；
-                // 同时取 min 避免反向抬高小预算路由。
-                agentOptions: { maxTokens },
-                prompt: [{ type: 'text', text: promptText }],
-                signal: request.signal,
-                delivery: 'caller',
-              }
-              : {
-                provider: 'fork',
-                label,
-                childId,
-                request: {
-                  parent: request.context as Agent,
-                  agentOptions: { maxTokens },
-                  prompt: [{ type: 'text', text: promptText }],
-                },
-                signal: request.signal,
-                delivery: 'caller',
-              },
-          )
-        } finally {
-          stopCreated()
-        }
-        // 结果落地即释放预登记 id：dispose 可能因 cleanup 超时未被调用，
-        // 释放放在两处（此处与 dispose）保证 ownedIds 不会只增不减；重复释放无副作用。
-        void activation.result.then(() => releaseChildId(), () => releaseChildId())
-        return {
-          result: activation.result,
-          dispose: async () => {
-            try { await activation.dispose() }
-            finally {
-              try { await releaseChild(childAgent) }
-              finally { releaseChildId(); releaseLabel(label) }
-            }
-          },
-        }
-      } catch (error) {
-        releaseChildId()
-        releaseLabel(label)
-        throw error
-      }
-    }
-    if (typeof subagents.start !== 'function') {
+    if (typeof subagents.startActivation !== 'function') {
       releaseLabel(label)
       throw new Error(t('error.provider'))
     }
+
+    const childId = SessionId(globalThis.crypto.randomUUID())
+    const releaseChildId = protection.ownId(childId)
+    let childAgent: object | undefined
     try {
-      // 不传 persona / toolFilter，理由同上；工具由 AnswerOnlyGuard 在执行期拒绝。
-      const run = await subagents.start('fork', {
-        parent: request.context as Agent,
-        label,
-        signal: request.signal,
-        agentOptions: { maxTokens },
-        prompt: [{ type: 'text', text: promptText }],
+      const stopCreated = ctx.on('agent/created', ({ agent }) => {
+        if (agent.id !== childId) return undefined
+        childAgent = agent
+        // 只挂执行期拦截，不改系统提示、不过滤工具定义：请求前缀与主会话逐字节一致，
+        // 才能复用主会话的 prompt cache（与 Claude Code /btw 一致）。
+        arm(agent as GuardedAgent)
+        return undefined
       })
-      if (run.localAgent) arm(run.localAgent)
+      let activation
+      try {
+        // 0.2.2-rc.2+（存在 rootOf）使用扁平 SubagentActivationSpec；0.2.1-rc.1 ~ 0.2.2-rc.1 仍包装在 request 内。
+        activation = await subagents.startActivation(
+          isFlatActivation
+            ? {
+              provider: 'fork',
+              label,
+              childId,
+              parent: request.context as Agent,
+              // 旁问只需一次性只读回答：收紧继承来的过大输出预算，避免长会话溢出；
+              // 同时取 min 避免反向抬高小预算路由。
+              agentOptions: { maxTokens },
+              prompt: [{ type: 'text', text: promptText }],
+              signal: request.signal,
+              delivery: 'caller',
+            }
+            : {
+              provider: 'fork',
+              label,
+              childId,
+              request: {
+                parent: request.context as Agent,
+                agentOptions: { maxTokens },
+                prompt: [{ type: 'text', text: promptText }],
+              },
+              signal: request.signal,
+              delivery: 'caller',
+            },
+        )
+      } finally {
+        stopCreated()
+      }
+      // 结果落地即释放预登记 id：dispose 可能因 cleanup 超时未被调用，
+      // 释放放在两处（此处与 dispose）保证 ownedIds 不会只增不减；重复释放无副作用。
+      void activation.result.then(() => releaseChildId(), () => releaseChildId())
       return {
-        result: run.result,
+        result: activation.result,
         dispose: async () => {
-          try { await run.dispose() }
-          finally { await releaseChild(run.localAgent); releaseLabel(label) }
+          try { await activation.dispose() }
+          finally {
+            try { await releaseChild(childAgent) }
+            finally { releaseChildId(); releaseLabel(label) }
+          }
         },
       }
-    } catch (error) { releaseLabel(label); throw error }
+    } catch (error) {
+      releaseChildId()
+      releaseLabel(label)
+      throw error
+    }
   }, DEFAULT_TIMEOUT_MS, {
     onError: error => ctx.logger.warn(error),
     onIdle: async () => { stopWatch(); await releasePluginGuard() },

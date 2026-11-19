@@ -2,7 +2,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createQuoteTriggerSource,
-  insertQuoteReference,
   parseQuoteRef,
   serializeQuoteRef,
   QUOTE_TRIGGER_SOURCE,
@@ -79,97 +78,5 @@ describe('trigger-source 结构化引用通道 (Issue #12)', () => {
     )
     expect(handled).toBe(true)
     div.remove()
-  })
-
-  it('insertQuoteReference 将引用作为原子 Mention 插入输入框，不拍平正文', () => {
-    let insertedRef: any = null
-    let insertedSpan: any = null
-    const mockInput = {
-      state: {
-        getSnapshot: () => ({
-          draft: '用户打的字',
-          draftRev: 3,
-          phase: 'plain' as const,
-        }),
-      },
-      setDraft: vi.fn(),
-      insertReference: vi.fn((ref, span) => {
-        insertedRef = ref
-        insertedSpan = span
-        return true
-      }),
-    }
-
-    const quote = {
-      id: 'q-10',
-      sessionId: 's1',
-      text: '局部引文',
-      role: 'assistant' as const,
-      turnIndex: 3,
-      createdAt: Date.now(),
-    }
-
-    const ok = insertQuoteReference(mockInput as any, quote)
-    expect(ok).toBe(true)
-    expect(mockInput.insertReference).toHaveBeenCalled()
-    expect(insertedRef.source).toBe(QUOTE_TRIGGER_SOURCE)
-    expect(insertedRef.label).toBe('局部引文')
-    expect(insertedRef.appearance).toBe('file')
-    expect(insertedSpan.start).toBe('用户打的字'.length)
-    expect(insertedSpan.draftRev).toBe(3)
-    // 关键断言：setDraft 绝不能被调用（正文不被引文拍平！）
-    expect(mockInput.setDraft).not.toHaveBeenCalled()
-  })
-
-  it('若 input.actions 提供了 captureInsertion，优先使用 captureInsertion 捕获的 detect span', () => {
-    let capturedSpan: any = null
-    const mockInputWithActions = {
-      state: {
-        getSnapshot: () => ({
-          draft: '已展开包含很长剪贴板投影的文本 1234567890',
-          draftRev: 5,
-          phase: 'plain' as const,
-        }),
-      },
-      actions: {
-        // 模拟宿主真实 detect 坐标：草稿里有一个 Mention 节点，实际光标位置是在 1
-        captureInsertion: vi.fn(() => ({ start: 1, end: 1, draftRev: 5 })),
-      },
-      insertReference: vi.fn((_ref, span) => {
-        capturedSpan = span
-        return true
-      }),
-    }
-
-    const quote = {
-      id: 'q-11',
-      sessionId: 's1',
-      text: '引文',
-      role: 'assistant' as const,
-      turnIndex: 1,
-      createdAt: Date.now(),
-    }
-
-    const ok = insertQuoteReference(mockInputWithActions as any, quote)
-    expect(ok).toBe(true)
-    expect(mockInputWithActions.actions.captureInsertion).toHaveBeenCalled()
-    expect(capturedSpan).toEqual({ start: 1, end: 1, draftRev: 5 })
-  })
-
-  it('若 input 不支持 insertReference，安全返回 false 并支持优雅降级', () => {
-    const mockLegacyInput = {
-      state: { getSnapshot: () => ({ draft: '草稿', phase: 'plain' }) },
-      setDraft: vi.fn(),
-    }
-    const quote = {
-      id: 'q-10',
-      sessionId: 's1',
-      text: '局部引文',
-      role: 'assistant' as const,
-      turnIndex: 3,
-      createdAt: Date.now(),
-    }
-    const ok = insertQuoteReference(mockLegacyInput as any, quote)
-    expect(ok).toBe(false)
   })
 })

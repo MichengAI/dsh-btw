@@ -96,82 +96,19 @@ export function createOfficialQuoteRule(isOfficialPresent?: () => boolean) {
  */
 export const officialQuoteRule = createOfficialQuoteRule()
 
-function OfficialQuoteIcon({ className }: { className?: string }): React.JSX.Element {
-  return (
-    <svg width={16} height={16} className={className} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <g transform="translate(6.8 2.4)">
-        <path d="M2.8125 0.583008L3.2002 1.16602C2.43912 1.6713 1.88491 2.41238 1.60547 3.25684H2.98926V6.70605H0V4.52148C1.96593e-05 2.70313 0.9109 1.00575 2.42578 0L2.8125 0.583008Z" fill="currentColor" />
-        <path d="M7.50781 0.583008L7.89551 1.16602C7.13443 1.6713 6.58022 2.41238 6.30078 3.25684H7.68457V6.70605H4.69531V4.52148C4.69533 2.70313 5.60621 1.00575 7.12109 0L7.50781 0.583008Z" fill="currentColor" />
-      </g>
-    </svg>
-  )
-}
-
 /**
- * 引用文本渲染组件：优先复用宿主原语 QuotePreview；老版本缺少时降级渲染为 1:1 官方链接样式并支持 HoverCard 预览全文。
+ * 引用文本渲染组件：优先复用宿主原语 QuotePreview；老版本缺少时降级渲染为纯文本节点。
  */
 export function OfficialQuotePreview({ text }: { text: string }): React.JSX.Element {
   const HostQuotePreview = (primitives as Record<string, unknown>).QuotePreview as React.ComponentType<{ text: string }> | undefined
   if (typeof HostQuotePreview === 'function') {
     return <HostQuotePreview text={text} />
   }
-
-  const textRef = React.useRef<HTMLSpanElement>(null)
-  const [isTruncated, setIsTruncated] = React.useState(false)
-
-  React.useLayoutEffect(() => {
-    const el = textRef.current
-    if (!el) return
-    const check = () => {
-      setIsTruncated(el.scrollWidth > el.clientWidth)
-    }
-    check()
-    if (typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(check)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [text])
-
-  const anchor = (
+  return (
     <span className="btw-official-quote-node" data-quote-preview="" title={text}>
-      <span className="btw-quote-marker" aria-hidden="true">
-        <OfficialQuoteIcon className="btw-quote-icon" />
-      </span>
-      <span ref={textRef} className="btw-quote-text" data-quote-preview-text="">
-        {text}
-      </span>
+      {text}
     </span>
   )
-
-  const HostHoverCard = (primitives as Record<string, unknown>).HoverCard as React.ComponentType<{
-    inline?: boolean
-    grouped?: boolean
-    fitContent?: boolean
-    openDelayMs?: number
-    disabled?: boolean
-    anchor: React.ReactNode
-    content: React.ReactNode
-  }> | undefined
-
-  if (typeof HostHoverCard === 'function') {
-    return (
-      <HostHoverCard
-        inline
-        grouped
-        fitContent
-        openDelayMs={0}
-        disabled={!isTruncated}
-        anchor={anchor}
-        content={
-          <span className="btw-quote-popover-text" data-quote-popover="" aria-hidden="true">
-            {text}
-          </span>
-        }
-      />
-    )
-  }
-
-  return anchor
 }
 
 /**

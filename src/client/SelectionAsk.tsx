@@ -4,8 +4,6 @@ import type { BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
 import { captureSelectionDetails, type CapturedSelectionDetails } from './selection'
-import { formatAsBlockquote } from './official-quote'
-import { insertQuoteReference } from './trigger-source'
 import { registerAskHandler, attachNativeAskButton } from './NativeBtwAsk'
 
 interface DraftInput {
@@ -13,7 +11,6 @@ interface DraftInput {
   setDraft(text: string): void
   focus?(): void
   notify?(level: 'info' | 'error', text: string): void
-  insertReference?(ref: unknown, span: unknown): boolean
   insertQuote?(text: string): boolean
 }
 
@@ -191,40 +188,9 @@ export function SelectionAsk(props: {
   const add = () => {
     if (!draft) return
     try {
-      let inserted = false
-
-      // 1. 新宿主：优先调用原生 insertQuote，呈现官方交互式链接 QuoteNode
       if (input && typeof input.insertQuote === 'function') {
-        try {
-          inserted = Boolean(input.insertQuote(draft.reference))
-        } catch {}
+        input.insertQuote(draft.reference)
       }
-
-      // 2. 老宿主：调用成熟的原子引用机制，在输入框插入带有链接样式的引用节点（正文展示、链接色高亮）
-      if (!inserted && input && typeof input.insertReference === 'function') {
-        try {
-          inserted = insertQuoteReference(
-            input as any,
-            {
-              id: `quote-${Date.now().toString(36)}`,
-              role: draft.details?.role ?? 'assistant',
-              turnIndex: draft.details?.turnIndex,
-              text: draft.reference,
-            }
-          )
-        } catch {}
-      }
-
-      // 3. 最终兜底：纯文本模式下直接追加 Markdown blockquote
-      if (!inserted && input) {
-        const quoteMarkdown = formatAsBlockquote(draft.reference)
-        const currentDraft = input.state.getSnapshot().draft ?? ''
-        const nextDraft = currentDraft.trim()
-          ? `${currentDraft.trimEnd()}\n\n${quoteMarkdown}\n\n`
-          : `${quoteMarkdown}\n\n`
-        input.setDraft(nextDraft)
-      }
-
       input?.focus?.()
       setDraft(undefined)
     } catch (issue) {

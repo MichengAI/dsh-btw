@@ -142,11 +142,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await setupTools(ctx, ToolRuntime)
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
-    const child = { session: { snapshotEvents: () => { throw new Error('生产路径不应再读 snapshotEvents') } } } as unknown as Agent
+    const child = { id: '', session: { snapshotEvents: () => { throw new Error('生产路径不应再读 snapshotEvents') } } } as unknown as Agent
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true } }),
-      start: async (_provider: string, options: { label: string }) => {
-        ctx.emit('session/event', child.session as never, { type: 'subagent/descriptor', data: { label: options.label } } as never)
+      startActivation: async (spec: any) => {
+        (child as any).id = spec.childId
+        ctx.emit('agent/created', { agent: child } as never)
         return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'ok' }] }), dispose: async () => {} }
       },
     })
@@ -219,64 +220,6 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     await ctx.fiber.dispose()
   })
 
-  it('subagents.start 不改系统提示与工具定义，并传递 agentOptions 预算限制', async () => {
-    const { Context, ToolRuntime, createScope } = await load()
-    const ctx = new Context()
-    ctx.provide('systemPrompt', { tools: () => () => {}, section: () => () => {}, getSectionOrder: () => 0 })
-    await setupTools(ctx, ToolRuntime)
-    const commands = new Map<string, CommandDefinition>()
-    ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
-
-    const child = { session: {} } as Agent & { ctx?: ContextType }
-    let scope: { ctx: ContextType; dispose(): Promise<void> }
-    const dispose = vi.fn(async () => {})
-    const startLegacy = vi.fn(async (_provider: string, options: {
-      parent: Agent
-      label: string
-      agentOptions?: { maxTokens?: number }
-      toolFilter?: unknown
-      persona?: unknown
-      prompt: readonly { type: string; text: string }[]
-    }) => {
-      scope = createScope(ctx, child)
-      child.ctx = scope.ctx
-      // persona / toolFilter 会改写请求前缀，使旁问无法复用主会话的 prompt cache
-      expect(options.toolFilter).toBeUndefined()
-      expect(options.persona).toBeUndefined()
-      expect(options.agentOptions).toEqual({ maxTokens: 4096 })
-      return { result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: 'start 回退答案' }] }), localAgent: child, dispose }
-    })
-
-    ctx.provide('subagents', {
-      getProvider: () => ({ inheritsParentContext: true, capabilities: { toolFilter: true, persona: true, agentOptions: true } }),
-      start: startLegacy,
-    })
-
-    const plugin = ctx.plugin(apply)
-    await plugin.await()
-
-    const outcome = await commands.get(RUN_COMMAND)!.handler({
-      agent: { session: { header: { id: 'main' } }, options: { maxTokens: 4096 } },
-      rawInput: JSON.stringify({ id: 'legacy-req', question: '旧版问题' }),
-      signal: new AbortController().signal,
-    } as never)
-
-    expect(outcome).toEqual({ kind: 'success', text: 'start 回退答案' })
-    expect(startLegacy).toHaveBeenCalledOnce()
-    expect(dispose).toHaveBeenCalledOnce() // 正常完成在 SideJobs execute 结束时调用 cleanup 释放
-
-    // start 回退返回的 localAgent 也要纳入工具拦截
-    const currentScope = scope!
-    currentScope.ctx.tools.register({ name: 'legacy_tool', description: '测试工具', parameters: { type: 'object', properties: {} }, output: { schema: { type: 'string' }, render: v => [{ type: 'text', text: String(v) }] }, execute: vi.fn() })
-    const blocked = await (ctx.tools as any).execute({ name: 'legacy_tool', callId: 'test-call' as never, arguments: {}, agent: child, signal: new AbortController().signal })
-    expect(blocked.isError).toBe(true)
-    expect(JSON.stringify(blocked.content)).toContain('BTW 仅允许文字回答，禁止执行任何工具。')
-
-    await plugin.dispose()
-    if (scope!) await scope.dispose()
-    await ctx.fiber.dispose()
-  })
-
   it('插件卸载期间保护持续到子代理清理完成', async () => {
     const { Context } = await load()
     const ctx = new Context()
@@ -288,7 +231,7 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      start: async () => ({ result: new Promise(() => {}), dispose: () => { cleanupStarted = true; return new Promise<void>(resolve => { finishCleanup = resolve }) } }),
+      startActivation: async () => ({ result: new Promise(() => {}), dispose: () => { cleanupStarted = true; return new Promise<void>(resolve => { finishCleanup = resolve }) } }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()
@@ -314,14 +257,16 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     let finishCleanup!: () => void
     const cleanup = new Promise<void>(resolve => { finishCleanup = resolve })
     const dispose = vi.fn(() => cleanup)
-    const child = { session: {} } as Agent & { ctx?: ContextType }
+    const child = { id: '', session: {} } as Agent & { ctx?: ContextType }
     let scope: { ctx: ContextType; dispose(): Promise<void> }
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      start: async () => {
+      startActivation: async (spec: any) => {
+        (child as any).id = spec.childId
         scope = createScope(ctx, child)
         child.ctx = scope.ctx
-        return { result: new Promise(() => {}), localAgent: child, dispose }
+        ctx.emit('agent/created', { agent: child } as never)
+        return { result: new Promise(() => {}), dispose }
       },
     })
     const plugin = ctx.plugin(apply)
@@ -356,12 +301,12 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const ctx = new Context()
     const commands = new Map<string, CommandDefinition>()
     let protectedNow = false
-    let finishStart!: (run: { result: Promise<unknown>; localAgent?: object; dispose: () => Promise<void> }) => void
+    let finishStart!: (run: { result: Promise<unknown>; dispose: () => Promise<void> }) => void
     ctx.provide('tools', { guard: () => ctx.effect(() => { protectedNow = true; return () => { protectedNow = false } }) })
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', {
       getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-      start: () => new Promise(resolve => { finishStart = resolve as typeof finishStart }),
+      startActivation: () => new Promise(resolve => { finishStart = resolve as typeof finishStart }),
     })
     const plugin = ctx.plugin(apply)
     await plugin.await()

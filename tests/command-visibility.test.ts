@@ -14,16 +14,11 @@ const runtimeRoots = [...new Set([runtimeRoot, ...(process.env.DSH_DESKTOP_RUNTI
 it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正常：%s', async root => {
   const version = JSON.parse(readFileSync(join(root, '@deepseek-ai', 'dsh-commands', 'package.json'), 'utf8')).version as string
   const attachmentFields: Record<string, 'submittedAttachments'> = {
-    '0.2.0-rc.1': 'submittedAttachments',
-    '0.2.0-rc.2': 'submittedAttachments',
-    '0.2.1-rc.1': 'submittedAttachments',
-    '0.2.1-rc.2': 'submittedAttachments',
-    '0.2.1-rc.3': 'submittedAttachments',
-    '0.2.1-rc.4': 'submittedAttachments',
-    '0.2.1-rc.5': 'submittedAttachments',
     '0.2.2-rc.1': 'submittedAttachments',
     '0.2.2-rc.2': 'submittedAttachments',
     '0.2.2-rc.3': 'submittedAttachments',
+    '0.2.2-rc.4': 'submittedAttachments',
+    '0.2.2-rc.5': 'submittedAttachments',
   }
   const attachmentField = Object.hasOwn(attachmentFields, version) ? attachmentFields[version] : undefined
   if (!attachmentField) throw new Error(`未验证的 DSH RPC 附件协议版本：${version}；请先确认字段并更新测试映射。`)
@@ -42,7 +37,7 @@ it.each(runtimeRoots)('真实 RPC 目录隐藏内部命令且执行与卸载正�
   ctx.provide('tools', { guard: () => () => {} })
   ctx.provide('subagents', {
     getProvider: () => ({ inheritsParentContext: true, capabilities: { agentOptions: true, agentPreset: false, outputSchema: true, depthLimit: true } }),
-    start: async () => ({ result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '回答' }] }), dispose: async () => {} }),
+    startActivation: async () => ({ result: Promise.resolve({ stopReason: 'completed', output: [{ type: 'text', text: '回答' }] }), dispose: async () => {} }),
   })
   const agent = { session: { header: { id: 'main' }, append: vi.fn() } } as unknown as Agent
   registry.lookups.register('agent', {

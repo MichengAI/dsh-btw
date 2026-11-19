@@ -119,54 +119,10 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
       // 确认输入框上方绝对没有渲染任何 QuoteDock 胶囊
       expect(document.querySelector('.btw-quote-dock, .btw-codex-pill')).toBeNull()
     })
-
-    it('老宿主（insertReference 链接节点）：以正文为标签插入原生链接节点，输入框上方干净无悬浮条', async () => {
-      let insertedRef: any = null
-      const mockLegacyInput = {
-        state: { getSnapshot: () => ({ draft: '既有用户草稿', phase: 'plain' }) },
-        setDraft: vi.fn(),
-        insertReference: vi.fn((ref, _span) => {
-          insertedRef = ref
-          return true
-        }),
-      }
-
-      await act(async () => {
-        root.render(
-          React.createElement(SelectionAsk, {
-            store,
-            sessionId: 'legacy-sess',
-            t: translate('zh'),
-            input: mockLegacyInput,
-          })
-        )
-      })
-
-      const p = scope.querySelector('p')!
-      const range = document.createRange()
-      range.selectNodeContents(p)
-      window.getSelection()!.removeAllRanges()
-      window.getSelection()!.addRange(range)
-
-      await act(async () => {
-        p.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: 100, clientY: 100 }))
-      })
-
-      const quoteBtn = Array.from(mount.querySelectorAll('button')).find(b => b.textContent?.trim() === '引用文本')!
-      await act(async () => {
-        quoteBtn.click()
-      })
-
-      expect(mockLegacyInput.insertReference).toHaveBeenCalled()
-      // 核心断言：label 直接为引用的正文，呈现链接卡片外观
-      expect(insertedRef.label).toContain('待选取的正文片段')
-      // 确认输入框上方绝对没有渲染任何 QuoteDock 胶囊
-      expect(document.querySelector('.btw-quote-dock, .btw-codex-pill')).toBeNull()
-    })
   })
 
-  describe('3. 消息气泡引文呈现与 HoverCard 全文预览一致性', () => {
-    it('气泡内多条引用统一渲染为单行截断引文列表（带 “ 图标，无多余抽屉大弹窗）', async () => {
+  describe('3. 消息气泡引文呈现一致性', () => {
+    it('气泡内多条引用统一渲染为单行截断引文列表（无多余抽屉大弹窗）', async () => {
       const fullText = `# 划选引用与上下文 (Selected Context)
 > [来自助手 · 第 2 轮]:
 > 第一段重要代码或发现
@@ -193,11 +149,7 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
       expect(quoteNodes[0]?.textContent).toContain('第一段重要代码或发现')
       expect(quoteNodes[1]?.textContent).toContain('第二段长引文内容')
 
-      // 核心断言 2：每行均带有双引号图标
-      const icons = bubbleContainer.querySelectorAll('.btw-quote-marker svg')
-      expect(icons).toHaveLength(2)
-
-      // 核心断言 3：旧版大弹窗与折叠胶囊已被彻底清除
+      // 核心断言 2：旧版大弹窗与折叠胶囊已被彻底清除
       expect(document.querySelector('.btw-user-bubble-popover, .btw-codex-popover')).toBeNull()
 
       await act(async () => {
@@ -206,7 +158,7 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
       bubbleContainer.remove()
     })
 
-    it('单条长引文在 OfficialQuotePreview 中能自适应截断并提供完整 HoverCard 全文', async () => {
+    it('单条长引文在 OfficialQuotePreview 中能正确渲染正文', async () => {
       const longText = '这是一段非常长非常长的选区引文正文'.repeat(10)
       const testContainer = document.createElement('div')
       document.body.append(testContainer)
@@ -218,8 +170,7 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
 
       const node = testContainer.querySelector('[data-quote-preview]')
       expect(node).not.toBeNull()
-      // 验证包含 data-quote-preview-text
-      expect(node?.querySelector('[data-quote-preview-text]')?.textContent).toBe(longText)
+      expect(node?.textContent).toBe(longText)
 
       await act(async () => {
         tRoot.unmount()

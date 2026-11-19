@@ -151,9 +151,9 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
     })
 
     expect(container.textContent).toContain('这是引用的正文')
-    const quoteNode = container.querySelector('[data-quote-preview]')
+    const quoteNode = container.querySelector('.btw-official-quote-node')
     expect(quoteNode).not.toBeNull()
-    expect(quoteNode?.querySelector('[data-quote-preview-text]')?.textContent).toBe('这是引用的正文')
+    expect(quoteNode?.textContent).toBe('这是引用的正文')
     root.unmount()
     container.remove()
   })

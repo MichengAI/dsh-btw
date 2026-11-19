@@ -208,10 +208,12 @@ it('选区坐标更新保留已打开的 popover，卸载主动关闭', async ()
 
 it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）', async () => {
   const focus = vi.fn()
+  const insertQuote = vi.fn((_text: string) => true)
   const mockInput = {
     state: { getSnapshot: () => ({ draft: '', phase: 'plain' }) },
     setDraft: vi.fn(),
     focus,
+    insertQuote,
   }
   await act(async () => root.render(React.createElement(React.Fragment, null,
     React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
@@ -219,7 +221,7 @@ it('划选添加引用成功后自动聚焦宿主输入框（Issue #18 回归）
 
   await open()
   await click('引用文本')
-  expect(mockInput.setDraft).toHaveBeenCalledWith('> 引用中的原始正文\n\n')
+  expect(insertQuote).toHaveBeenCalledWith('引用中的原始正文')
   expect(focus).toHaveBeenCalledTimes(1)
 
   // 连续引用第二条同样保持聚焦输入框
@@ -250,50 +252,4 @@ it('当宿主提供 insertQuote 时，点击「引用文本」优先调用原生
   expect(focus).toHaveBeenCalledTimes(1)
 })
 
-it('在老版本宿主（无 insertQuote 但提供 insertReference）时，点击「引用文本」调用 insertQuoteReference 插入正文链接节点', async () => {
-  let insertedRef: any = null
-  let insertedSpan: any = null
-  const focus = vi.fn()
-  const mockInput = {
-    state: { getSnapshot: () => ({ draft: '既有用户草稿', draftRev: 1, phase: 'plain' }) },
-    setDraft: vi.fn(),
-    focus,
-    insertReference: vi.fn((ref, span) => {
-      insertedRef = ref
-      insertedSpan = span
-      return true
-    }),
-  }
-  await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
-    React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
-
-  await open()
-  await click('引用文本')
-
-  expect(mockInput.insertReference).toHaveBeenCalled()
-  expect(insertedRef.source).toBe('dsh-btw-quote')
-  expect(insertedRef.label).toBe('引用中的原始正文')
-  expect(insertedSpan.start).toBe('既有用户草稿'.length)
-  expect(mockInput.setDraft).not.toHaveBeenCalled()
-  expect(focus).toHaveBeenCalledTimes(1)
-})
-
-it('在纯文本输入框环境时，点击「引用文本」以 Markdown blockquote 追加带入草稿', async () => {
-  const focus = vi.fn()
-  const mockInput = {
-    state: { getSnapshot: () => ({ draft: '既有用户草稿', draftRev: 1, phase: 'plain' }) },
-    setDraft: vi.fn(),
-    focus,
-  }
-  await act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
-    React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
-
-  await open()
-  await click('引用文本')
-
-  expect(mockInput.setDraft).toHaveBeenCalledWith('既有用户草稿\n\n> 引用中的原始正文\n\n')
-  expect(focus).toHaveBeenCalledTimes(1)
-})
 
