@@ -30,7 +30,7 @@ for (const version of versions) {
       .filter(([name]) => !name.startsWith('@deepseek-ai/dsh-'))
       .map(([name, range]) => [name, lock.packages[`node_modules/${name}`]?.version ?? range]))
     // 内部辅助包由各版依赖图决定，不在这里钉死。
-    const internal = new Set(['api-session-controller', 'subagent-in-process-driver', 'subagent-spawn-in-process', 'session-persistence', 'util-time', 'ptc-runtime'].map(name => `@deepseek-ai/dsh-${name}`))
+    const internal = new Set(['error', 'api-session-controller', 'subagent-in-process-driver', 'subagent-spawn-in-process', 'session-persistence', 'util-time', 'ptc-runtime'].map(name => `@deepseek-ai/dsh-${name}`))
     let pending = [...new Set([
       ...Object.keys(pkg.devDependencies).filter(name => name.startsWith('@deepseek-ai/dsh-') && !internal.has(name)),
       ...pkg.dsh.client.inject,

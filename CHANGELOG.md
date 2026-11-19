@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.4.0] - 2026-11-19
+## [1.4.1] - 2026-11-19
 
 - **Host compatibility aligned with modern DeepSeek Harness releases**: Targets DeepSeek Harness `0.2.2-rc.1` and later, fully verified across `0.2.2-rc.1` through `0.2.2-rc.5`. Users on earlier `0.2.0` and `0.2.1` hosts should remain on version `1.3.12`.
 - **More resilient text-selection quoting**: Seamlessly leverages native host interactive quote primitives; when quoting while a response is submitting or rich-text quotes are unavailable, automatically transcribes the selection into standard quote formatting so references are never silently lost.
