@@ -4,6 +4,7 @@ import type { BubbleStore } from './bubbles'
 import type { BtwTranslate } from '../locales'
 import { MAX_QUESTION_LENGTH, MAX_REFERENCE_LENGTH } from '../shared'
 import { captureSelectionDetails, type CapturedSelectionDetails } from './selection'
+import { formatAsBlockquote } from './official-quote'
 import { registerAskHandler, attachNativeAskButton } from './NativeBtwAsk'
 
 interface DraftInput {
@@ -188,9 +189,26 @@ export function SelectionAsk(props: {
   const add = () => {
     if (!draft) return
     try {
+      let inserted = false
+
+      // 1. 新宿主：优先调用原生 insertQuote，呈现官方交互式链接 QuoteNode
       if (input && typeof input.insertQuote === 'function') {
-        input.insertQuote(draft.reference)
+        try {
+          inserted = Boolean(input.insertQuote(draft.reference))
+        } catch {}
       }
+
+      // 2. 兜底保护：当宿主拒绝插入（如正处于提交中、非 plain 阶段或禁用引用）或缺少 insertQuote 时，
+      //    追加 Markdown blockquote 格式至草稿，确保用户引用绝不静默丢失
+      if (!inserted && input) {
+        const quoteMarkdown = formatAsBlockquote(draft.reference)
+        const currentDraft = input.state?.getSnapshot?.()?.draft ?? ''
+        const nextDraft = currentDraft.trim()
+          ? `${currentDraft.trimEnd()}\n\n${quoteMarkdown}\n\n`
+          : `${quoteMarkdown}\n\n`
+        input.setDraft?.(nextDraft)
+      }
+
       input?.focus?.()
       setDraft(undefined)
     } catch (issue) {

@@ -8,7 +8,7 @@ import { QuoteUserTextNode, quoteUserTextRule } from '../src/client/user-quote-c
 import { BubbleStore } from '../src/client/bubbles'
 import { translate } from '../src/locales'
 
-describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验证', () => {
+describe('选区、输入框引用与气泡引文端到端体验一致性验证', () => {
   let scope: HTMLDivElement
   let mount: HTMLDivElement
   let root: Root
@@ -50,20 +50,20 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
   })
 
   describe('1. 选区浮层交互与视觉顺序一致性', () => {
-    it('老宿主环境（自建选区浮层）：稳定呈现 [引用文本] [旁问]，绝无倒序与挤压', async () => {
-      const mockLegacyInput = {
+    it('选区浮层：稳定呈现 [引用文本] [旁问]，绝无倒序与挤压', async () => {
+      const mockInput = {
         state: { getSnapshot: () => ({ draft: '', phase: 'plain' }) },
         setDraft: vi.fn(),
-        insertReference: vi.fn(() => true),
+        insertQuote: vi.fn(() => true),
       }
 
       await act(async () => {
         root.render(
           React.createElement(SelectionAsk, {
             store,
-            sessionId: 'legacy-sess',
+            sessionId: 'sess-a',
             t: translate('zh'),
-            input: mockLegacyInput,
+            input: mockInput,
           })
         )
       })
@@ -89,7 +89,7 @@ describe('双版本（新宿主 vs 老宿主）全链路 1:1 体验一致性验�
   })
 
   describe('2. 输入框引用带入一致性（无上方悬浮胶囊横条，呈现正文链接）', () => {
-    it('新宿主（原生 insertQuote）：调用原生接口，输入框上方干净无悬浮条', async () => {
+    it('输入框原生 insertQuote：调用原生接口，输入框上方干净无悬浮条', async () => {
       const insertQuote = vi.fn((_text: string) => true)
       const mockNewInput = {
         state: { getSnapshot: () => ({ draft: '', phase: 'plain' }) },

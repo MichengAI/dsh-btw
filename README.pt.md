@@ -28,7 +28,7 @@
 - **Não interrompe a tarefa principal**: as perguntas secundárias são respondidas à parte e não afetam o diálogo principal por padrão.
 - **Envio sob solicitação**: se desejar registrar a resposta no chat principal, peça explicitamente na pergunta «envie a resposta para o chat principal» para que `send_message` transmita uma resposta completa e autossuficiente. Nenhum envio é feito sem solicitação direta.
 - **Cancele a qualquer momento**: fechar o balão enquanto a resposta está sendo gerada cancela imediatamente a pergunta secundária.
-- **Internacionalização completa e temas**: acompanha os temas claro e escuro do DSH. A partir do host `0.2.2-rc.1`, há suporte nativo para todos os 8 idiomas oficiais (português, inglês, chinês, japonês, espanhol, francês, alemão e russo); em versões anteriores `0.2.0`〜`0.2.1`, o sistema recorre com segurança ao chinês e ao inglês.
+- **Internacionalização completa e temas**: acompanha os temas claro e escuro do DSH. Oferece suporte nativo a todos os 8 idiomas oficiais (português, inglês, chinês, japonês, espanhol, francês, alemão, russo).
 
 ## Capturas de tela
 
@@ -83,9 +83,9 @@ Para obter um ambiente de trabalho completo em desktop, baixe o [DSH Codex Deskt
 ## Pré-requisitos
 
 - DeepSeek Harness instalado.
-- Intervalo de suporte do host: linha completa DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), verificado em `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`. Atualizações dentro da mesma geração não requerem aguardar novas versões do plugin.
-- Suporte a idiomas: todos os 8 idiomas integrados são selecionáveis nativamente a partir do DeepSeek Harness `0.2.2-rc.1`. Em hosts `0.2.0`〜`0.2.1`, dicionários registrados adicionais permanecem inativos e a interface recorre de forma segura ao chinês e inglês.
-- Hosts anteriores a `0.2.0-rc.1` não são mais suportados. Modificações destrutivas da geração `0.3.0` serão interceptadas pela barreira de versão. Usuários da versão `0.1.x` devem instalar a versão `0.1.24`.
+- Intervalo de suporte do host: DeepSeek Harness a partir de `0.2.2-rc.1` (`>=0.2.2-rc.1 <0.3.0-0`), verificado em `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`. Atualizações dentro da mesma geração não requerem aguardar novas versões do plugin.
+- Suporte a idiomas: todos os 8 idiomas integrados (português, inglês, chinês, japonês, espanhol, francês, alemão, russo) são selecionáveis nativamente.
+- Hosts anteriores a `0.2.2-rc.1` (incluindo as séries 0.2.0 e 0.2.1) não são mais suportados. Versões não suportadas e modificações destrutivas da geração `0.3.0` serão interceptadas pela barreira de versão. Usuários de hosts anteriores devem permanecer em `1.3.12`; usuários de `0.1.x` devem instalar `0.1.24`.
 - Node.js 22+, comando `dsh` funcional no terminal.
 
 ## Instalação
@@ -113,7 +113,7 @@ dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://regist
 
 Instale ou atualize após finalizar as tarefas atuais; aplicativos de desktop podem ser reiniciados automaticamente. Se a alteração não surtir efeito, use a opção de recarregar do aplicativo desktop ou reinicie o serviço `dsh web`. Apenas atualizar a aba do navegador não é suficiente.
 
-Em hosts anteriores a `0.2.0` e em `0.2.1` alpha, a instalação de `@latest` será rejeitada pela barreira de versão e o plugin não será executado. Para `0.1.x`, instale `0.1.24`. A rejeição não remove configurações existentes nem registros da conversa principal.
+Em hosts anteriores a `0.2.2-rc.1` (incluindo as séries 0.2.0 e 0.2.1), a instalação de `@latest` será rejeitada pela barreira de versão e o plugin não será executado. Para hosts 0.2.x anteriores permaneça em `1.3.12`; para `0.1.x`, instale `0.1.24`. A rejeição não remove configurações existentes nem registros da conversa principal.
 
 ## Uso
 

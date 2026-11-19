@@ -86,3 +86,11 @@ export function ReferenceChip({
     </button>
   )
 }
+
+export function QuotePreview({ text }: { text: string }): ReactElement {
+  return (
+    <span className="dsh-quote-preview-mock" data-quote-preview="" title={text}>
+      {text}
+    </span>
+  )
+}

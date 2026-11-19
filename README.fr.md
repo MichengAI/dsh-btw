@@ -28,7 +28,7 @@
 - **N'interrompt pas la tâche principale** : les questions secondaires sont traitées à part et ne sont pas ajoutées à la conversation principale par défaut.
 - **Renvoi sur demande** : demandez explicitement dans votre question de « renvoyer la réponse à la conversation principale » pour que `send_message` transmette une réponse autonome à la session principale. Aucun renvoi n'est effectué sans demande expresse.
 - **Annulation à tout moment** : fermer la bulle pendant la génération annule immédiatement la question secondaire.
-- **Internationalisation complète & thèmes** : suit le thème clair/sombre de DSH. À partir de la version d'hôte 0.2.2-rc.1, les 8 langues officielles (français, anglais, chinois, japonais, espagnol, allemand, russe, portugais) sont prises en charge nativement ; les hôtes antérieurs 0.2.0〜0.2.1 basculent de manière sécurisée en chinois et anglais.
+- **Internationalisation complète & thèmes** : suit le thème clair/sombre de DSH. Les 8 langues officielles (français, anglais, chinois, japonais, espagnol, allemand, russe, portugais) sont prises en charge nativement.
 
 ## Aperçu de l'interface
 
@@ -83,9 +83,9 @@ Pour utiliser l'espace de travail sur bureau, téléchargez [DSH Codex Desktop](
 ## Prérequis
 
 - DeepSeek Harness installé.
-- Compatibilité de l'hôte : série complète DeepSeek Harness `0.2.x` (`>=0.2.0-rc.1 <0.3.0-0`), validée sur `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`. Les mises à niveau de la même génération ne nécessitent pas de nouvelles versions du plugin.
-- Support linguistique : l'ensemble des 8 langues intégrées est nativement sélectionnable à partir de DeepSeek Harness `0.2.2-rc.1`. Sur les hôtes `0.2.0`〜`0.2.1`, les dictionnaires supplémentaires enregistrés restent dormants et l'interface bascule de façon sécurisée en chinois et anglais.
-- Les hôtes antérieurs à `0.2.0-rc.1` ne sont plus pris en charge. Les modifications destructives de la génération `0.3.0` sont interceptées par la barrière de version. Les utilisateurs de versions `0.1.x` doivent installer la version `0.1.24`.
+- Compatibilité de l'hôte : DeepSeek Harness `0.2.2-rc.1` et ultérieur (`>=0.2.2-rc.1 <0.3.0-0`), validée sur `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`. Les mises à niveau de la même génération ne nécessitent pas de nouvelles versions du plugin.
+- Support linguistique : l'ensemble des 8 langues intégrées (français, anglais, chinois, japonais, espagnol, allemand, russe, portugais) est nativement sélectionnable.
+- Les hôtes antérieurs à `0.2.2-rc.1` (y compris les séries 0.2.0 et 0.2.1) ne sont plus pris en charge. Les hôtes incompatibles et les modifications destructives de la génération `0.3.0` sont interceptés par la barrière de version. Les utilisateurs d'hôtes antérieurs doivent rester sur `1.3.12` ; pour `0.1.x`, installez `0.1.24`.
 - Node.js 22+, avec la commande `dsh` disponible dans le terminal.
 
 ## Installation
@@ -113,7 +113,7 @@ dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://regist
 
 Installez ou mettez à jour après avoir terminé les tâches en cours. L'application de bureau peut se recharger automatiquement. Si les modifications ne s'appliquent pas, utilisez la fonction « Recharger » de l'application ou redémarrez le service `dsh web`. Actualiser le navigateur ne suffit pas.
 
-Sur les hôtes antérieurs à `0.2.0` et sur `0.2.1` alpha, l'installation de `@latest` est rejetée par la barrière de version et le plugin ne s'exécutera pas. Pour `0.1.x`, installez `0.1.24`. Ce rejet ne supprime ni les configurations existantes ni l'historique des conversations.
+Sur les hôtes antérieurs à `0.2.2-rc.1` (y compris les séries 0.2.0 et 0.2.1), l'installation de `@latest` est rejetée par la barrière de version et le plugin ne s'exécutera pas. Pour les hôtes 0.2.x antérieurs, restez sur `1.3.12` ; pour `0.1.x`, installez `0.1.24`. Ce rejet ne supprime ni les configurations existantes ni l'historique des conversations.
 
 ## Utilisation
 

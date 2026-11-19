@@ -28,7 +28,7 @@
 - **Hauptaufgabe ungestört weiterführen**: Nebenfragen werden separat beantwortet und standardmäßig nicht in den Hauptchat geschrieben.
 - **Rückmeldung nur auf Wunsch**: Bitten Sie in Ihrer Frage explizit darum („Sende die Antwort an die Hauptkonversation zurück“), damit per `send_message` eine vollständige Antwort übertragen wird. Ohne Aufforderung erfolgt keine Rückübertragung.
 - **Jederzeit abbrechen**: Das Schließen einer antwortenden Blase bricht diese Nebenfrage sofort ab.
-- **Umfassende Lokalisierung & Themes**: Folgt dem hellen und dunklen DSH-Design. Ab Host `0.2.2-rc.1` werden alle 8 offiziellen Sprachen (Deutsch, Englisch, Chinesisch, Japanisch, Spanisch, Französisch, Russisch, Portugiesisch) nativ unterstützt; frühere Hosts `0.2.0`〜`0.2.1` fallen sicher auf Chinesisch und Englisch zurück.
+- **Umfassende Lokalisierung & Themes**: Folgt dem hellen und dunklen DSH-Design. Alle 8 offiziellen Sprachen (Deutsch, Englisch, Chinesisch, Japanisch, Spanisch, Französisch, Russisch, Portugiesisch) werden nativ unterstützt.
 
 ## Benutzeroberfläche
 
@@ -83,9 +83,9 @@ Für eine vollwertige Desktop-Workbench laden Sie [DSH Codex Desktop](https://gi
 ## Voraussetzungen
 
 - DeepSeek Harness installiert.
-- Host-Kompatibilitätsbereich: DeepSeek Harness `0.2.x`-Gesamtreihe (`>=0.2.0-rc.1 <0.3.0-0`), verifiziert mit `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`〜`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`. Upgrades innerhalb derselben Generation erfordern keine neuen Plugin-Releases.
-- Sprachunterstützung: Ab DeepSeek Harness `0.2.2-rc.1` sind alle 8 integrierten Sprachen nativ auswählbar. Auf `0.2.0`〜`0.2.1`-Hosts bleiben zusätzlich registrierte Sprachwörterbücher inaktiv und die Oberfläche fällt sicher auf Chinesisch und Englisch zurück.
-- Ältere Hosts vor `0.2.0-rc.1` werden nicht mehr unterstützt. Destruktive Änderungen der `0.3.0`-Generation werden durch die Versionsschranke abgefangen. Benutzer von `0.1.x` sollten Version `0.1.24` installieren.
+- Host-Kompatibilitätsbereich: DeepSeek Harness ab `0.2.2-rc.1` (`>=0.2.2-rc.1 <0.3.0-0`), verifiziert mit `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`. Upgrades innerhalb derselben Generation erfordern keine neuen Plugin-Releases.
+- Sprachunterstützung: Alle 8 integrierten Sprachen (Deutsch, Englisch, Chinesisch, Japanisch, Spanisch, Französisch, Russisch, Portugiesisch) sind nativ auswählbar.
+- Ältere Hosts vor `0.2.2-rc.1` (einschließlich 0.2.0 und 0.2.1) werden nicht mehr unterstützt. Nicht unterstützte Hosts und destruktive Änderungen der `0.3.0`-Generation werden durch die Versionsschranke abgefangen. Benutzer früherer Hosts sollten auf `1.3.12` bleiben, Benutzer von `0.1.x` sollten Version `0.1.24` installieren.
 - Node.js 22+, Befehl `dsh` im Terminal verfügbar.
 
 ## Installation
@@ -113,7 +113,7 @@ dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://regist
 
 Installieren oder aktualisieren Sie nach Abschluss laufender Aufgaben; Desktop-Anwendungen starten unter Umständen automatisch neu. Falls die Änderungen nicht wirksam werden, nutzen Sie die Neulade-Funktion der Desktop-App oder starten Sie den `dsh web`-Dienst neu. Das reine Neuladen im Browser genügt nicht.
 
-Auf Hosts vor `0.2.0` sowie `0.2.1` alpha wird die Installation von `@latest` durch die Versionsschranke abgelehnt und das Plugin nicht ausgeführt. Für `0.1.x` installieren Sie bitte `0.1.24`. Bestehende Konfigurationen und Konversationsaufzeichnungen bleiben erhalten.
+Auf Hosts vor `0.2.2-rc.1` (einschließlich 0.2.0 und 0.2.1) wird die Installation von `@latest` durch die Versionsschranke abgelehnt und das Plugin nicht ausgeführt. Für frühere 0.2.x-Hosts bleiben Sie bitte auf `1.3.12`; für `0.1.x` installieren Sie bitte `0.1.24`. Bestehende Konfigurationen und Konversationsaufzeichnungen bleiben erhalten.
 
 ## Nutzung
 

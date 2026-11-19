@@ -75,7 +75,7 @@ export function apply(ctx: Context, config?: unknown): void {
   }
 
   const jobs = new SideJobs(async request => {
-    // 0.2.1-rc.1 起只有 startActivation；0.2.0-rc.1 与 0.2.0-rc.2 仍只有 start。
+    // >=0.2.2-rc.1 宿主统一使用 startActivation 激活子代理。
     const provider = ctx.subagents.getProvider('fork')
     const t = translate(request.locale)
     if (!provider?.inheritsParentContext) {

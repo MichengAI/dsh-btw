@@ -2,6 +2,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it } from 'vitest'
+import * as primitives from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   formatAsBlockquote,
   messageQuoteRanges,
@@ -142,7 +143,7 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
     expect(definitions.has('dsh-btw-blockquote')).toBe(true)
   })
 
-  it('OfficialQuotePreview 组件能在老版本缺少宿主 primitives 时优雅渲染引文卡片', async () => {
+  it('OfficialQuotePreview 组件优先复用宿主原语 QuotePreview 进行渲染', async () => {
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
@@ -151,11 +152,33 @@ describe('official-quote 对齐官方 Markdown blockquote 识别与格式化', (
     })
 
     expect(container.textContent).toContain('这是引用的正文')
-    const quoteNode = container.querySelector('.btw-official-quote-node')
+    const quoteNode = container.querySelector('[data-quote-preview]')
     expect(quoteNode).not.toBeNull()
     expect(quoteNode?.textContent).toBe('这是引用的正文')
     root.unmount()
     container.remove()
+  })
+
+  it('OfficialQuotePreview 组件在宿主缺少 QuotePreview 时安全降级为普通文本节点', async () => {
+    const original = (primitives as Record<string, unknown>).QuotePreview
+    delete (primitives as Record<string, unknown>).QuotePreview
+    try {
+      const container = document.createElement('div')
+      document.body.append(container)
+      const root = createRoot(container)
+      await act(async () => {
+        root.render(React.createElement(OfficialQuotePreview, { text: '降级正文' }))
+      })
+
+      expect(container.textContent).toContain('降级正文')
+      const quoteNode = container.querySelector('.btw-official-quote-node')
+      expect(quoteNode).not.toBeNull()
+      expect(quoteNode?.textContent).toBe('降级正文')
+      root.unmount()
+      container.remove()
+    } finally {
+      ;(primitives as Record<string, unknown>).QuotePreview = original
+    }
   })
 
   it('safeRegisterUserTextRule 与 safeRegisterInteraction 在重复注册时安全返回 undefined 不抛出异常', () => {

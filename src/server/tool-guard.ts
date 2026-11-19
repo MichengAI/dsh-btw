@@ -114,7 +114,7 @@ function descriptorLabel(data: unknown): string | undefined {
   return data.label
 }
 
-/** 有 sessionProjections 时优先读 subagent；投影未返回合法标签时回退同步快照。0.2.0-rc.1 仍有 snapshotEvents。 */
+/** 有 sessionProjections 时优先读 subagent；投影未返回合法标签时回退同步快照事件。 */
 function lastDescriptorLabel(session: object | undefined, identityOf?: IdentityOf): string | undefined {
   if (!session) return undefined
   if (identityOf) {

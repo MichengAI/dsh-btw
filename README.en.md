@@ -28,7 +28,7 @@
 - **Keep the main task going**: side questions are answered separately and by default do not add answers to the main conversation.
 - **Return on request**: when you want the conclusion available to the main conversation, ask for it in the question ("send the answer back to the main conversation") and the side ask uses `send_message` to deliver a self-contained answer to the main session. It does not send anything when you did not ask.
 - **Cancel anytime**: close a bubble while it is answering to cancel that question.
-- **Full i18n & Themes**: follow DSH light and dark themes with complete native support for all 8 official DeepSeek Harness languages (English, Chinese, Japanese, Spanish, French, German, Russian, Portuguese) from host 0.2.2-rc.1 onwards; earlier 0.2.0–0.2.1 hosts safely fall back to Chinese and English.
+- **Full i18n & Themes**: follow DSH light and dark themes with complete native support for all 8 official DeepSeek Harness languages (English, Chinese, Japanese, Spanish, French, German, Russian, Portuguese).
 
 ## Screenshots
 
@@ -83,9 +83,9 @@ For a desktop workbench, download [DSH Codex Desktop](https://github.com/Micheng
 ## Prerequisites
 
 - An installed copy of DeepSeek Harness.
-- Host compatibility: Full DeepSeek Harness `0.2.x` line (`>=0.2.0-rc.1 <0.3.0-0`), verified with `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-rc.1`–`0.2.1-rc.5`, `0.2.2-rc.1`, `0.2.2-rc.2`, and `0.2.2-rc.3`, and forwards-compatible with subsequent `0.2.x` RC releases without requiring routine plugin version bumps.
-- Language support: all 8 built-in languages are natively selectable from DeepSeek Harness `0.2.2-rc.1` onwards; on `0.2.0`–`0.2.1` hosts, extra registered locale dictionaries stay dormant and the UI safely falls back to English and Chinese.
-- Legacy hosts prior to `0.2.0-rc.1` are no longer supported. The version gate cleanly intercepts breaking changes in the `0.3.0` generation. Users on `0.1.x` hosts should install `0.1.24`.
+- Host compatibility: DeepSeek Harness `0.2.2-rc.1` onwards (`>=0.2.2-rc.1 <0.3.0-0`), verified with `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, and `0.2.2-rc.5`, and forwards-compatible with subsequent `0.2.x` RC releases without requiring routine plugin version bumps.
+- Language support: all 8 built-in languages (English, Chinese, Japanese, Spanish, French, German, Russian, Portuguese) are natively selectable.
+- Legacy hosts prior to `0.2.2-rc.1` (including 0.2.0 and 0.2.1 series) are no longer supported. The version gate cleanly intercepts unsupported hosts and breaking changes in the `0.3.0` generation. Users on earlier hosts should remain on `1.3.12`, and `0.1.x` users should install `0.1.24`.
 - Node.js 22+ and `dsh` available in your terminal.
 
 ## Installation
@@ -113,7 +113,7 @@ dsh plugin --profile web add @michengai/dsh-btw@latest --registry=https://regist
 
 Install or update after current tasks finish, as desktop apps may reload automatically. If the change has not taken effect, use the desktop app's reload action or restart the `dsh web` service. Refreshing the browser alone is not enough.
 
-Installing `@latest` on a host before `0.2.0`, or on a `0.2.1` alpha, is rejected by the version gate, and the plugin will not run. On `0.1.x`, install `0.1.24` instead. Rejection does not delete existing configuration or main-conversation records.
+Installing `@latest` on a host before `0.2.2-rc.1` (including 0.2.0 and 0.2.1 series) is rejected by the version gate, and the plugin will not run. On earlier 0.2.x hosts, remain on `1.3.12`; on `0.1.x`, install `0.1.24` instead. Rejection does not delete existing configuration or main-conversation records.
 
 ## Usage
 

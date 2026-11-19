@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] - 2026-11-19
+
+- **Host compatibility aligned with modern DeepSeek Harness releases**: Targets DeepSeek Harness `0.2.2-rc.1` and later, fully verified across `0.2.2-rc.1` through `0.2.2-rc.5`. Users on earlier `0.2.0` and `0.2.1` hosts should remain on version `1.3.12`.
+- **More resilient text-selection quoting**: Seamlessly leverages native host interactive quote primitives; when quoting while a response is submitting or rich-text quotes are unavailable, automatically transcribes the selection into standard quote formatting so references are never silently lost.
+- **Lighter footprint and streamlined package**: Removes obsolete fallback assets and unneeded dependencies, reducing package size and improving startup and runtime efficiency.
+
 ## [1.3.12] - 2026-11-18
 
 - **Seamless recovery for long-running deep-thinking side questions**: Fixes an issue where front-end connection timeouts on requests taking longer than 5 minutes (300 seconds) would cause the side-ask bubble to error and discard the answer. When a long HTTP connection times out, the server continues executing and preserves the completed result, allowing the front end to automatically reconnect and retrieve the full answer seamlessly (#27).

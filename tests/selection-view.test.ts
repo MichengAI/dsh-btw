@@ -252,4 +252,25 @@ it('当宿主提供 insertQuote 时，点击「引用文本」优先调用原生
   expect(focus).toHaveBeenCalledTimes(1)
 })
 
+it('当宿主 insertQuote 返回 false（如非 plain 状态或禁用引用）时，降级使用 Markdown 格式追加至草稿，绝不静默丢失', async () => {
+  const insertQuote = vi.fn(() => false)
+  const focus = vi.fn()
+  const mockInput = {
+    state: { getSnapshot: () => ({ draft: '既有输入内容', phase: 'submitting' }) },
+    setDraft: vi.fn(),
+    focus,
+    insertQuote,
+  }
+  await act(async () => root.render(React.createElement(React.Fragment, null,
+    React.createElement(SelectionAsk, { store, sessionId: 'session-a', t: translate(), input: mockInput }),
+    React.createElement(BubbleDock, { store, sessionId: 'session-a', t: translate() }))))
+
+  await open()
+  await click('引用文本')
+
+  expect(insertQuote).toHaveBeenCalledWith('引用中的原始正文')
+  expect(mockInput.setDraft).toHaveBeenCalledWith('既有输入内容\n\n> 引用中的原始正文\n\n')
+  expect(focus).toHaveBeenCalledTimes(1)
+})
+
 
