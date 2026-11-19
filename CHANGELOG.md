@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.2] - 2026-11-19
+
+- **Real-time context awareness during in-flight steps**: When asking a side question (`/btw`) while the main assistant is actively running a tool, the side ask now seamlessly captures the current turn's prompt, reasoning, and the active tool call instead of appearing amnesic (#28).
+
 ## [1.4.1] - 2026-11-19
 
 - **Host compatibility aligned with modern DeepSeek Harness releases**: Targets DeepSeek Harness `0.2.2-rc.1` and later, fully verified across `0.2.2-rc.1` through `0.2.2-rc.5`. Users on earlier `0.2.0` and `0.2.1` hosts should remain on version `1.3.12`.
