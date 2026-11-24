@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.3] - 2026-11-24
+
+- **Full compatibility with latest DeepSeek Harness 0.2.3 releases**: Seamlessly adapts to the latest DeepSeek Harness `0.2.3-alpha.2` host runtime, covering verified releases from `0.2.2-rc.1` through `0.2.3-alpha.2`; side-ask execution and tool interception remain smooth and reliable.
+- **Modernized runtime baseline**: Aligns with official runtime and ecosystem dependencies, supporting modern lifecycle contracts for smoother and more resilient operation.
+
 ## [1.4.2] - 2026-11-19
 
 - **Real-time context awareness during in-flight steps**: When asking a side question (`/btw`) while the main assistant is actively running a tool, the side ask now seamlessly captures the current turn's prompt and active tool call context instead of appearing amnesic (#28).
