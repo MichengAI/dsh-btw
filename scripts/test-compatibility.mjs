@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'))
-const defaultTestedHosts = ['0.2.2-rc.1', '0.2.2-rc.2', '0.2.2-rc.3', '0.2.2-rc.4', '0.2.2-rc.5']
+const defaultTestedHosts = ['0.2.2-rc.1', '0.2.2-rc.2', '0.2.2-rc.3', '0.2.2-rc.4', '0.2.2-rc.5', '0.2.3-alpha.2']
 const versions = process.argv.slice(2)
 if (!versions.length) versions.push(...defaultTestedHosts)
 if (!process.env.npm_execpath) throw new Error('请通过 npm run test:compat 执行')
@@ -27,7 +27,7 @@ for (const version of versions) {
   console.log(`\nDSH ${version}：准备独立依赖图`)
   try {
     const dependencies = Object.fromEntries(Object.entries(pkg.devDependencies)
-      .filter(([name]) => !name.startsWith('@deepseek-ai/dsh-'))
+      .filter(([name]) => !name.startsWith('@deepseek-ai/dsh-') && name !== '@deepseek-ai/cordis')
       .map(([name, range]) => [name, lock.packages[`node_modules/${name}`]?.version ?? range]))
     // 内部辅助包由各版依赖图决定，不在这里钉死。
     const internal = new Set(['error', 'api-session-controller', 'subagent-in-process-driver', 'subagent-spawn-in-process', 'session-persistence', 'util-time', 'ptc-runtime'].map(name => `@deepseek-ai/dsh-${name}`))
@@ -60,10 +60,17 @@ for (const version of versions) {
       await Promise.all(batch.map(async name => {
         const manifest = await fetchJson(`https://registry.npmjs.org/${name}/${version}`)
         dependencies[name] = version
-        for (const dependency of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
-          if (dependency.startsWith('@deepseek-ai/dsh-') && !manifest.peerDependenciesMeta?.[dependency]?.optional) pending.push(dependency)
+        for (const [dependency, range] of Object.entries({ ...manifest.dependencies, ...manifest.peerDependencies })) {
+          if (dependency.startsWith('@deepseek-ai/dsh-') && !manifest.peerDependenciesMeta?.[dependency]?.optional) {
+            pending.push(dependency)
+          } else if (dependency === '@deepseek-ai/cordis') {
+            dependencies[dependency] = range
+          }
         }
       }))
+    }
+    if (!dependencies['@deepseek-ai/cordis']) {
+      dependencies['@deepseek-ai/cordis'] = lock.packages['node_modules/@deepseek-ai/cordis']?.version ?? pkg.devDependencies['@deepseek-ai/cordis']
     }
     writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: 'dsh-btw-compatibility', private: true, type: 'module', dependencies }, null, 2) + '\n', 'utf8')
     for (const name of ['src', 'lib', 'tests', 'scripts', 'locale', 'tsconfig.json', 'tsconfig.build.json', 'vitest.config.ts', 'cordis.patch.yml']) {

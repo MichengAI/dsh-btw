@@ -58,8 +58,9 @@ describe(`DSH ${runtimeVersion} 真实运行时`, () => {
     const commands = new Map<string, CommandDefinition>()
     ctx.provide('commands', { register: (command: CommandDefinition) => { commands.set(command.name, command); return () => { commands.delete(command.name) } } })
     ctx.provide('subagents', { getProvider: () => undefined })
-    const fiber = ctx.root.fiber as { effect(execute: () => unknown, label?: string): unknown }
-    const rootEffect = fiber.effect.bind(ctx.root.fiber)
+    const rootCtx = ((Context as any).root ? (ctx as any)[(Context as any).root] : (ctx as any).root) ?? ctx
+    const fiber = rootCtx.fiber as { effect(execute: () => unknown, label?: string): unknown }
+    const rootEffect = fiber.effect.bind(fiber)
     fiber.effect = (execute, label) => {
       if (label === 'tools.guard()') throw new Error('dsh-tui: root.effect is unavailable from a plugin activation')
       return rootEffect(execute, label)
