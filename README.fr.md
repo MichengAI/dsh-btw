@@ -83,7 +83,7 @@ Pour utiliser l'espace de travail sur bureau, téléchargez [DSH Codex Desktop](
 ## Prérequis
 
 - DeepSeek Harness installé.
-- Compatibilité de l'hôte : DeepSeek Harness `0.2.2-rc.1` et ultérieur (`>=0.2.2-rc.1 <0.3.0-0`), validée sur `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`. Les mises à niveau de la même génération ne nécessitent pas de nouvelles versions du plugin.
+- Compatibilité de l'hôte : DeepSeek Harness `0.2.2-rc.1` et ultérieur (`>=0.2.2-rc.1 <0.3.0-0`), validée sur `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`, `0.2.3-alpha.2`. Les mises à niveau de la même génération ne nécessitent pas de nouvelles versions du plugin.
 - Support linguistique : l'ensemble des 8 langues intégrées (français, anglais, chinois, japonais, espagnol, allemand, russe, portugais) est nativement sélectionnable.
 - Les hôtes antérieurs à `0.2.2-rc.1` (y compris les séries 0.2.0 et 0.2.1) ne sont plus pris en charge. Les hôtes incompatibles et les modifications destructives de la génération `0.3.0` sont interceptés par la barrière de version. Les utilisateurs d'hôtes antérieurs doivent rester sur `1.3.12` ; pour `0.1.x`, installez `0.1.24`.
 - Node.js 22+, avec la commande `dsh` disponible dans le terminal.

@@ -28,13 +28,7 @@ export declare function volatileField<T extends {
         volatile?: boolean;
     };
 }>(schema: T): T;
-export declare const Config: z<Schemastery.ObjectS<NoInfer<{
-    allowedTools: z<string[], string[], "defined">;
-    promptPrefix: z<string, string, "defined">;
-}>>, Schemastery.ObjectT<NoInfer<{
-    allowedTools: z<string[], string[], "defined">;
-    promptPrefix: z<string, string, "defined">;
-}>>, "defined">;
+export declare const Config: z<any>;
 /** 解析后的配置：只保留执行期真正会用到的两个值。 */
 export interface BtwSettings {
     /** 除 send_message 之外允许调用的工具名（已去重、去空、截断）。 */

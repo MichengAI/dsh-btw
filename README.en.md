@@ -83,7 +83,7 @@ For a desktop workbench, download [DSH Codex Desktop](https://github.com/Micheng
 ## Prerequisites
 
 - An installed copy of DeepSeek Harness.
-- Host compatibility: DeepSeek Harness `0.2.2-rc.1` onwards (`>=0.2.2-rc.1 <0.3.0-0`), verified with `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, and `0.2.2-rc.5`, and forwards-compatible with subsequent `0.2.x` RC releases without requiring routine plugin version bumps.
+- Host compatibility: DeepSeek Harness `0.2.2-rc.1` onwards (`>=0.2.2-rc.1 <0.3.0-0`), verified with `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`, and `0.2.3-alpha.2`, and forwards-compatible with subsequent `0.2.x` releases without requiring routine plugin version bumps.
 - Language support: all 8 built-in languages (English, Chinese, Japanese, Spanish, French, German, Russian, Portuguese) are natively selectable.
 - Legacy hosts prior to `0.2.2-rc.1` (including 0.2.0 and 0.2.1 series) are no longer supported. The version gate cleanly intercepts unsupported hosts and breaking changes in the `0.3.0` generation. Users on earlier hosts should remain on `1.3.12`, and `0.1.x` users should install `0.1.24`.
 - Node.js 22+ and `dsh` available in your terminal.

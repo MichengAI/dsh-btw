@@ -83,7 +83,7 @@ Si desea utilizar la estación de trabajo de escritorio, descargue [DSH Codex De
 ## Requisitos previos
 
 - DeepSeek Harness instalado.
-- Rango de compatibilidad del host: DeepSeek Harness `0.2.2-rc.1` en adelante (`>=0.2.2-rc.1 <0.3.0-0`), verificado con `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`. Las actualizaciones dentro de la misma generación no requieren esperar nuevos lanzamientos del plugin.
+- Rango de compatibilidad del host: DeepSeek Harness `0.2.2-rc.1` en adelante (`>=0.2.2-rc.1 <0.3.0-0`), verificado con `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`, `0.2.3-alpha.2`. Las actualizaciones dentro de la misma generación no requieren esperar nuevos lanzamientos del plugin.
 - Rango de compatibilidad de idiomas: los 8 idiomas integrados (español, inglés, chino, japonés, francés, alemán, ruso y portugués) son seleccionables de forma nativa.
 - Los hosts anteriores a `0.2.2-rc.1` (incluyendo las series 0.2.0 y 0.2.1) ya no son compatibles. Las versiones no compatibles y los cambios destructivos de la generación `0.3.0` son bloqueados por la barrera de versión. Los usuarios de hosts anteriores deben permanecer en `1.3.12`, y los usuarios de `0.1.x` deben instalar `0.1.24`.
 - Node.js 22+, capaz de ejecutar el comando `dsh` en la terminal.

@@ -83,7 +83,7 @@ Für eine vollwertige Desktop-Workbench laden Sie [DSH Codex Desktop](https://gi
 ## Voraussetzungen
 
 - DeepSeek Harness installiert.
-- Host-Kompatibilitätsbereich: DeepSeek Harness ab `0.2.2-rc.1` (`>=0.2.2-rc.1 <0.3.0-0`), verifiziert mit `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`. Upgrades innerhalb derselben Generation erfordern keine neuen Plugin-Releases.
+- Host-Kompatibilitätsbereich: DeepSeek Harness ab `0.2.2-rc.1` (`>=0.2.2-rc.1 <0.3.0-0`), verifiziert mit `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`, `0.2.3-alpha.2`. Upgrades innerhalb derselben Generation erfordern keine neuen Plugin-Releases.
 - Sprachunterstützung: Alle 8 integrierten Sprachen (Deutsch, Englisch, Chinesisch, Japanisch, Spanisch, Französisch, Russisch, Portugiesisch) sind nativ auswählbar.
 - Ältere Hosts vor `0.2.2-rc.1` (einschließlich 0.2.0 und 0.2.1) werden nicht mehr unterstützt. Nicht unterstützte Hosts und destruktive Änderungen der `0.3.0`-Generation werden durch die Versionsschranke abgefangen. Benutzer früherer Hosts sollten auf `1.3.12` bleiben, Benutzer von `0.1.x` sollten Version `0.1.24` installieren.
 - Node.js 22+, Befehl `dsh` im Terminal verfügbar.

@@ -40,7 +40,7 @@ export function volatileField<T extends { meta?: { volatile?: boolean } }>(schem
 /** 白名单条目上限；只用于限制误操作，不是安全边界（真正的边界是执行期闸门）。 */
 const MAX_ALLOWED_TOOLS = 64
 
-export const Config = z.object({
+export const Config: z<any> = z.object({
   allowedTools: volatileField(z.array(z.string()).default([]).description(
     'Tools the side question may call besides send_message, one tool name each (for example pele_draw). Empty keeps the default text-only behaviour.',
   )),

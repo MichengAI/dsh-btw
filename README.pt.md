@@ -83,7 +83,7 @@ Para obter um ambiente de trabalho completo em desktop, baixe o [DSH Codex Deskt
 ## Pré-requisitos
 
 - DeepSeek Harness instalado.
-- Intervalo de suporte do host: DeepSeek Harness a partir de `0.2.2-rc.1` (`>=0.2.2-rc.1 <0.3.0-0`), verificado em `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`. Atualizações dentro da mesma geração não requerem aguardar novas versões do plugin.
+- Intervalo de suporte do host: DeepSeek Harness a partir de `0.2.2-rc.1` (`>=0.2.2-rc.1 <0.3.0-0`), verificado em `0.2.2-rc.1`, `0.2.2-rc.2`, `0.2.2-rc.3`, `0.2.2-rc.4`, `0.2.2-rc.5`, `0.2.3-alpha.2`. Atualizações dentro da mesma geração não requerem aguardar novas versões do plugin.
 - Suporte a idiomas: todos os 8 idiomas integrados (português, inglês, chinês, japonês, espanhol, francês, alemão, russo) são selecionáveis nativamente.
 - Hosts anteriores a `0.2.2-rc.1` (incluindo as séries 0.2.0 e 0.2.1) não são mais suportados. Versões não suportadas e modificações destrutivas da geração `0.3.0` serão interceptadas pela barreira de versão. Usuários de hosts anteriores devem permanecer em `1.3.12`; usuários de `0.1.x` devem instalar `0.1.24`.
 - Node.js 22+, comando `dsh` funcional no terminal.
